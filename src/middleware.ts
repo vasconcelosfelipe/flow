@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 
+// O middleware corre no Edge Runtime — sem acesso ao Prisma/Node.js nativo.
+// Verificamos apenas a presença do cookie de sessão do Better Auth.
+// A validação real da sessão (contra o banco) acontece em requireSessao()
+// dentro de cada Server Component ou Server Action.
+
+const SESSION_COOKIE = "better-auth.session_token";
 const PUBLIC_PATHS = ["/login", "/api/auth"];
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
+  const hasSession = request.cookies.has(SESSION_COOKIE);
 
-  if (!session) {
+  if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);

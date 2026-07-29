@@ -12,6 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Gera o cliente Prisma antes do build (necessário para o Next.js resolver os imports)
+RUN npx prisma generate --config prisma/prisma.config.ts
 RUN npm run build
 
 # ---- runner: só o necessário para rodar, nada de node_modules inteiro ----
