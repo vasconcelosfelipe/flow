@@ -6,6 +6,7 @@ import { FiltrosPendencias } from "@/features/pendencias/filtros";
 import { ListaPendencias } from "@/features/pendencias/lista-pendencias";
 import { BotaoNovaPendencia } from "@/features/pendencias/nova-pendencia";
 import { requireSessao } from "@/lib/sessao";
+import { listarContas } from "@/services/contas";
 import { listarPendencias } from "@/services/pendencias";
 import type { TipoMovimentacao } from "@/types/dominio";
 
@@ -17,16 +18,19 @@ export default async function APagarReceberPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const tipo = params.tipo === "DESPESA" || params.tipo === "RECEITA" ? params.tipo : undefined;
 
-  const pagina = await listarPendencias(empresaAtiva.id, {
-    tipo: tipo as TipoMovimentacao | undefined,
-    situacao: params.situacao === "vencidas" ? "vencidas" : undefined,
-  });
+  const [pagina, contas] = await Promise.all([
+    listarPendencias(empresaAtiva.id, {
+      tipo: tipo as TipoMovimentacao | undefined,
+      situacao: params.situacao === "vencidas" ? "vencidas" : undefined,
+    }),
+    listarContas(empresaAtiva.id),
+  ]);
 
   return (
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">A pagar e a receber</h1>
-        <BotaoNovaPendencia />
+        <BotaoNovaPendencia contas={contas.map((c) => ({ id: c.id, nome: c.nome }))} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTransition, useMemo, useState } from "react";
 import { Plus, Users } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -9,42 +10,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormularioContato } from "@/features/contatos/formulario-contato";
 import { LinhaContato } from "@/features/contatos/linha-contato";
+import { criarContato, editarContato, excluirContato } from "@/services/contatos/actions";
 import type { ContatoCompleto, FormularioContato as DadosFormulario } from "@/services/contatos/dto";
 
 export function GerenciadorContatos({ inicial }: { inicial: ContatoCompleto[] }) {
-  const [contatos, setContatos] = useState(inicial);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [busca, setBusca] = useState("");
   const [editando, setEditando] = useState<ContatoCompleto | null | "novo">(null);
 
   const visiveis = useMemo(() => {
-    if (!busca.trim()) return contatos;
+    if (!busca.trim()) return inicial;
     const alvo = busca.trim().toLocaleLowerCase("pt-BR");
-    return contatos.filter((c) => c.nome.toLocaleLowerCase("pt-BR").includes(alvo));
-  }, [contatos, busca]);
+    return inicial.filter((c) => c.nome.toLocaleLowerCase("pt-BR").includes(alvo));
+  }, [inicial, busca]);
 
   function salvar(dados: DadosFormulario) {
-    setContatos((atuais) => {
+    startTransition(async () => {
       if (dados.id) {
-        return atuais.map((c) =>
-          c.id === dados.id ? { ...c, nome: dados.nome, tipo: dados.tipo, documento: dados.documento } : c,
-        );
+        await editarContato(dados.id, dados);
+      } else {
+        await criarContato(dados);
       }
-
-      const novo: ContatoCompleto = {
-        id: `ctt_custom_${Date.now()}`,
-        nome: dados.nome,
-        tipo: dados.tipo,
-        documento: dados.documento,
-        quantidadeMovimentacoes: 0,
-      };
-      return [...atuais, novo];
+      setEditando(null);
+      router.refresh();
     });
-    setEditando(null);
   }
 
   function excluir(id: string) {
-    setContatos((atuais) => atuais.filter((c) => c.id !== id));
-    setEditando(null);
+    startTransition(async () => {
+      await excluirContato(id);
+      setEditando(null);
+      router.refresh();
+    });
   }
 
   const contatoEmEdicao = editando === "novo" ? null : editando;
@@ -58,7 +56,7 @@ export function GerenciadorContatos({ inicial }: { inicial: ContatoCompleto[] })
           placeholder="Buscar contato…"
           className="h-10 flex-1 rounded-xl border-line bg-surface px-3"
         />
-        <Button size="sm" className="h-10 gap-1.5 px-3" onClick={() => setEditando("novo")}>
+        <Button size="sm" className="h-10 gap-1.5 px-3" onClick={() => setEditando("novo")} disabled={pending}>
           <Plus className="size-4" aria-hidden="true" />
           Novo
         </Button>
@@ -76,7 +74,7 @@ export function GerenciadorContatos({ inicial }: { inicial: ContatoCompleto[] })
             <LinhaContato
               key={contato.id}
               contato={contato}
-              aoAbrir={(id) => setEditando(contatos.find((c) => c.id === id) ?? null)}
+              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
             />
           ))}
         </div>

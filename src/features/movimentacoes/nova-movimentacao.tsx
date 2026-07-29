@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTransition, useState } from "react";
 import { Plus, Upload } from "lucide-react";
 import Link from "next/link";
 
@@ -15,14 +16,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { criarMovimentacao } from "@/services/movimentacoes/actions";
 
-export function BotoesMovimentacoes() {
+type OpcaoConta = { id: string; nome: string };
+
+export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [aberto, setAberto] = useState(false);
+
+  const [descricao, setDescricao] = useState("");
+  const [valor, setValor] = useState("");
+  const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [status, setStatus] = useState<"PAGO" | "PENDENTE" | "CONCILIADO">("PAGO");
+  const [contaId, setContaId] = useState(contas[0]?.id ?? "");
+
+  function resetar() {
+    setDescricao("");
+    setValor("");
+    setTipo("DESPESA");
+    setData(new Date().toISOString().slice(0, 10));
+    setStatus("PAGO");
+    setContaId(contas[0]?.id ?? "");
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: conectar ao Server Action quando o backend estiver pronto
-    setAberto(false);
+    const centavos = Math.round(parseFloat(valor.replace(",", ".")) * 100);
+    if (!centavos || !contaId) return;
+    startTransition(async () => {
+      await criarMovimentacao({ descricao, tipo, valorCentavos: centavos, contaId, status, data });
+      setAberto(false);
+      resetar();
+      router.refresh();
+    });
   }
 
   return (
@@ -42,35 +70,41 @@ export function BotoesMovimentacoes() {
 
       <ResponsiveModal
         aberto={aberto}
-        aoMudarAberto={setAberto}
+        aoMudarAberto={(v) => { setAberto(v); if (!v) resetar(); }}
         titulo="Nova movimentação"
         descricao="Registre uma entrada ou saída manualmente."
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="nova-descricao">Descrição</Label>
-              <Input id="nova-descricao" placeholder="Ex: Aluguel de equipamento" required />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="nova-valor">Valor (R$)</Label>
+              <Label htmlFor="nov-descricao">Descrição</Label>
               <Input
-                id="nova-valor"
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="0,00"
+                id="nov-descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Ex: Aluguel de equipamento"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="nova-tipo">Tipo</Label>
-              <Select required defaultValue="DESPESA">
-                <SelectTrigger id="nova-tipo">
-                  <SelectValue />
-                </SelectTrigger>
+              <Label htmlFor="nov-valor">Valor (R$)</Label>
+              <Input
+                id="nov-valor"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="0,00"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Tipo</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="RECEITA">Receita</SelectItem>
                   <SelectItem value="DESPESA">Despesa</SelectItem>
@@ -79,21 +113,20 @@ export function BotoesMovimentacoes() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="nova-data">Data</Label>
+              <Label htmlFor="nov-data">Data</Label>
               <Input
-                id="nova-data"
+                id="nov-data"
                 type="date"
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                value={data}
+                onChange={(e) => setData(e.target.value)}
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="nova-status">Status</Label>
-              <Select required defaultValue="PAGO">
-                <SelectTrigger id="nova-status">
-                  <SelectValue />
-                </SelectTrigger>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PAGO">Pago</SelectItem>
                   <SelectItem value="PENDENTE">Pendente</SelectItem>
@@ -101,13 +134,29 @@ export function BotoesMovimentacoes() {
                 </SelectContent>
               </Select>
             </div>
+
+            {contas.length > 0 && (
+              <div className="col-span-2 space-y-1.5">
+                <Label>Conta</Label>
+                <Select value={contaId} onValueChange={setContaId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {contas.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setAberto(false)}>
+            <Button type="button" variant="outline" onClick={() => { setAberto(false); resetar(); }}>
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <Button type="submit" disabled={pending || !contaId}>
+              {pending ? "Salvando…" : "Salvar"}
+            </Button>
           </div>
         </form>
       </ResponsiveModal>

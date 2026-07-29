@@ -12,6 +12,25 @@ async function verificarAdmin() {
   return sessao;
 }
 
+export async function criarEmpresa(dados: { nome: string; slug: string; cnpj?: string | null }) {
+  await verificarAdmin();
+  await db.empresa.create({ data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj } });
+  revalidatePath("/console/empresas");
+}
+
+export async function editarEmpresa(id: string, dados: { nome: string; slug: string; cnpj?: string | null }) {
+  await verificarAdmin();
+  await db.empresa.update({ where: { id }, data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj } });
+  revalidatePath("/console/empresas");
+}
+
+export async function alternarEmpresaAtiva(id: string) {
+  await verificarAdmin();
+  const empresa = await db.empresa.findUniqueOrThrow({ where: { id }, select: { ativa: true } });
+  await db.empresa.update({ where: { id }, data: { ativa: !empresa.ativa } });
+  revalidatePath("/console/empresas");
+}
+
 export async function atribuirEmpresa(
   userId: string,
   empresaId: string,

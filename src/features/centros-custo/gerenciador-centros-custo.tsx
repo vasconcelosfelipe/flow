@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTransition, useState } from "react";
 import { Plus, Tags } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -8,35 +9,35 @@ import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { FormularioCentroCusto } from "@/features/centros-custo/formulario-centro-custo";
 import { LinhaCentroCusto } from "@/features/centros-custo/linha-centro-custo";
+import { criarCentroCusto, editarCentroCusto, excluirCentroCusto } from "@/services/centros-custo/actions";
 import type {
   CentroCustoCompleto,
   FormularioCentroCusto as DadosFormulario,
 } from "@/services/centros-custo/dto";
 
 export function GerenciadorCentrosCusto({ inicial }: { inicial: CentroCustoCompleto[] }) {
-  const [centros, setCentros] = useState(inicial);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [editando, setEditando] = useState<CentroCustoCompleto | null | "novo">(null);
 
   function salvar(dados: DadosFormulario) {
-    setCentros((atuais) => {
+    startTransition(async () => {
       if (dados.id) {
-        return atuais.map((c) => (c.id === dados.id ? { ...c, nome: dados.nome, cor: dados.cor } : c));
+        await editarCentroCusto(dados.id, dados);
+      } else {
+        await criarCentroCusto(dados);
       }
-
-      const novo: CentroCustoCompleto = {
-        id: `cc_custom_${Date.now()}`,
-        nome: dados.nome,
-        cor: dados.cor,
-        quantidadeMovimentacoes: 0,
-      };
-      return [...atuais, novo];
+      setEditando(null);
+      router.refresh();
     });
-    setEditando(null);
   }
 
   function excluir(id: string) {
-    setCentros((atuais) => atuais.filter((c) => c.id !== id));
-    setEditando(null);
+    startTransition(async () => {
+      await excluirCentroCusto(id);
+      setEditando(null);
+      router.refresh();
+    });
   }
 
   const centroEmEdicao = editando === "novo" ? null : editando;
@@ -44,13 +45,13 @@ export function GerenciadorCentrosCusto({ inicial }: { inicial: CentroCustoCompl
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button size="sm" className="gap-1.5" onClick={() => setEditando("novo")}>
+        <Button size="sm" className="gap-1.5" onClick={() => setEditando("novo")} disabled={pending}>
           <Plus className="size-4" aria-hidden="true" />
           Novo
         </Button>
       </div>
 
-      {centros.length === 0 ? (
+      {inicial.length === 0 ? (
         <EmptyState
           icone={Tags}
           titulo="Nenhum centro de custo"
@@ -58,11 +59,11 @@ export function GerenciadorCentrosCusto({ inicial }: { inicial: CentroCustoCompl
         />
       ) : (
         <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-          {centros.map((centro) => (
+          {inicial.map((centro) => (
             <LinhaCentroCusto
               key={centro.id}
               centro={centro}
-              aoAbrir={(id) => setEditando(centros.find((c) => c.id === id) ?? null)}
+              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
             />
           ))}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTransition, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,14 +15,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { criarPendencia } from "@/services/movimentacoes/actions";
 
-export function BotaoNovaPendencia() {
+type OpcaoConta = { id: string; nome: string };
+
+export function BotaoNovaPendencia({ contas }: { contas: OpcaoConta[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [aberto, setAberto] = useState(false);
+
+  const [descricao, setDescricao] = useState("");
+  const [valor, setValor] = useState("");
+  const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
+  const [vencimento, setVencimento] = useState(new Date().toISOString().slice(0, 10));
+  const [contaId, setContaId] = useState(contas[0]?.id ?? "");
+
+  function resetar() {
+    setDescricao("");
+    setValor("");
+    setTipo("DESPESA");
+    setVencimento(new Date().toISOString().slice(0, 10));
+    setContaId(contas[0]?.id ?? "");
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // TODO: conectar ao Server Action quando o backend estiver pronto
-    setAberto(false);
+    const centavos = Math.round(parseFloat(valor.replace(",", ".")) * 100);
+    if (!centavos || !contaId) return;
+    startTransition(async () => {
+      await criarPendencia({ descricao, tipo, valorCentavos: centavos, contaId, dataVencimento: vencimento });
+      setAberto(false);
+      resetar();
+      router.refresh();
+    });
   }
 
   return (
@@ -33,7 +59,7 @@ export function BotaoNovaPendencia() {
 
       <ResponsiveModal
         aberto={aberto}
-        aoMudarAberto={setAberto}
+        aoMudarAberto={(v) => { setAberto(v); if (!v) resetar(); }}
         titulo="Novo título"
         descricao="Registre uma conta a pagar ou a receber."
       >
@@ -41,7 +67,13 @@ export function BotaoNovaPendencia() {
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label htmlFor="pend-descricao">Descrição</Label>
-              <Input id="pend-descricao" placeholder="Ex: Fatura do fornecedor" required />
+              <Input
+                id="pend-descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Ex: Fatura do fornecedor"
+                required
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -52,16 +84,16 @@ export function BotaoNovaPendencia() {
                 min="0.01"
                 step="0.01"
                 placeholder="0,00"
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="pend-tipo">Tipo</Label>
-              <Select required defaultValue="DESPESA">
-                <SelectTrigger id="pend-tipo">
-                  <SelectValue />
-                </SelectTrigger>
+              <Label>Tipo</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DESPESA">A pagar</SelectItem>
                   <SelectItem value="RECEITA">A receber</SelectItem>
@@ -74,22 +106,34 @@ export function BotaoNovaPendencia() {
               <Input
                 id="pend-vencimento"
                 type="date"
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                value={vencimento}
+                onChange={(e) => setVencimento(e.target.value)}
                 required
               />
             </div>
 
-            <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="pend-contato">Contato (opcional)</Label>
-              <Input id="pend-contato" placeholder="Nome do cliente ou fornecedor" />
-            </div>
+            {contas.length > 0 && (
+              <div className="col-span-2 space-y-1.5">
+                <Label>Conta</Label>
+                <Select value={contaId} onValueChange={setContaId}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {contas.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setAberto(false)}>
+            <Button type="button" variant="outline" onClick={() => { setAberto(false); resetar(); }}>
               Cancelar
             </Button>
-            <Button type="submit">Salvar</Button>
+            <Button type="submit" disabled={pending || !contaId}>
+              {pending ? "Salvando…" : "Salvar"}
+            </Button>
           </div>
         </form>
       </ResponsiveModal>

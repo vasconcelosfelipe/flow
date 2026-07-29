@@ -45,7 +45,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">Movimentações</h1>
-        <BotoesMovimentacoes />
+        <BotoesMovimentacoes contas={contas.map((c) => ({ id: c.id, nome: c.nome }))} />
       </div>
 
       <PeriodPicker />

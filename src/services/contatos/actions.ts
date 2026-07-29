@@ -1,0 +1,31 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+
+import { db } from "@/lib/db";
+import { requireSessao } from "@/lib/sessao";
+import type { FormularioContato } from "@/services/contatos/dto";
+
+async function obterEmpresa() {
+  const sessao = await requireSessao();
+  if (!sessao.empresaAtiva) throw new Error("Sem empresa ativa");
+  return sessao.empresaAtiva.id;
+}
+
+export async function criarContato(dados: FormularioContato) {
+  const empresaId = await obterEmpresa();
+  await db.contato.create({ data: { empresaId, nome: dados.nome, tipo: dados.tipo, documento: dados.documento } });
+  revalidatePath("/contatos");
+}
+
+export async function editarContato(id: string, dados: FormularioContato) {
+  const empresaId = await obterEmpresa();
+  await db.contato.update({ where: { id, empresaId }, data: { nome: dados.nome, tipo: dados.tipo, documento: dados.documento } });
+  revalidatePath("/contatos");
+}
+
+export async function excluirContato(id: string) {
+  const empresaId = await obterEmpresa();
+  await db.contato.update({ where: { id, empresaId }, data: { ativo: false } });
+  revalidatePath("/contatos");
+}

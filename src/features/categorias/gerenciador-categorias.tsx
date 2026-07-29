@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTransition, useMemo, useState } from "react";
 import { Plus, Tags } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -9,58 +10,36 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormularioCategoria } from "@/features/categorias/formulario-categoria";
 import { LinhaCategoria } from "@/features/categorias/linha-categoria";
+import { criarCategoria, editarCategoria, excluirCategoria } from "@/services/categorias/actions";
 import type { CategoriaCompleta, FormularioCategoria as DadosFormulario } from "@/services/categorias/dto";
 import type { TipoMovimentacao } from "@/types/dominio";
 
-function resolverLinha(dados: DadosFormulario) {
-  return {
-    linhaDreId: dados.linhaDreId ?? null,
-    linhaDreNome: dados.linhaDreId ? dados.linhaDreId : "Sem conta de DRE vinculada",
-    grupoDre: dados.tipo,
-  };
-}
-
-/**
- * Dono do estado das categorias na Fase 1: sem backend, a lista vive aqui e
- * volta ao mock a cada recarregamento. Fase 2 troca isto por mutações do
- * Prisma — a lista, o formulário e as regras (não excluir em uso) não mudam.
- */
 export function GerenciadorCategorias({ inicial }: { inicial: CategoriaCompleta[] }) {
-  const [categorias, setCategorias] = useState(inicial);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [aba, setAba] = useState<TipoMovimentacao>("DESPESA");
   const [editando, setEditando] = useState<CategoriaCompleta | null | "nova">(null);
 
-  const visiveis = useMemo(() => categorias.filter((c) => c.tipo === aba), [categorias, aba]);
+  const visiveis = useMemo(() => inicial.filter((c) => c.tipo === aba), [inicial, aba]);
 
   function salvar(dados: DadosFormulario) {
-    const linha = resolverLinha(dados);
-
-    setCategorias((atuais) => {
+    startTransition(async () => {
       if (dados.id) {
-        return atuais.map((c) =>
-          c.id === dados.id
-            ? { ...c, nome: dados.nome, icone: dados.icone, cor: dados.cor, tipo: dados.tipo, ...linha }
-            : c,
-        );
+        await editarCategoria(dados.id, dados);
+      } else {
+        await criarCategoria(dados);
       }
-
-      const nova: CategoriaCompleta = {
-        id: `cat_custom_${Date.now()}`,
-        nome: dados.nome,
-        icone: dados.icone,
-        cor: dados.cor,
-        tipo: dados.tipo,
-        quantidadeMovimentacoes: 0,
-        ...linha,
-      };
-      return [...atuais, nova];
+      setEditando(null);
+      router.refresh();
     });
-    setEditando(null);
   }
 
   function excluir(id: string) {
-    setCategorias((atuais) => atuais.filter((c) => c.id !== id));
-    setEditando(null);
+    startTransition(async () => {
+      await excluirCategoria(id);
+      setEditando(null);
+      router.refresh();
+    });
   }
 
   const categoriaEmEdicao = editando === "nova" ? null : editando;
@@ -75,7 +54,7 @@ export function GerenciadorCategorias({ inicial }: { inicial: CategoriaCompleta[
           </TabsList>
         </Tabs>
 
-        <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")}>
+        <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")} disabled={pending}>
           <Plus className="size-4" aria-hidden="true" />
           Nova
         </Button>
@@ -93,7 +72,7 @@ export function GerenciadorCategorias({ inicial }: { inicial: CategoriaCompleta[
             <LinhaCategoria
               key={categoria.id}
               categoria={categoria}
-              aoAbrir={(id) => setEditando(categorias.find((c) => c.id === id) ?? null)}
+              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
             />
           ))}
         </div>

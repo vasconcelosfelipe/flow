@@ -18,19 +18,17 @@ import {
 } from "@/components/ui/select";
 import { ICONES, iconeDe, type ChaveIcone } from "@/lib/icones";
 import { cn } from "@/lib/utils";
-import { DEFINICAO_LINHAS } from "@/services/dre/definicoes";
+import { ORDEM_SECOES, ROTULO_SECAO } from "@/services/dre/definicoes";
 import type { CategoriaCompleta, FormularioCategoria } from "@/services/categorias/dto";
-import type { TipoGrupoDre, TipoMovimentacao } from "@/types/dominio";
+import type { TipoMovimentacao } from "@/types/dominio";
 
 const SEM_LINHA = "nenhuma";
 
-const GRUPOS_RECEITA: TipoGrupoDre[] = ["RECEITA", "RECEITA_FINANCEIRA"];
+const SECOES_RECEITA = ["RECEITA_BRUTA", "RESULTADO_NAO_OPERACIONAL"];
 
-/** Só as contas de DRE compatíveis com o tipo entram na lista — uma
- * categoria de despesa não deveria poder somar em "Vendas". */
-function linhasParaTipo(tipo: TipoMovimentacao) {
-  return DEFINICAO_LINHAS.filter((def) =>
-    tipo === "RECEITA" ? GRUPOS_RECEITA.includes(def.grupo) : !GRUPOS_RECEITA.includes(def.grupo),
+function secoesParaTipo(tipo: TipoMovimentacao) {
+  return ORDEM_SECOES.filter((s) =>
+    tipo === "RECEITA" ? SECOES_RECEITA.includes(s) : !SECOES_RECEITA.includes(s),
   );
 }
 
@@ -89,17 +87,14 @@ export function FormularioCategoria({
   const linhaDreId = watch("linhaDreId");
   const IconeSelecionado = iconeDe(icone);
 
-  const linhasDisponiveis = useMemo(() => linhasParaTipo(tipo), [tipo]);
+  const secoesDisponiveis = useMemo(() => secoesParaTipo(tipo), [tipo]);
 
-  // Trocar o tipo pode deixar a conta escolhida incompatível (uma linha de
-  // Receita não existe mais depois de virar Despesa) — evita salvar um par
-  // inconsistente sem a pessoa perceber.
   useEffect(() => {
     if (linhaDreId === SEM_LINHA) return;
-    if (!linhasDisponiveis.some((l) => l.id === linhaDreId)) {
+    if (!secoesDisponiveis.includes(linhaDreId as never)) {
       setValue("linhaDreId", SEM_LINHA);
     }
-  }, [linhasDisponiveis, linhaDreId, setValue]);
+  }, [secoesDisponiveis, linhaDreId, setValue]);
 
   function enviar(dados: z.infer<typeof schema>) {
     aoSalvar({
@@ -159,9 +154,9 @@ export function FormularioCategoria({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
-            {linhasDisponiveis.map((linha) => (
-              <SelectItem key={linha.id} value={linha.id}>
-                {linha.nome}
+            {secoesDisponiveis.map((secao) => (
+              <SelectItem key={secao} value={secao}>
+                {ROTULO_SECAO[secao]}
               </SelectItem>
             ))}
           </SelectContent>
