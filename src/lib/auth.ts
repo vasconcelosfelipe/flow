@@ -38,6 +38,7 @@ export const auth = betterAuth({
     // Better Auth's origin comparison fails behind a reverse proxy even when
     // the origin is in trustedOrigins, so we disable the redundant header check.
     disableOriginCheck: true,
+    disableCSRFCheck: true,
   },
 });
 

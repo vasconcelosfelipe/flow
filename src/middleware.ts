@@ -13,6 +13,18 @@ const PUBLIC_PATHS = ["/login", "/api/auth"];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // OpenLiteSpeed occasionally forwards duplicate `origin` headers joined with
+  // ", " (e.g. "https://example.com, https://example.com"). Next.js passes the
+  // raw value to `new URL()` in its server-action CSRF check, which throws an
+  // "Invalid URL" error and aborts every server action. Normalise to the first
+  // value before the request reaches the server action handler.
+  const origin = request.headers.get("origin");
+  if (origin && origin.includes(", ")) {
+    const fixedHeaders = new Headers(request.headers);
+    fixedHeaders.set("origin", origin.split(", ")[0]);
+    return NextResponse.next({ request: { headers: fixedHeaders } });
+  }
+
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
