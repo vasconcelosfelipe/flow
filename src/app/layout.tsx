@@ -66,8 +66,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+    <html lang="pt-BR" className={`${manrope.variable} antialiased`}>
+      <body>{children}</body>
     </html>
   );
 }

@@ -316,6 +316,22 @@
   }
 }
 
+/*
+ * App-shell PWA: html e body ocupam exatamente a tela e não scrollam.
+ * O scroll acontece dentro do <main>, que é o único container scrollável.
+ * Sem isso, o iOS desloca o layout viewport quando o conteúdo muda de
+ * altura entre páginas, fazendo o `fixed bottom-0` da barra de navegação
+ * aparecer "subindo" — o elemento continua fixo, mas o ponto de ancoragem
+ * muda junto com o viewport.
+ * `overscroll-behavior: none` elimina o rubber-band que amplifica o efeito.
+ */
+html,
+body {
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

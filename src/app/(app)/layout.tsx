@@ -21,15 +21,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={300}>
       <DesktopRail />
 
-      <div className="md:pl-16">
+      {/* Container de scroll único no mobile: html/body têm overflow:hidden,
+          então todo scroll acontece aqui. O sticky header funciona dentro deste
+          container. O BottomNav (fixed) ancora no viewport independente. */}
+      <div className="md:pl-16 h-dvh overflow-y-auto overscroll-contain md:h-auto md:overflow-visible">
         <AppHeader sessao={sessao} />
-
-        {/* Sem largura nem respiro aqui: as telas sangram até a borda quando
-            precisam (zona escura do Início, DRE anual) e usam `Container` para
-            o conteúdo. `pb-nav-safe` reserva exatamente a altura da barra de
-            navegação, incluindo a margem de segurança do aparelho — um valor
-            fixo bastava no navegador comum, mas ficava curto instalado como
-            PWA, onde essa margem passa a valer de verdade. */}
         <main className="pb-nav-safe md:pb-10">{children}</main>
       </div>
 

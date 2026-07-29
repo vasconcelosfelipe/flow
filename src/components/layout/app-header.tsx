@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Settings2 } from "lucide-react";
 
 import { EmpresaSwitcher } from "@/components/layout/empresa-switcher";
 import { LogoMark } from "@/components/layout/logo";
+import { UserMenu } from "@/components/layout/user-menu";
 import type { SessaoAtual } from "@/services/empresas/dto";
 
 /**
@@ -38,13 +38,7 @@ export function AppHeader({ sessao }: { sessao: SessaoAtual }) {
           />
         </div>
 
-        <Link
-          href="/mais"
-          className="grid size-9 shrink-0 place-items-center rounded-lg text-night-muted transition-colors hover:bg-white/10 hover:text-night-text focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
-        >
-          <Settings2 className="size-4.5" aria-hidden="true" />
-          <span className="sr-only">Ajustes</span>
-        </Link>
+        <UserMenu usuario={sessao.usuario} />
       </div>
     </header>
   );
