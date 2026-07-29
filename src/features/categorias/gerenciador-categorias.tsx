@@ -9,16 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormularioCategoria } from "@/features/categorias/formulario-categoria";
 import { LinhaCategoria } from "@/features/categorias/linha-categoria";
-import { DEFINICAO_LINHAS } from "@/services/dre";
 import type { CategoriaCompleta, FormularioCategoria as DadosFormulario } from "@/services/categorias/dto";
 import type { TipoMovimentacao } from "@/types/dominio";
 
 function resolverLinha(dados: DadosFormulario) {
-  const linha = dados.linhaDreId ? DEFINICAO_LINHAS.find((l) => l.id === dados.linhaDreId) : undefined;
   return {
-    linhaDreId: linha?.id ?? null,
-    linhaDreNome: linha?.nome ?? "Sem conta de DRE vinculada",
-    grupoDre: linha?.grupo ?? dados.tipo,
+    linhaDreId: dados.linhaDreId ?? null,
+    linhaDreNome: dados.linhaDreId ? dados.linhaDreId : "Sem conta de DRE vinculada",
+    grupoDre: dados.tipo,
   };
 }
 
