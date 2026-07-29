@@ -5,7 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 // A validação real da sessão (contra o banco) acontece em requireSessao()
 // dentro de cada Server Component ou Server Action.
 
-const SESSION_COOKIE = "better-auth.session_token";
+// Em HTTPS, Better Auth usa o prefixo __Secure-
+const SESSION_COOKIE_HTTPS = "__Secure-better-auth.session_token";
+const SESSION_COOKIE_HTTP = "better-auth.session_token";
 const PUBLIC_PATHS = ["/login", "/api/auth"];
 
 export function middleware(request: NextRequest) {
@@ -15,7 +17,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSession = request.cookies.has(SESSION_COOKIE);
+  const hasSession =
+    request.cookies.has(SESSION_COOKIE_HTTPS) ||
+    request.cookies.has(SESSION_COOKIE_HTTP);
 
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
