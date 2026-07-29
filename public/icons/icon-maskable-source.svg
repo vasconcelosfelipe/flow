@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Maskable: fundo até a borda, sem cantos próprios — o SO aplica sua
+       própria máscara (círculo, squircle etc). O conteúdo fica dentro da
+       "zona segura" (~80% central) para não ser cortado. -->
+  <rect width="512" height="512" fill="url(#flow-brand)" />
+  <rect x="182" y="213" width="148" height="30" rx="15" fill="white" />
+  <rect x="182" y="258" width="102" height="30" rx="15" fill="white" fill-opacity="0.75" />
+  <rect x="182" y="303" width="60" height="30" rx="15" fill="white" fill-opacity="0.5" />
+  <defs>
+    <linearGradient id="flow-brand" x1="0" y1="0" x2="512" y2="512">
+      <stop stop-color="#2563EB" />
+      <stop offset="1" stop-color="#1E3A8A" />
+    </linearGradient>
+  </defs>
+</svg>

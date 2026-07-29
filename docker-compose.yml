@@ -1,0 +1,34 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Só o loopback local escuta a porta — quem expõe ao mundo é o
+    # OpenLiteSpeed/CyberPanel do host, como proxy reverso com TLS. O
+    # container nunca fica acessível diretamente pela rede. Porta 3050 no
+    # host porque 3000 já está em uso por outro serviço nesta VPS
+    # compartilhada.
+    ports:
+      - "127.0.0.1:3050:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-flow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-flow}
+    volumes:
+      - flow_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-flow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  flow_pgdata:

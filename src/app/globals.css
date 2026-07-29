@@ -1,0 +1,328 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ---------------------------------------------------------------------------
+   Flow — sistema de design
+   Fonte única da identidade. Os tokens semânticos do shadcn (--primary,
+   --border, --card…) apontam para os tokens do Flow, então todo componente
+   herda a marca sem override local.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Marca */
+  --brand: #2563eb;
+  --brand-hover: #1d4ed8;
+  --brand-deep: #1e3a8a;
+  --brand-wash: #eef4ff;
+
+  /* Cromo escuro: barra superior, rail e a zona de comando do Início.
+     O produto tem duas atmosferas — escura onde se decide, clara onde se
+     trabalha. É o que separa uma tela com identidade de uma folha branca. */
+  --night: #0a1733;
+  --night-raised: #132a5c;
+  --night-line: #24407d;
+  --night-text: #e8eefc;
+  --night-muted: #93a8d4;
+
+  /* Superfícies e texto — neutros com viés azul, nunca cinza puro.
+     O canvas é deliberadamente mais fundo que o card: com #F8FAFC contra
+     branco a diferença é de um fio, e nada parece flutuar sobre nada. */
+  --canvas: #eaeff7;
+  --surface: #ffffff;
+  --ink: #0a1020;
+  --ink-muted: #5a6b85;
+  --line: #dde5f0;
+
+  /* Sinalização financeira.
+     As cores da identidade (--positive, --negative, --attention) valem como
+     preenchimento: chip de ícone, barra, ponto de gráfico. Como *texto sobre
+     branco* elas reprovam no WCAG AA (verde 2,54:1 contra o mínimo de 4,5:1),
+     então cada uma tem um par escurecido para uso tipográfico. Mesma leitura,
+     mesmo significado, legível. */
+  --positive: #10b981;
+  --positive-text: #047857;
+  --positive-wash: #ecfdf5;
+  --negative: #ef4444;
+  --negative-text: #dc2626;
+  --negative-wash: #fef2f2;
+  --attention: #f59e0b;
+  --attention-text: #b45309;
+  --attention-wash: #fffbeb;
+
+  /* Tipografia — uma família só, a Manrope.
+     Números não usam uma fonte monoespaçada separada: o alinhamento decimal
+     vem da feature OpenType `tnum` (ver `.font-mono` em @layer base), não de
+     trocar de família. Isso evita o ar de terminal que a mono trazia. */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  /* Sombras: uma escala de três, nunca empilhadas entre si. */
+  --shadow-card: 0 1px 2px rgb(10 23 51 / 0.05), 0 8px 24px -14px rgb(10 23 51 / 0.18);
+  --shadow-raised: 0 2px 4px rgb(10 23 51 / 0.07), 0 18px 36px -18px rgb(10 23 51 / 0.26);
+  /* A zona escura precisa de sombra mais funda: ela se apoia sobre o canvas,
+     não ao lado dele. */
+  --shadow-night: 0 12px 32px -12px rgb(10 23 51 / 0.45);
+
+  --radius: 0.75rem;
+
+  /* ---- Mapeamento para os tokens semânticos do shadcn ---- */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
+  --secondary: var(--brand-wash);
+  --secondary-foreground: var(--brand-deep);
+  --muted: #f1f5f9;
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--brand-wash);
+  --accent-foreground: var(--brand-deep);
+  --destructive: var(--negative);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--brand);
+
+  /* Séries de gráfico: azul da marca + apoios que não competem com
+     verde/vermelho, reservados para receita e despesa. */
+  --chart-1: var(--brand);
+  --chart-2: var(--positive-text);
+  --chart-3: var(--negative-text);
+  --chart-4: #7c3aed;
+  --chart-5: var(--attention);
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--brand-wash);
+  --sidebar-accent-foreground: var(--brand-deep);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--brand);
+}
+
+@theme inline {
+  /* Tokens do Flow expostos como utilitários: bg-brand, text-ink, border-line… */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-wash: var(--brand-wash);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-night: var(--night);
+  --color-night-raised: var(--night-raised);
+  --color-night-line: var(--night-line);
+  --color-night-text: var(--night-text);
+  --color-night-muted: var(--night-muted);
+  --color-positive: var(--positive);
+  --color-positive-text: var(--positive-text);
+  --color-positive-wash: var(--positive-wash);
+  --color-negative: var(--negative);
+  --color-negative-text: var(--negative-text);
+  --color-negative-wash: var(--negative-wash);
+  --color-attention: var(--attention);
+  --color-attention-text: var(--attention-text);
+  --color-attention-wash: var(--attention-wash);
+
+  /* Escala tipográfica com saltos largos: 11 · 13 · 15 · 18 · 22 · 30 · 44.
+     Passos curtos produzem telas planas — se tudo fica entre 13 e 15, o olho
+     não tem onde pousar primeiro. */
+  --text-nano: 0.6875rem;
+  --text-nano--line-height: 0.9375rem;
+  --text-micro: 0.8125rem;
+  --text-micro--line-height: 1.125rem;
+  --text-corpo: 0.9375rem;
+  --text-corpo--line-height: 1.375rem;
+  --text-titulo: 1.375rem;
+  --text-titulo--line-height: 1.75rem;
+  --text-figure: 1.875rem;
+  --text-figure--line-height: 2.125rem;
+  --text-hero: 2.75rem;
+  --text-hero--line-height: 2.875rem;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-night: var(--shadow-night);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    /* Impede o zoom automático do iOS ao focar um campo. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink;
+  }
+
+  /* Todo número lido em coluna precisa alinhar por construção — a Manrope tem
+     algarismos tabulares nativos, então isso ativa a feature sem trocar de
+     família (`.font-mono` continua existindo como nome de classe por
+     compatibilidade com o resto do código, mas não é mais outra fonte). */
+  .font-mono,
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Títulos grandes fecham o espacejamento; texto corrido não. */
+  h1,
+  h2 {
+    letter-spacing: -0.025em;
+  }
+}
+
+@layer utilities {
+  /**
+   * Textura da zona escura: um brilho da marca no canto superior e uma malha
+   * fina de 28px.
+   *
+   * A malha é a única ornamentação do produto e existe por um motivo — ela
+   * ecoa o alinhamento da fonte monoespaçada dos valores, dando à área de
+   * comando ar de painel de instrumento em vez de bloco de cor chapado. Fica
+   * abaixo do limiar de leitura consciente: percebe-se a textura, não o
+   * quadriculado.
+   *
+   * Reservada para a ÚNICA zona-herói de cada tela (o topo). Um brilho radial
+   * é um evento visual — usá-lo em duas seções escuras da mesma tela faz cada
+   * uma competir como se fosse seu próprio herói, e a tela lê como dois blocos
+   * escuros que coincidem de cor, não como uma atmosfera contínua.
+   */
+  .textura-noite {
+    background-image:
+      radial-gradient(115% 85% at 88% -15%, rgb(37 99 235 / 0.5), transparent 62%),
+      radial-gradient(80% 60% at 0% 100%, rgb(37 99 235 / 0.22), transparent 70%),
+      linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      100% 100%,
+      28px 28px,
+      28px 28px;
+  }
+
+  /**
+   * Retorno à mesma cor de marca mais adiante na tela — só a malha, sem
+   * brilho. É o que faz duas zonas escuras lerem como a mesma atmosfera
+   * voltando à tona, e não como um segundo herói.
+   */
+  .textura-noite-eco {
+    background-image:
+      linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+    background-size:
+      28px 28px,
+      28px 28px;
+  }
+
+  /* Barra inferior e ações fixas precisam respeitar o recorte do aparelho. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .h-safe-bottom {
+    height: env(safe-area-inset-bottom);
+  }
+
+  /*
+   * Respiro do conteúdo antes da barra inferior fixa (56px de altura) — soma
+   * a área de segurança do aparelho porque a barra também soma.
+   *
+   * Um valor fixo (`pb-20`) fica correto num navegador comum, onde o Safari
+   * reserva a faixa do indicador de início na própria interface e
+   * `env(safe-area-inset-bottom)` chega a 0. Instalado como PWA (tela cheia,
+   * sem chrome do Safari), esse valor passa a ser real — cerca de 34px no
+   * iPhone — e a barra fica mais alta do que o `main` havia reservado para
+   * ela: o último card acaba raspando na barra, exatamente o que ficou
+   * "curto" ao instalar. Este valor cresce e encolhe junto com a barra, nos
+   * dois contextos.
+   */
+  .pb-nav-safe {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom) + 1.25rem);
+  }
+
+  /*
+   * Cabeçalho fixo: o fundo (bg-night) já cobre a área do notch/Dynamic
+   * Island por conta do `viewport-fit=cover` no layout — sem isso, o iOS
+   * deixa uma faixa preta acima da barra em vez de continuar o azul. Este
+   * padding empurra só o CONTEÚDO (logo, seletor, ajustes) para baixo do
+   * recorte; o fundo continua se estendendo por trás dele.
+   */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Trilhos de rolagem horizontal (DRE anual, filtros) sem barra visível. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
