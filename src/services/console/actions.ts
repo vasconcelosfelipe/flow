@@ -13,8 +13,10 @@ async function verificarAdmin() {
 }
 
 export async function criarEmpresa(dados: { nome: string; slug: string; cnpj?: string | null }) {
-  await verificarAdmin();
-  await db.empresa.create({ data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj } });
+  const sessao = await verificarAdmin();
+  const empresa = await db.empresa.create({ data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj } });
+  // Auto-atribui o admin criador como ADMIN da empresa
+  await db.membroEmpresa.create({ data: { userId: sessao.usuario.id, empresaId: empresa.id, papel: "ADMIN" } });
   revalidatePath("/console/empresas");
 }
 
