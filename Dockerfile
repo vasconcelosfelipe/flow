@@ -12,14 +12,14 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# DATABASE_URL é exigido pelo prisma.config.ts mesmo em generate (que não conecta).
-# Em build-time usamos um placeholder; a URL real vem do .env em runtime.
+# DATABASE_URL e BETTER_AUTH_SECRET são exigidos pelo config em build-time.
+# Placeholders aqui; valores reais vêm do .env em runtime.
 ENV DATABASE_URL=postgresql://build:placeholder@localhost:5432/build
 ENV BETTER_AUTH_SECRET=build-placeholder-secret-32chars!!
 RUN npx prisma generate --config prisma/prisma.config.ts
 RUN npm run build
 
-# ---- runner: só o necessário para rodar, nada de node_modules inteiro ----
+# ---- runner: standalone + prisma CLI para migrate ----
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -32,6 +32,12 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Prisma CLI + client gerado + schema/migrations/config para migrate deploy
+COPY --from=builder /app/node_modules/.bin/prisma          ./node_modules/.bin/prisma
+COPY --from=builder /app/node_modules/prisma               ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma              ./node_modules/@prisma
+COPY --from=builder /app/prisma                            ./prisma
 
 USER nextjs
 EXPOSE 3000
