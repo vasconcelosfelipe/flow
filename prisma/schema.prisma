@@ -1,0 +1,371 @@
+// Flow — schema Prisma
+// Regras de ouro:
+//   • Valores monetários em centavos (Int), nunca Decimal ou Float
+//   • Toda entidade operacional leva empresaId — isolamento por tenant
+//   • Datas sem hora usam @db.Date; com hora, DateTime (UTC)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLATAFORMA (acima das empresas — Console)
+// ─────────────────────────────────────────────────────────────
+
+model Usuario {
+  id               String   @id @default(cuid())
+  nome             String
+  email            String   @unique
+  senhaHash        String
+  adminPlataforma  Boolean  @default(false)
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  membros          MembroEmpresa[]
+  sessoes          Sessao[]
+  convites         Convite[]        @relation("ConviteConvidado")
+  convitesEnviados Convite[]        @relation("ConviteRemetente")
+
+  @@map("usuarios")
+}
+
+// Sessões de autenticação (Better Auth ou similar)
+model Sessao {
+  id        String   @id @default(cuid())
+  usuarioId String
+  token     String   @unique
+  expiraEm  DateTime
+  criadoEm  DateTime @default(now())
+  userAgent String?
+  ip        String?
+
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("sessoes")
+}
+
+// ─────────────────────────────────────────────────────────────
+// EMPRESA E MEMBROS
+// ─────────────────────────────────────────────────────────────
+
+model Empresa {
+  id           String   @id @default(cuid())
+  nome         String
+  slug         String   @unique
+  cnpj         String?  @unique
+  ativa        Boolean  @default(true)
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  membros        MembroEmpresa[]
+  convites       Convite[]
+  contas         Conta[]
+  categorias     Categoria[]
+  contatos       Contato[]
+  centrosCusto   CentroCusto[]
+  movimentacoes  Movimentacao[]
+  recorrencias   Regra[]
+
+  @@map("empresas")
+}
+
+model MembroEmpresa {
+  id         String       @id @default(cuid())
+  empresaId  String
+  usuarioId  String
+  papel      PapelMembro
+  criadoEm  DateTime     @default(now())
+
+  empresa    Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  usuario    Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([empresaId, usuarioId])
+  @@index([usuarioId])
+  @@map("membros_empresa")
+}
+
+// Convite por e-mail — válido por 7 dias
+model Convite {
+  id          String      @id @default(cuid())
+  empresaId   String
+  email       String
+  papel       PapelMembro
+  token       String      @unique @default(cuid())
+  remetenteId String
+  aceitoEm   DateTime?
+  expiraEm   DateTime
+  criadoEm   DateTime    @default(now())
+
+  empresa     Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  remetente   Usuario     @relation("ConviteRemetente", fields: [remetenteId], references: [id])
+  convidado   Usuario?    @relation("ConviteConvidado", fields: [email], references: [email])
+
+  @@index([empresaId])
+  @@map("convites")
+}
+
+// ─────────────────────────────────────────────────────────────
+// PLANO DE CONTAS
+// ─────────────────────────────────────────────────────────────
+
+model Conta {
+  id           String    @id @default(cuid())
+  empresaId    String
+  nome         String
+  tipo         TipoConta
+  cor          String    @default("#2563EB")
+  // Saldo inicial importado; movimentações recalculam o saldo real
+  saldoInicial Int       @default(0)
+  ativa        Boolean   @default(true)
+  criadoEm    DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+
+  empresa        Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimentacoes  Movimentacao[]
+
+  @@index([empresaId])
+  @@map("contas")
+}
+
+model Categoria {
+  id          String        @id @default(cuid())
+  empresaId   String
+  nome        String
+  icone       String        @default("outro")
+  cor         String        @default("#64748B")
+  tipo        TipoMovimentacao
+  // Seção da DRE onde esta categoria aparece
+  secaoDre    ChaveSecaoDre?
+  ativa       Boolean       @default(true)
+  criadoEm   DateTime      @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimentacoes Movimentacao[]
+
+  @@index([empresaId])
+  @@map("categorias")
+}
+
+model Contato {
+  id         String      @id @default(cuid())
+  empresaId  String
+  nome       String
+  tipo       TipoContato
+  documento  String?     // CPF ou CNPJ, sem formatação
+  email      String?
+  telefone   String?
+  observacao String?
+  ativo      Boolean     @default(true)
+  criadoEm  DateTime    @default(now())
+  atualizadoEm DateTime  @updatedAt
+
+  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimentacoes Movimentacao[]
+
+  @@index([empresaId])
+  @@map("contatos")
+}
+
+model CentroCusto {
+  id         String   @id @default(cuid())
+  empresaId  String
+  nome       String
+  cor        String   @default("#64748B")
+  ativo      Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimentacoes Movimentacao[]
+
+  @@index([empresaId])
+  @@map("centros_custo")
+}
+
+// ─────────────────────────────────────────────────────────────
+// MOVIMENTAÇÕES
+// ─────────────────────────────────────────────────────────────
+
+model Movimentacao {
+  id              String            @id @default(cuid())
+  empresaId       String
+  contaId         String
+  categoriaId     String?
+  contatoId       String?
+  centroCustoId   String?
+  regraId         String?           // origem, se veio de recorrência
+
+  descricao       String
+  tipo            TipoMovimentacao
+  valorCentavos   Int               // sempre positivo; tipo define o sinal
+  status          StatusMovimentacao
+  formaPagamento  FormaPagamento?
+
+  // data = data de caixa (quando o dinheiro entrou/saiu); null = ainda não ocorreu
+  data            DateTime?         @db.Date
+  dataVencimento  DateTime?         @db.Date
+  // dataCompetencia = período contábil ao qual a despesa/receita pertence
+  dataCompetencia DateTime          @db.Date
+
+  // Parcelamento: numeroParcela/totalParcelas são preenchidos juntos ou nenhum
+  numeroParcela   Int?
+  totalParcelas   Int?
+  // grupoParcelamento agrupa as N parcelas de uma compra parcelada
+  grupoParcelamento String?
+
+  descricaoOriginal String?         // texto original antes de edição
+  observacao      String?
+  recorrente      Boolean           @default(false)
+
+  criadoEm       DateTime          @default(now())
+  atualizadoEm   DateTime          @updatedAt
+
+  empresa        Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  conta          Conta        @relation(fields: [contaId], references: [id])
+  categoria      Categoria?   @relation(fields: [categoriaId], references: [id])
+  contato        Contato?     @relation(fields: [contatoId], references: [id])
+  centroCusto    CentroCusto? @relation(fields: [centroCustoId], references: [id])
+  regra          Regra?       @relation(fields: [regraId], references: [id])
+  importacoes    ImportacaoLinha[]
+
+  @@index([empresaId, data])
+  @@index([empresaId, dataVencimento])
+  @@index([empresaId, dataCompetencia])
+  @@index([empresaId, categoriaId])
+  @@index([empresaId, contaId])
+  @@map("movimentacoes")
+}
+
+// ─────────────────────────────────────────────────────────────
+// RECORRÊNCIAS
+// ─────────────────────────────────────────────────────────────
+
+// Uma regra gera lançamentos previstas automaticamente
+model Regra {
+  id              String            @id @default(cuid())
+  empresaId       String
+  contaId         String?
+  categoriaId     String?
+  contatoId       String?
+
+  descricao       String
+  tipo            TipoMovimentacao
+  valorCentavos   Int
+  frequencia      FrequenciaRegra
+  // Dia do mês (1-28) ou dia da semana (0=dom) dependendo da frequência
+  dia             Int?
+  proximaOcorrencia DateTime        @db.Date
+  ativa           Boolean           @default(true)
+  criadoEm       DateTime          @default(now())
+  atualizadoEm   DateTime          @updatedAt
+
+  empresa         Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimentacoes   Movimentacao[]
+
+  @@index([empresaId])
+  @@map("regras")
+}
+
+// ─────────────────────────────────────────────────────────────
+// IMPORTAÇÃO DE EXTRATO
+// ─────────────────────────────────────────────────────────────
+
+model Importacao {
+  id          String   @id @default(cuid())
+  empresaId   String
+  nomeArquivo String
+  formato     String   // "OFX" | "CSV" | "XLSX"
+  totalLinhas Int
+  criadoEm   DateTime @default(now())
+
+  linhas      ImportacaoLinha[]
+
+  @@index([empresaId])
+  @@map("importacoes")
+}
+
+model ImportacaoLinha {
+  id              String  @id @default(cuid())
+  importacaoId    String
+  movimentacaoId  String?
+
+  importacao      Importacao    @relation(fields: [importacaoId], references: [id], onDelete: Cascade)
+  movimentacao    Movimentacao? @relation(fields: [movimentacaoId], references: [id])
+
+  @@index([importacaoId])
+  @@map("importacao_linhas")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────
+
+enum PapelMembro {
+  DONO
+  ADMIN
+  MEMBRO
+  LEITOR
+}
+
+enum TipoConta {
+  CORRENTE
+  POUPANCA
+  CAIXA
+  CARTAO
+  INVESTIMENTO
+}
+
+enum TipoMovimentacao {
+  RECEITA
+  DESPESA
+}
+
+enum StatusMovimentacao {
+  PREVISTO
+  PENDENTE
+  PAGO
+  CONCILIADO
+  CANCELADO
+}
+
+enum FormaPagamento {
+  PIX
+  DEBITO
+  CREDITO
+  BOLETO
+  TED
+  DINHEIRO
+  OUTRO
+}
+
+enum TipoContato {
+  CLIENTE
+  FORNECEDOR
+  AMBOS
+}
+
+enum ChaveSecaoDre {
+  RECEITA_BRUTA
+  DEDUCOES
+  CUSTOS
+  DESPESAS_OPERACIONAIS
+  RESULTADO_NAO_OPERACIONAL
+  TRIBUTOS_LUCRO
+}
+
+enum FrequenciaRegra {
+  DIARIA
+  SEMANAL
+  QUINZENAL
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
