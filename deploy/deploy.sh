@@ -3,10 +3,10 @@
 # Reconstrói a imagem, aplica migrations pendentes e reinicia o app.
 set -euo pipefail
 
-# Carrega variáveis do .env para ter POSTGRES_USER/DB disponíveis no script
-if [ -f .env ]; then
-  export "$(grep -v '^#' .env | grep '=' | xargs)"
-fi
+# Lê POSTGRES_USER e POSTGRES_DB do .env sem exportar tudo para o shell
+# (exportar o .env inteiro faz o docker compose recriar containers desnecessariamente)
+POSTGRES_USER=$(grep '^POSTGRES_USER=' .env 2>/dev/null | cut -d= -f2 || echo flow)
+POSTGRES_DB=$(grep '^POSTGRES_DB=' .env 2>/dev/null | cut -d= -f2 || echo flow)
 
 echo "==> Build e subida dos containers"
 docker compose build
