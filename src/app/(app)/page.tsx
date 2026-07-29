@@ -105,12 +105,9 @@ export default async function InicioPage({ searchParams }: Props) {
         </Container>
       </section>
 
-      {/* Claro — a pagar/receber, resultado do período e o resumo.
-          `pb-20`: o Resumo do período termina num card com canto próprio
-          (26px); precisa de folga clara antes da curva de 32px que vem a
-          seguir, senão as duas leem como uma colidindo na outra. */}
+      {/* Claro — cards, movimentações e alertas. */}
       <div className={`${Z20} ${EMENDA} bg-canvas`}>
-        <Container className="space-y-4 pt-7 pb-20">
+        <Container className="space-y-4 pt-7 pb-6">
           <CartoesPendencias aPagar={resumo.aPagar} aReceber={resumo.aReceber} />
 
           <CartaoResultado
@@ -125,43 +122,9 @@ export default async function InicioPage({ searchParams }: Props) {
             receitas={resumo.receitasCentavos}
             despesas={resumo.despesasCentavos}
           />
-        </Container>
-      </div>
 
-      {/* Escuro outra vez — o azul retoma por trás do card de últimas
-          movimentações, sem brilho próprio (é eco da atmosfera do topo, não
-          um segundo herói).
-          Esta seção possui as DUAS curvas que a tocam: `rounded-t` na entrada
-          (como as demais) e `rounded-b` na saída — aqui é o escuro que desce
-          com a ponta arredondada sobre o claro seguinte, não o contrário.
-          Por isso seu `z-index` (40) fica ACIMA do da seção clara final (30):
-          para pintar por cima dela na sobreposição, em vez de por baixo.
-          `pt-10`/`pb-10`: o mesmo respiro azul dos dois lados do card. O
-          `pb-20` de antes era calibrado para outro desenho, em que a curva de
-          saída pertencia a um elemento separado por baixo — aqui a curva já
-          é da própria seção, então não precisa da mesma folga; um respiro
-          simétrico e mais enxuto lê melhor que azul sobrando embaixo. */}
-      <section
-        className={`textura-noite-eco ${Z40} ${SOBREPOSICAO_EMENDA} ${RAIO_EMENDA} ${RAIO_EMENDA_INFERIOR} bg-night pb-10 text-night-text`}
-      >
-        <Container className="pt-10">
           <UltimasMovimentacoes movimentacoes={resumo.ultimasMovimentacoes} />
-        </Container>
-      </section>
 
-      {/* Claro de novo — os alertas fecham a tela em fundo neutro, não em
-          cima da marca. Sem padding extra embaixo: o `main` do layout já
-          reserva o respiro da barra de navegação.
-          Sem `rounded-t` aqui — a curva desta emenda pertence à seção escura
-          acima, que desenha o arco descendo até este ponto e PINTA POR CIMA
-          desta na faixa de sobreposição (`z-40` contra `z-30`). Por isso o
-          respiro visível não é simplesmente o `pt` daqui: os primeiros 32px
-          de conteúdo (o tamanho da sobreposição) ficam escondidos atrás do
-          azul, que é opaco. Para sobrar ~30px realmente visíveis abaixo do
-          azul, o padding precisa ser sobreposição + respiro desejado
-          (32 + 30 = 62px) — um `pt-[30px]` aqui não aparecia quase nada. */}
-      <div className={`${Z30} ${SOBREPOSICAO_EMENDA} bg-canvas`}>
-        <Container className="pt-[62px]">
           <ListaAlertas alertas={resumo.alertas} />
         </Container>
       </div>
