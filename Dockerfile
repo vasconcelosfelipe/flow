@@ -12,7 +12,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# Gera o cliente Prisma antes do build (necessário para o Next.js resolver os imports)
+# DATABASE_URL é exigido pelo prisma.config.ts mesmo em generate (que não conecta).
+# Em build-time usamos um placeholder; a URL real vem do .env em runtime.
+ENV DATABASE_URL=postgresql://build:placeholder@localhost:5432/build
 RUN npx prisma generate --config prisma/prisma.config.ts
 RUN npm run build
 
