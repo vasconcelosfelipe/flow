@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ const schema = z.object({
   senha: z.string().min(1, "Digite sua senha."),
 });
 
-export default function LoginPage() {
+function FormularioLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/selecionar-empresa";
@@ -45,47 +45,54 @@ export default function LoginPage() {
   }
 
   return (
+    <form onSubmit={handleSubmit(enviar)} className="mt-6 space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor="email">E-mail</Label>
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          {...register("email")}
+          placeholder="voce@empresa.com.br"
+          className="h-11"
+        />
+        {errors.email && <p className="text-nano text-negative-text">{errors.email.message}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="senha">Senha</Label>
+        <Input
+          id="senha"
+          type="password"
+          autoComplete="current-password"
+          {...register("senha")}
+          placeholder="••••••••"
+          className="h-11"
+        />
+        {errors.senha && <p className="text-nano text-negative-text">{errors.senha.message}</p>}
+      </div>
+
+      {erro && (
+        <p className="rounded-lg bg-negative/10 px-3 py-2 text-nano text-negative-text">
+          {erro}
+        </p>
+      )}
+
+      <Button type="submit" className="h-11 w-full" disabled={entrando}>
+        {entrando ? "Entrando…" : "Entrar"}
+      </Button>
+    </form>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="rounded-2xl border border-line bg-surface p-6 shadow-night">
       <h1 className="text-titulo font-semibold text-ink">Entrar</h1>
       <p className="mt-1 text-micro text-ink-muted">Acesse sua conta para continuar.</p>
-
-      <form onSubmit={handleSubmit(enviar)} className="mt-6 space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="email">E-mail</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            {...register("email")}
-            placeholder="voce@empresa.com.br"
-            className="h-11"
-          />
-          {errors.email && <p className="text-nano text-negative-text">{errors.email.message}</p>}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="senha">Senha</Label>
-          <Input
-            id="senha"
-            type="password"
-            autoComplete="current-password"
-            {...register("senha")}
-            placeholder="••••••••"
-            className="h-11"
-          />
-          {errors.senha && <p className="text-nano text-negative-text">{errors.senha.message}</p>}
-        </div>
-
-        {erro && (
-          <p className="rounded-lg bg-negative/10 px-3 py-2 text-nano text-negative-text">
-            {erro}
-          </p>
-        )}
-
-        <Button type="submit" className="h-11 w-full" disabled={entrando}>
-          {entrando ? "Entrando…" : "Entrar"}
-        </Button>
-      </form>
+      <Suspense>
+        <FormularioLogin />
+      </Suspense>
     </div>
   );
 }

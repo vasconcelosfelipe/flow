@@ -15,6 +15,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # DATABASE_URL é exigido pelo prisma.config.ts mesmo em generate (que não conecta).
 # Em build-time usamos um placeholder; a URL real vem do .env em runtime.
 ENV DATABASE_URL=postgresql://build:placeholder@localhost:5432/build
+ENV BETTER_AUTH_SECRET=build-placeholder-secret-32chars!!
 RUN npx prisma generate --config prisma/prisma.config.ts
 RUN npm run build
 
