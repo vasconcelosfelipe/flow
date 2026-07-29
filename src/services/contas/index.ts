@@ -1,32 +1,30 @@
-import { CONTAS_MOCK, MOVIMENTACOES_MOCK } from "@/lib/mock/dados";
+import { db } from "@/lib/db";
 import type { ContaCompleta } from "@/services/contas/dto";
 
-/**
- * Fase 1: soma sobre `lib/mock`. Fase 2: o saldo vem de uma consulta
- * agregada no Prisma (ou de uma coluna materializada) — a tela não muda.
- */
-
-const CONCILIADO = ["CONCILIADO", "PAGO"] as const;
-
-export function listarContas(): ContaCompleta[] {
-  return CONTAS_MOCK.map((c) => {
-    const doConta = MOVIMENTACOES_MOCK.filter((m) => m.conta.id === c.id);
-    const realizadas = doConta.filter((m) =>
-      CONCILIADO.includes(m.status as (typeof CONCILIADO)[number]),
-    );
-
-    const saldoCentavos = realizadas.reduce(
-      (soma, m) => soma + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
-      0,
-    );
-
-    return {
-      id: c.id,
-      nome: c.nome,
-      cor: c.cor,
-      tipo: c.tipo,
-      saldoCentavos,
-      quantidadeMovimentacoes: doConta.length,
-    };
+export async function listarContas(empresaId: string): Promise<ContaCompleta[]> {
+  const contas = await db.conta.findMany({
+    where: { empresaId, ativa: true },
+    include: {
+      _count: { select: { movimentacoes: true } },
+      movimentacoes: {
+        where: { status: { in: ["PAGO", "CONCILIADO"] } },
+        select: { tipo: true, valorCentavos: true },
+      },
+    },
+    orderBy: { criadoEm: "asc" },
   });
+
+  return contas.map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    cor: c.cor,
+    tipo: c.tipo,
+    saldoCentavos:
+      c.saldoInicial +
+      c.movimentacoes.reduce(
+        (sum, m) => sum + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
+        0,
+      ),
+    quantidadeMovimentacoes: c._count.movimentacoes,
+  }));
 }

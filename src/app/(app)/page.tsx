@@ -7,7 +7,7 @@ import { ListaAlertas } from "@/features/dashboard/lista-alertas";
 import { ResumoPeriodo } from "@/features/dashboard/resumo-periodo";
 import { UltimasMovimentacoes } from "@/features/dashboard/ultimas-movimentacoes";
 import { formatarMesAno, resolverPeriodoDeParams } from "@/lib/dates";
-import { SESSAO_MOCK } from "@/lib/mock/sessao";
+import { requireSessao } from "@/lib/sessao";
 import { obterResumoDashboard } from "@/services/dashboard";
 
 type Props = {
@@ -74,8 +74,8 @@ const EMENDA = `${SOBREPOSICAO_EMENDA} ${RAIO_EMENDA}`;
 export default async function InicioPage({ searchParams }: Props) {
   const params = await searchParams;
   const periodo = resolverPeriodoDeParams(params);
-  const resumo = obterResumoDashboard(periodo);
-  const { usuario } = SESSAO_MOCK;
+  const { usuario, empresaAtiva } = await requireSessao();
+  const resumo = await obterResumoDashboard(empresaAtiva.id, periodo);
 
   const rotuloPeriodo =
     params.de || params.ate || (params.periodo && params.periodo !== "mes")

@@ -13,15 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { CATEGORIAS_MOCK, CONTAS_MOCK } from "@/lib/mock/dados";
 import { cn } from "@/lib/utils";
 
-/**
- * Busca e filtros vivem na URL, nunca em estado perdido ao trocar de tela.
- * A busca tem debounce antes de tocar a URL — o campo responde a cada tecla,
- * a navegação (e a consulta no servidor) só depois que a digitação para.
- */
-export function FiltrosMovimentacoes() {
+type OpcaoFiltro = { id: string; nome: string };
+
+export function FiltrosMovimentacoes({
+  contas = [],
+  categorias = [],
+}: {
+  contas?: OpcaoFiltro[];
+  categorias?: OpcaoFiltro[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -118,7 +120,7 @@ export function FiltrosMovimentacoes() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as contas</SelectItem>
-            {CONTAS_MOCK.map((c) => (
+            {contas.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.nome}
               </SelectItem>
@@ -135,7 +137,7 @@ export function FiltrosMovimentacoes() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as categorias</SelectItem>
-            {CATEGORIAS_MOCK.map((c) => (
+            {categorias.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.nome}
               </SelectItem>

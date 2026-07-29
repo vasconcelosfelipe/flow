@@ -7,8 +7,8 @@ import {
   isWithinInterval,
 } from "date-fns";
 
+import { db } from "@/lib/db";
 import { formatarDataCurta, formatarMesCurto, type Periodo } from "@/lib/dates";
-import { CONTAS_MOCK, MOVIMENTACOES_MOCK } from "@/lib/mock/dados";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type {
   Alerta,
@@ -17,11 +17,6 @@ import type {
   PontoSerie,
   ResumoDashboard,
 } from "@/services/dashboard/dto";
-
-/**
- * Fase 1: lê de `lib/mock`. Fase 2: as mesmas funções passam a consultar o
- * Prisma e devolvem exatamente estes tipos — a página não muda.
- */
 
 const CONCILIADO = ["CONCILIADO", "PAGO"] as const;
 
@@ -46,7 +41,6 @@ function pendencias(
   const vencidas = abertas.filter(
     (m) => m.dataVencimento !== null && m.dataVencimento < hoje,
   );
-
   return {
     totalCentavos: somar(abertas),
     quantidade: abertas.length,
@@ -54,11 +48,6 @@ function pendencias(
   };
 }
 
-/**
- * Granularidade da série: dias para recortes curtos, meses para o ano.
- * Doze meses num gráfico de celular são legíveis; trezentos e sessenta dias
- * viram uma mancha.
- */
 function montarSerie(movs: MovimentacaoResumo[], periodo: Periodo): PontoSerie[] {
   const porDia = differenceInDays(periodo.ate, periodo.de) <= 62;
   const intervalos = porDia
@@ -66,14 +55,11 @@ function montarSerie(movs: MovimentacaoResumo[], periodo: Periodo): PontoSerie[]
     : eachMonthOfInterval({ start: periodo.de, end: periodo.ate });
 
   return intervalos.map((inicio) => {
-    // Comparar por dia/mês, não por instante: os lançamentos carregam hora, e
-    // `inicio` é meia-noite — comparação crua deixaria quase todo balde vazio.
     const doIntervalo = movs.filter(
       (m) =>
         m.data !== null &&
         (porDia ? isSameDay(m.data, inicio) : isSameMonth(m.data, inicio)),
     );
-
     return {
       rotulo: porDia ? formatarDataCurta(inicio) : formatarMesCurto(inicio),
       receitasCentavos: somar(doIntervalo.filter((m) => m.tipo === "RECEITA")),
@@ -82,7 +68,6 @@ function montarSerie(movs: MovimentacaoResumo[], periodo: Periodo): PontoSerie[]
   });
 }
 
-/** Resultado somado dia a dia desde o início do período. */
 function montarAcumulado(serie: PontoSerie[]): PontoAcumulado[] {
   let acumulado = 0;
   return serie.map((ponto) => {
@@ -126,8 +111,45 @@ function montarAlertas(movs: MovimentacaoResumo[], hoje: Date): Alerta[] {
   return alertas;
 }
 
-export function obterResumoDashboard(periodo: Periodo, hoje = new Date()): ResumoDashboard {
-  const todas = MOVIMENTACOES_MOCK;
+export async function obterResumoDashboard(
+  empresaId: string,
+  periodo: Periodo,
+  hoje = new Date(),
+): Promise<ResumoDashboard> {
+  const [rows, contas] = await Promise.all([
+    db.movimentacao.findMany({
+      where: { empresaId },
+      include: { categoria: true, conta: true, contato: true },
+    }),
+    db.conta.findMany({
+      where: { empresaId, ativa: true },
+      include: {
+        movimentacoes: {
+          where: { status: { in: ["PAGO", "CONCILIADO"] } },
+          select: { tipo: true, valorCentavos: true },
+        },
+      },
+    }),
+  ]);
+
+  const todas: MovimentacaoResumo[] = rows.map((m) => ({
+    id: m.id,
+    descricao: m.descricao,
+    valorCentavos: m.valorCentavos,
+    tipo: m.tipo as "RECEITA" | "DESPESA",
+    status: m.status as MovimentacaoResumo["status"],
+    data: m.data,
+    dataVencimento: m.dataVencimento,
+    numeroParcela: m.numeroParcela,
+    totalParcelas: m.totalParcelas,
+    recorrente: m.recorrente,
+    categoria: m.categoria
+      ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
+      : null,
+    conta: { id: m.conta.id, nome: m.conta.nome, cor: m.conta.cor, tipo: m.conta.tipo as MovimentacaoResumo["conta"]["tipo"] },
+    contato: m.contato ? { id: m.contato.id, nome: m.contato.nome } : null,
+  }));
+
   const noPeriodo = realizadas(todas).filter(
     (m) => m.data !== null && isWithinInterval(m.data, { start: periodo.de, end: periodo.ate }),
   );
@@ -135,11 +157,16 @@ export function obterResumoDashboard(periodo: Periodo, hoje = new Date()): Resum
   const receitas = somar(noPeriodo.filter((m) => m.tipo === "RECEITA"));
   const despesas = somar(noPeriodo.filter((m) => m.tipo === "DESPESA"));
 
-  // Saldo é acumulado: tudo que já entrou e saiu, não só o recorte atual.
   const historico = realizadas(todas);
-  const saldo =
-    somar(historico.filter((m) => m.tipo === "RECEITA")) -
-    somar(historico.filter((m) => m.tipo === "DESPESA"));
+  const saldoContas = contas.reduce((total, c) => {
+    const saldo =
+      c.saldoInicial +
+      c.movimentacoes.reduce(
+        (s, m) => s + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
+        0,
+      );
+    return total + saldo;
+  }, 0);
 
   const duracao = differenceInDays(periodo.ate, periodo.de) + 1;
   const anterior = {
@@ -156,8 +183,8 @@ export function obterResumoDashboard(periodo: Periodo, hoje = new Date()): Resum
   const serie = montarSerie(historico, periodo);
 
   return {
-    saldoTotalCentavos: saldo,
-    quantidadeContas: CONTAS_MOCK.length,
+    saldoTotalCentavos: saldoContas,
+    quantidadeContas: contas.length,
     receitasCentavos: receitas,
     despesasCentavos: despesas,
     variacaoResultado:

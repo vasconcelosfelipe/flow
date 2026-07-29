@@ -1,5 +1,5 @@
+import { db } from "@/lib/db";
 import { chaveDia, rotularDia } from "@/lib/dates";
-import { MOVIMENTACOES_MOCK } from "@/lib/mock/dados";
 import type {
   FiltroMovimentacoes,
   GrupoDiario,
@@ -7,45 +7,50 @@ import type {
   PaginaMovimentacoes,
 } from "@/services/movimentacoes/dto";
 
-/**
- * Fase 1: filtra e agrupa sobre `lib/mock`. Fase 2: as mesmas assinaturas
- * passam a consultar o Prisma com paginação por cursor real — a tela não
- * muda, só a implementação por trás de `listarMovimentacoes`.
- */
-
 const TAMANHO_PAGINA = 30;
 
-function combina(texto: string, busca: string): boolean {
-  return texto.toLocaleLowerCase("pt-BR").includes(busca.toLocaleLowerCase("pt-BR"));
-}
-
-function aplicarFiltro(
-  movs: MovimentacaoResumo[],
-  filtro: FiltroMovimentacoes,
-): MovimentacaoResumo[] {
-  return movs.filter((m) => {
-    if (filtro.contaId && m.conta.id !== filtro.contaId) return false;
-    if (filtro.categoriaId && m.categoria?.id !== filtro.categoriaId) return false;
-    if (filtro.tipo && m.tipo !== filtro.tipo) return false;
-    if (filtro.status && m.status !== filtro.status) return false;
-    if (filtro.semCategoria && m.categoria !== null) return false;
-    if (filtro.busca && !combina(m.descricao, filtro.busca)) return false;
-
-    const dataRelevante = m.data ?? m.dataVencimento;
-    if (filtro.de && dataRelevante && dataRelevante < filtro.de) return false;
-    if (filtro.ate && dataRelevante && dataRelevante > filtro.ate) return false;
-
-    return true;
-  });
-}
-
-/** Mais recente primeiro. Sem data (previstos) vêm antes, ordenados pelo vencimento. */
-function ordenar(movs: MovimentacaoResumo[]): MovimentacaoResumo[] {
-  return [...movs].sort((a, b) => {
-    const dataA = a.data ?? a.dataVencimento ?? new Date(0);
-    const dataB = b.data ?? b.dataVencimento ?? new Date(0);
-    return dataB.getTime() - dataA.getTime();
-  });
+function mapearMovimentacao(m: {
+  id: string;
+  descricao: string;
+  valorCentavos: number;
+  tipo: string;
+  status: string;
+  data: Date | null;
+  dataVencimento: Date | null;
+  numeroParcela: number | null;
+  totalParcelas: number | null;
+  recorrente: boolean;
+  categoria: { id: string; nome: string; icone: string; cor: string } | null;
+  conta: { id: string; nome: string; cor: string; tipo: string };
+  contato: { id: string; nome: string } | null;
+}): MovimentacaoResumo {
+  return {
+    id: m.id,
+    descricao: m.descricao,
+    valorCentavos: m.valorCentavos,
+    tipo: m.tipo as MovimentacaoResumo["tipo"],
+    status: m.status as MovimentacaoResumo["status"],
+    data: m.data,
+    dataVencimento: m.dataVencimento,
+    numeroParcela: m.numeroParcela,
+    totalParcelas: m.totalParcelas,
+    recorrente: m.recorrente,
+    categoria: m.categoria
+      ? {
+          id: m.categoria.id,
+          nome: m.categoria.nome,
+          icone: m.categoria.icone,
+          cor: m.categoria.cor,
+        }
+      : null,
+    conta: {
+      id: m.conta.id,
+      nome: m.conta.nome,
+      cor: m.conta.cor,
+      tipo: m.conta.tipo as MovimentacaoResumo["conta"]["tipo"],
+    },
+    contato: m.contato ? { id: m.contato.id, nome: m.contato.nome } : null,
+  };
 }
 
 function agruparPorDia(movs: MovimentacaoResumo[]): GrupoDiario[] {
@@ -75,25 +80,68 @@ function agruparPorDia(movs: MovimentacaoResumo[]): GrupoDiario[] {
   return [...grupos.values()];
 }
 
-export function listarMovimentacoes(
+export async function listarMovimentacoes(
+  empresaId: string,
   filtro: FiltroMovimentacoes,
   cursor: string | null = null,
-): PaginaMovimentacoes {
-  const filtradas = ordenar(aplicarFiltro(MOVIMENTACOES_MOCK, filtro));
+): Promise<PaginaMovimentacoes> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
+    empresaId,
+    ...(filtro.contaId ? { contaId: filtro.contaId } : {}),
+    ...(filtro.categoriaId ? { categoriaId: filtro.categoriaId } : {}),
+    ...(filtro.tipo ? { tipo: filtro.tipo } : {}),
+    ...(filtro.status ? { status: filtro.status } : {}),
+    ...(filtro.busca
+      ? { descricao: { contains: filtro.busca, mode: "insensitive" as const } }
+      : {}),
+    ...(filtro.semCategoria ? { categoriaId: null, data: { not: null } } : {}),
+    ...(filtro.de || filtro.ate
+      ? {
+          OR: [
+            {
+              data: {
+                ...(filtro.de ? { gte: filtro.de } : {}),
+                ...(filtro.ate ? { lte: filtro.ate } : {}),
+              },
+            },
+            {
+              dataVencimento: {
+                ...(filtro.de ? { gte: filtro.de } : {}),
+                ...(filtro.ate ? { lte: filtro.ate } : {}),
+              },
+            },
+          ],
+        }
+      : {}),
+  };
 
-  const indiceInicial = cursor
-    ? filtradas.findIndex((m) => m.id === cursor) + 1
-    : 0;
-  const pagina = filtradas.slice(indiceInicial, indiceInicial + TAMANHO_PAGINA);
-  const proximoIndice = indiceInicial + TAMANHO_PAGINA;
+  const [total, rows] = await Promise.all([
+    db.movimentacao.count({ where }),
+    db.movimentacao.findMany({
+      where,
+      include: {
+        categoria: true,
+        conta: true,
+        contato: true,
+      },
+      orderBy: [{ data: "desc" }, { dataVencimento: "desc" }],
+      take: TAMANHO_PAGINA,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    }),
+  ]);
+
+  const movs = rows.map(mapearMovimentacao);
 
   return {
-    grupos: agruparPorDia(pagina),
-    total: filtradas.length,
-    proximoCursor: proximoIndice < filtradas.length ? pagina.at(-1)?.id ?? null : null,
+    grupos: agruparPorDia(movs),
+    total,
+    proximoCursor: rows.length === TAMANHO_PAGINA ? (rows.at(-1)?.id ?? null) : null,
   };
 }
 
-export function contarSemCategoria(): number {
-  return MOVIMENTACOES_MOCK.filter((m) => m.categoria === null && m.data !== null).length;
+export async function contarSemCategoria(empresaId: string): Promise<number> {
+  return db.movimentacao.count({
+    where: { empresaId, categoriaId: null, data: { not: null } },
+  });
 }

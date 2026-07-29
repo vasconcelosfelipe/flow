@@ -70,7 +70,7 @@ export function GerenciadorUsuariosConsole({
         titulo="Usuário"
         descricao="Empresas e papéis deste usuário."
       >
-        {visualizando && <DetalheUsuarioConsole usuario={visualizando} />}
+        {visualizando && <DetalheUsuarioConsole usuario={visualizando} todasEmpresas={empresas} />}
       </ResponsiveModal>
 
       <ResponsiveModal

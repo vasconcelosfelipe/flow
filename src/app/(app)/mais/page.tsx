@@ -2,11 +2,12 @@ import Link from "next/link";
 import { ChevronRight, ShieldCheck, Tags, Users, Wallet } from "lucide-react";
 
 import { Container } from "@/components/layout/container";
-import { SESSAO_MOCK } from "@/lib/mock/sessao";
+import { requireSessao } from "@/lib/sessao";
 
 const ITENS_CADASTRO = [
   { href: "/contas", rotulo: "Contas", icone: Wallet },
   { href: "/contatos", rotulo: "Contatos", icone: Users },
+  { href: "/categorias", rotulo: "Categorias", icone: Tags },
   { href: "/centros-custo", rotulo: "Centros de custo", icone: Tags },
 ];
 
@@ -15,12 +16,12 @@ const ITENS_CADASTRO = [
  * navegação. O Console só aparece para quem administra a plataforma — é uma
  * camada acima da empresa, não um cadastro dela.
  */
-export default function MaisPage() {
-  const sessao = SESSAO_MOCK;
+export default async function MaisPage() {
+  const sessao = await requireSessao();
 
   return (
     <Container className="space-y-4 pt-5">
-      <h1 className="text-titulo font-semibold text-ink">Mais</h1>
+      <h1 className="text-titulo font-semibold text-ink">Ajustes</h1>
 
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {ITENS_CADASTRO.map((item) => (

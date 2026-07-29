@@ -1,8 +1,8 @@
 import {
   ChartNoAxesCombined,
-  Ellipsis,
   House,
-  Tags,
+  Receipt,
+  Settings2,
   WalletCards,
   type LucideIcon,
 } from "lucide-react";
@@ -29,8 +29,8 @@ export const DESTINOS: Destino[] = [
     prefixo: ["/movimentacoes", "/importar", "/a-pagar-receber"],
   },
   { href: "/dre", rotulo: "DRE", icone: ChartNoAxesCombined },
-  { href: "/categorias", rotulo: "Categorias", icone: Tags },
-  { href: "/mais", rotulo: "Mais", icone: Ellipsis, prefixo: ["/mais"] },
+  { href: "/a-pagar-receber", rotulo: "Pagar/Receber", icone: Receipt },
+  { href: "/mais", rotulo: "Ajustes", icone: Settings2, prefixo: ["/mais"] },
 ];
 
 export function destinoAtivo(pathname: string, destino: Destino): boolean {

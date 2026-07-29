@@ -1,16 +1,18 @@
-import { CONTATOS_MOCK, MOVIMENTACOES_MOCK } from "@/lib/mock/dados";
+import { db } from "@/lib/db";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 
-function contarUso(contatoId: string): number {
-  return MOVIMENTACOES_MOCK.filter((m) => m.contato?.id === contatoId).length;
-}
+export async function listarContatos(empresaId: string): Promise<ContatoCompleto[]> {
+  const contatos = await db.contato.findMany({
+    where: { empresaId, ativo: true },
+    include: { _count: { select: { movimentacoes: true } } },
+    orderBy: { nome: "asc" },
+  });
 
-export function listarContatos(): ContatoCompleto[] {
-  return CONTATOS_MOCK.map((c) => ({
+  return contatos.map((c) => ({
     id: c.id,
     nome: c.nome,
     tipo: c.tipo,
     documento: c.documento,
-    quantidadeMovimentacoes: contarUso(c.id),
+    quantidadeMovimentacoes: c._count.movimentacoes,
   }));
 }

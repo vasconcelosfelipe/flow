@@ -6,6 +6,7 @@ import { ResumoDre } from "@/features/dre/resumo";
 import { TabelaAnualDre } from "@/features/dre/tabela-anual";
 import { TabelaMensalDre } from "@/features/dre/tabela-mensal";
 import { mesesDoAno } from "@/lib/dates";
+import { requireSessao } from "@/lib/sessao";
 import { montarDre } from "@/services/dre";
 
 type Props = {
@@ -24,8 +25,11 @@ export default async function DrePage({ searchParams }: Props) {
   const hoje = new Date();
   const mes = params.mes ? parse(params.mes, "yyyy-MM", hoje) : hoje;
   const ano = params.ano ? Number(params.ano) : hoje.getFullYear();
+  const { empresaAtiva } = await requireSessao();
 
-  const dre = modo === "mensal" ? montarDre([mes]) : montarDre(mesesDoAno(ano));
+  const dre = await (modo === "mensal"
+    ? montarDre(empresaAtiva.id, [mes])
+    : montarDre(empresaAtiva.id, mesesDoAno(ano)));
 
   return (
     <Container className="space-y-4 pt-5">
