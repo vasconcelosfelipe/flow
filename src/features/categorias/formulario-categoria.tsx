@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { ICONES, iconeDe, type ChaveIcone } from "@/lib/icones";
 import { cn } from "@/lib/utils";
-import { DEFINICAO_LINHAS } from "@/services/dre";
+import { DEFINICAO_LINHAS } from "@/services/dre/definicoes";
 import type { CategoriaCompleta, FormularioCategoria } from "@/services/categorias/dto";
 import type { TipoGrupoDre, TipoMovimentacao } from "@/types/dominio";
 
