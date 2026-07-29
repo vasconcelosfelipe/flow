@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
@@ -9,6 +10,9 @@ import { requireSessao } from "@/lib/sessao";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const sessao = await requireSessao();
+
+  // Admin sem empresa: manda direto para o console
+  if (!sessao.empresaAtiva) redirect("/console/empresas");
 
   return (
     <TooltipProvider delayDuration={300}>
