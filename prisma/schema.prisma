@@ -13,40 +13,76 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────
-// PLATAFORMA (acima das empresas — Console)
+// AUTENTICAÇÃO — modelos no formato que o Better Auth exige
+// Nomes em inglês são obrigatórios para o adapter funcionar.
+// Campos customizados do domínio entram como additionalFields.
 // ─────────────────────────────────────────────────────────────
 
-model Usuario {
+model user {
   id               String   @id @default(cuid())
-  nome             String
+  name             String
   email            String   @unique
-  senhaHash        String
+  emailVerified    Boolean  @default(false)
+  image            String?
+  // campos extras do domínio Flow
   adminPlataforma  Boolean  @default(false)
-  criadoEm        DateTime @default(now())
-  atualizadoEm    DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
+  sessions         session[]
+  accounts         account[]
   membros          MembroEmpresa[]
-  sessoes          Sessao[]
   convites         Convite[]        @relation("ConviteConvidado")
   convitesEnviados Convite[]        @relation("ConviteRemetente")
-
-  @@map("usuarios")
 }
 
-// Sessões de autenticação (Better Auth ou similar)
-model Sessao {
+model session {
   id        String   @id @default(cuid())
-  usuarioId String
+  userId    String
   token     String   @unique
-  expiraEm  DateTime
-  criadoEm  DateTime @default(now())
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
   userAgent String?
-  ip        String?
 
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([usuarioId])
-  @@map("sessoes")
+  @@index([userId])
+}
+
+// Credenciais OAuth e email/senha gerenciados pelo Better Auth
+model account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([accountId, providerId])
+}
+
+// Tokens de verificação de e-mail e reset de senha
+model verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -77,15 +113,15 @@ model Empresa {
 model MembroEmpresa {
   id         String       @id @default(cuid())
   empresaId  String
-  usuarioId  String
+  userId     String
   papel      PapelMembro
   criadoEm  DateTime     @default(now())
 
   empresa    Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  usuario    Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario    user         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([empresaId, usuarioId])
-  @@index([usuarioId])
+  @@unique([empresaId, userId])
+  @@index([userId])
   @@map("membros_empresa")
 }
 
@@ -102,8 +138,8 @@ model Convite {
   criadoEm   DateTime    @default(now())
 
   empresa     Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  remetente   Usuario     @relation("ConviteRemetente", fields: [remetenteId], references: [id])
-  convidado   Usuario?    @relation("ConviteConvidado", fields: [email], references: [email])
+  remetente   user        @relation("ConviteRemetente", fields: [remetenteId], references: [id])
+  convidado   user?       @relation("ConviteConvidado", fields: [email], references: [email])
 
   @@index([empresaId])
   @@map("convites")

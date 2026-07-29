@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { z } from "zod";
@@ -9,21 +9,19 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signIn } from "@/lib/auth-client";
 
 const schema = z.object({
   email: z.string().trim().email("Digite um e-mail válido."),
   senha: z.string().min(1, "Digite sua senha."),
 });
 
-/**
- * Fase 1: não há sessão real para validar contra — o formulário sempre
- * "funciona" após um instante de carregamento, o bastante para a tela de
- * seleção de empresa (ou o próprio app, com uma empresa só) ser o próximo
- * passo natural.
- */
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/selecionar-empresa";
   const [entrando, setEntrando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const {
     register,
@@ -31,9 +29,19 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
 
-  function enviar() {
+  async function enviar(dados: z.infer<typeof schema>) {
     setEntrando(true);
-    setTimeout(() => router.push("/selecionar-empresa"), 500);
+    setErro(null);
+    const { error } = await signIn.email({
+      email: dados.email,
+      password: dados.senha,
+    });
+    if (error) {
+      setErro("E-mail ou senha incorretos.");
+      setEntrando(false);
+      return;
+    }
+    router.push(next);
   }
 
   return (
@@ -67,6 +75,12 @@ export default function LoginPage() {
           />
           {errors.senha && <p className="text-nano text-negative-text">{errors.senha.message}</p>}
         </div>
+
+        {erro && (
+          <p className="rounded-lg bg-negative/10 px-3 py-2 text-nano text-negative-text">
+            {erro}
+          </p>
+        )}
 
         <Button type="submit" className="h-11 w-full" disabled={entrando}>
           {entrando ? "Entrando…" : "Entrar"}
