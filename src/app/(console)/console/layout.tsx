@@ -1,16 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
+import { requireSessao } from "@/lib/sessao";
 
 /**
- * O Console é uma camada acima de qualquer empresa — por isso não herda o
- * cromo do app (sem seletor de empresa, sem as cinco abas de navegação
- * financeira). O cabeçalho deixa isso explícito: "voltar" leva para dentro
- * de uma empresa, não para uma aba irmã dentro do Console.
+ * O Console é exclusivo do super-admin (adminPlataforma = true).
+ * Qualquer outro usuário recebe 404 — não um aviso de "sem permissão",
+ * que confirmaria que a rota existe.
  */
-export default function ConsoleLayout({ children }: { children: ReactNode }) {
+export default async function ConsoleLayout({ children }: { children: ReactNode }) {
+  const sessao = await requireSessao();
+  if (!sessao.usuario.adminPlataforma) notFound();
   return (
     <div className="min-h-dvh bg-canvas">
       <header className="pt-safe sticky top-0 z-50 bg-night text-night-text">
