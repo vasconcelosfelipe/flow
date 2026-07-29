@@ -16,6 +16,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Placeholders aqui; valores reais vêm do .env em runtime.
 ENV DATABASE_URL=postgresql://build:placeholder@localhost:5432/build
 ENV BETTER_AUTH_SECRET=build-placeholder-secret-32chars!!
+ENV NEXT_PUBLIC_APP_URL=https://flow.soduscore.com
 RUN npx prisma generate --config prisma/prisma.config.ts
 RUN npm run build
 
