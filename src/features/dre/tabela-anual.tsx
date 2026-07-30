@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { calcularMargem, formatarPercentual } from "@/lib/money";
 import { formatarMesCurto } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import type { ChaveSecaoDre, DreResultado } from "@/services/dre/dto";
+import type { DreResultado } from "@/services/dre/dto";
 
 /** O total do ano é a coluna que resume todas as outras — separada por uma
  * borda e um fundo levemente mais escuro para não se perder ao rolar. */
@@ -24,11 +24,11 @@ function fatiaTrimestre<T>(valores: T[], trimestre: number): T[] {
  * Doze meses agrupados em quatro trimestres — o que cabe numa tela de
  * celular sem rolagem é T1–T4 e o Total do ano; o mês vira detalhe que só
  * aparece quando a pessoa abre aquele trimestre especificamente, o mesmo
- * gesto que já revela categorias por trás de uma seção.
+ * gesto que já revela categorias por trás de uma linha.
  */
 export function TabelaAnualDre({ dre }: { dre: DreResultado }) {
   const [trimestresAbertos, setTrimestresAbertos] = useState([false, false, false, false]);
-  const secao = (c: ChaveSecaoDre) => dre.secoes.find((s) => s.chave === c);
+  const linha = (id: string) => dre.linhas.find((l) => l.id === id);
 
   function alternarTrimestre(t: number) {
     setTrimestresAbertos((atual) => atual.map((v, i) => (i === t ? !v : v)));
@@ -81,31 +81,36 @@ export function TabelaAnualDre({ dre }: { dre: DreResultado }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <LinhaComponente secao={secao("RECEITA_BRUTA")} trimestresAbertos={trimestresAbertos} />
-          <LinhaComponente secao={secao("DEDUCOES")} trimestresAbertos={trimestresAbertos} />
+          <LinhaComponente linha={linha("RECEITA_BRUTA")} trimestresAbertos={trimestresAbertos} />
+          <LinhaComponente linha={linha("DEDUCOES")} trimestresAbertos={trimestresAbertos} />
           <LinhaTotal rotulo="Receita líquida" valores={dre.receitaLiquida} trimestresAbertos={trimestresAbertos} />
-          <LinhaPercentual
+
+          <LinhaComponente linha={linha("CUSTOS")} trimestresAbertos={trimestresAbertos} />
+          <LinhaTotal
             rotulo="Margem de contribuição"
-            numerador={dre.receitaLiquida}
-            denominador={dre.receitaBruta}
+            valores={dre.margemContribuicao}
+            trimestresAbertos={trimestresAbertos}
+          />
+          <LinhaPercentual
+            rotulo="% sobre a receita líquida"
+            numerador={dre.margemContribuicao}
+            denominador={dre.receitaLiquida}
             trimestresAbertos={trimestresAbertos}
           />
 
-          <LinhaComponente secao={secao("CUSTOS")} trimestresAbertos={trimestresAbertos} />
-          <LinhaComponente secao={secao("DESPESAS_OPERACIONAIS")} trimestresAbertos={trimestresAbertos} />
-          <LinhaTotal rotulo="Lucro bruto" valores={dre.lucroBruto} trimestresAbertos={trimestresAbertos} />
-
-          <LinhaComponente secao={secao("RESULTADO_NAO_OPERACIONAL")} trimestresAbertos={trimestresAbertos} />
+          <LinhaComponente linha={linha("DESPESAS_OPERACIONAIS")} trimestresAbertos={trimestresAbertos} />
           <LinhaTotal
-            rotulo="Lucro antes dos tributos"
-            valores={dre.lucroAntesTributos}
+            rotulo="Resultado operacional"
+            valores={dre.resultadoOperacional}
             trimestresAbertos={trimestresAbertos}
           />
 
-          <LinhaComponente secao={secao("TRIBUTOS_LUCRO")} trimestresAbertos={trimestresAbertos} />
+          <LinhaComponente linha={linha("OUTRAS_RECEITAS_DESPESAS")} trimestresAbertos={trimestresAbertos} />
+          <LinhaComponente linha={linha("TRIBUTOS_LUCRO")} trimestresAbertos={trimestresAbertos} />
+
           <LinhaTotal
-            rotulo="Lucro líquido"
-            valores={dre.lucroLiquido}
+            rotulo="Resultado líquido"
+            valores={dre.resultadoLiquido}
             trimestresAbertos={trimestresAbertos}
             final
           />
@@ -153,17 +158,17 @@ function CelulasMoeda({
   );
 }
 
-/** Um componente da cascata — nasce fechado, discreto; abrir revela suas categorias. */
+/** Uma linha da cascata — nasce fechada, discreta; abrir revela suas categorias. */
 function LinhaComponente({
-  secao,
+  linha,
   trimestresAbertos,
 }: {
-  secao: DreResultado["secoes"][number] | undefined;
+  linha: DreResultado["linhas"][number] | undefined;
   trimestresAbertos: boolean[];
 }) {
   const [aberto, setAberto] = useState(false);
 
-  if (!secao) return null;
+  if (!linha) return null;
 
   return (
     <Fragment>
@@ -183,25 +188,25 @@ function LinhaComponente({
               className={cn("size-3.5 text-ink-muted/70 transition-transform", aberto && "rotate-180")}
               aria-hidden="true"
             />
-            {secao.rotulo}
+            {linha.nome}
           </span>
         </TableCell>
-        <CelulasMoeda valores={secao.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
+        <CelulasMoeda valores={linha.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
         <TableCell className={cn("text-right", COL_TOTAL)}>
-          <AmountText centavos={secao.totalCentavos} tom="neutro" tamanho="sm" compacto />
+          <AmountText centavos={linha.totalCentavos} tom="neutro" tamanho="sm" compacto />
         </TableCell>
       </TableRow>
 
       {aberto &&
-        secao.linhas.map((linha) => (
-          <TableRow key={linha.id} className="bg-muted/20 hover:bg-muted/20">
+        linha.itens.map((item) => (
+          <TableRow key={item.categoriaId} className="bg-muted/20 hover:bg-muted/20">
             <TableCell className="sticky left-0 z-10 bg-muted pl-9 text-micro text-ink-muted">
-              {linha.sinal === -1 && "(-) "}
-              {linha.nome}
+              {item.tipo === "DESPESA" && "(-) "}
+              {item.nome}
             </TableCell>
-            <CelulasMoeda valores={linha.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
+            <CelulasMoeda valores={item.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
             <TableCell className={cn("text-right", COL_TOTAL)}>
-              <AmountText centavos={linha.totalCentavos} tom="neutro" tamanho="sm" compacto />
+              <AmountText centavos={item.totalCentavos} tom="neutro" tamanho="sm" compacto />
             </TableCell>
           </TableRow>
         ))}

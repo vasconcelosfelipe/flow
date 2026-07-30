@@ -2,163 +2,130 @@ import { isSameMonth } from "date-fns";
 
 import { db } from "@/lib/db";
 import { calcularMargem } from "@/lib/money";
-import type { ChaveSecaoDre, DreResultado, LinhaDre, SecaoDre } from "@/services/dre/dto";
-import { ORDEM_SECOES, ROTULO_SECAO } from "@/services/dre/definicoes";
-import type { DefinicaoLinhaDre } from "@/services/dre/definicoes";
-import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
-import type { TipoGrupoDre } from "@/types/dominio";
+import type { Centavos } from "@/lib/money";
+import type { DreResultado, ItemLinhaDre, LinhaDreResultado } from "@/services/dre/dto";
+import { listarLinhasDre } from "@/services/linhas-dre";
 
-const CONCILIADO = ["CONCILIADO", "PAGO"] as const;
-
-function realizadas(movs: MovimentacaoResumo[]) {
-  return movs.filter(
-    (m) => m.data !== null && CONCILIADO.includes(m.status as (typeof CONCILIADO)[number]),
-  );
-}
-
-function somaZerada(quantidade: number): number[] {
+function somaZerada(quantidade: number): Centavos[] {
   return Array.from({ length: quantidade }, () => 0);
 }
 
-function somarPorMes(movs: MovimentacaoResumo[], categorias: string[], meses: Date[]): number[] {
-  if (categorias.length === 0) return somaZerada(meses.length);
-
-  return meses.map((mes) =>
-    movs
-      .filter((m) => m.categoria !== null && categorias.includes(m.categoria.id) && m.data && isSameMonth(m.data, mes))
-      .reduce((soma, m) => soma + m.valorCentavos, 0),
-  );
-}
-
+/**
+ * Monta a DRE inteiramente a partir de Movimentações → Categorias → Linha
+ * da DRE. Nenhuma lista de categorias fica hardcoded aqui: a única fonte de
+ * verdade sobre "quais categorias somam nesta linha" é `Categoria.linhaDreId`,
+ * configurado na tela de Categorias — este serviço só consulta.
+ */
 export async function montarDre(empresaId: string, meses: Date[]): Promise<DreResultado> {
-  const [rows, cats] = await Promise.all([
-    db.movimentacao.findMany({
-      where: { empresaId, status: { in: ["PAGO", "CONCILIADO"] }, data: { not: null } },
-      include: { categoria: true, conta: true, contato: true },
-    }),
-    db.categoria.findMany({
-      where: { empresaId, ativa: true, secaoDre: { not: null } },
-    }),
-  ]);
-
-  const rawMovs: MovimentacaoResumo[] = rows.map((m) => ({
-    id: m.id,
-    descricao: m.descricao,
-    valorCentavos: m.valorCentavos,
-    tipo: m.tipo as "RECEITA" | "DESPESA",
-    status: m.status as MovimentacaoResumo["status"],
-    data: m.data,
-    dataVencimento: m.dataVencimento,
-    numeroParcela: m.numeroParcela,
-    totalParcelas: m.totalParcelas,
-    recorrente: m.recorrente,
-    categoria: m.categoria
-      ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
-      : null,
-    conta: { id: m.conta.id, nome: m.conta.nome, cor: m.conta.cor, tipo: m.conta.tipo as MovimentacaoResumo["conta"]["tipo"] },
-    contato: m.contato ? { id: m.contato.id, nome: m.contato.nome } : null,
-  }));
-
-  // Build dynamic lines from real categories grouped by secaoDre
-  const catsPorSecao = new Map<ChaveSecaoDre, typeof cats>();
-  for (const cat of cats) {
-    if (!cat.secaoDre) continue;
-    const secao = cat.secaoDre as ChaveSecaoDre;
-    const grupo = catsPorSecao.get(secao) ?? [];
-    grupo.push(cat);
-    catsPorSecao.set(secao, grupo);
-  }
-
-  const dinamicas: DefinicaoLinhaDre[] = [];
-  for (const [secao, grupo] of catsPorSecao.entries()) {
-    for (const cat of grupo) {
-      const grupo_tipo: TipoGrupoDre =
-        cat.tipo === "RECEITA"
-          ? secao === "RECEITA_BRUTA" ? "RECEITA" : "RECEITA_FINANCEIRA"
-          : secao === "DEDUCOES" ? "DEDUCAO"
-          : secao === "CUSTOS" ? "CUSTO"
-          : secao === "TRIBUTOS_LUCRO" ? "TRIBUTOS_LUCRO"
-          : secao === "RESULTADO_NAO_OPERACIONAL" ? "DESPESA_FINANCEIRA"
-          : "DESPESA";
-
-      const linhaExistente = dinamicas.find((d) => d.id === `secao-${secao}-${cat.tipo}`);
-      if (linhaExistente) {
-        linhaExistente.categorias.push(cat.id);
-      } else {
-        dinamicas.push({
-          id: `secao-${secao}-${cat.tipo}`,
-          nome: cat.tipo === "RECEITA" ? ROTULO_SECAO[secao] : ROTULO_SECAO[secao],
-          grupo: grupo_tipo,
-          secao,
-          sinal: cat.tipo === "RECEITA" ? 1 : 1,
-          categorias: [cat.id],
-        });
-      }
-    }
-  }
-
-  const movs = realizadas(rawMovs);
   const tamanho = meses.length;
 
-  const secoes: SecaoDre[] = ORDEM_SECOES.map((chave) => {
-    const linhas: LinhaDre[] = dinamicas.filter((def) => def.secao === chave).map((def) => {
-      const valores = somarPorMes(movs, def.categorias, meses);
+  const [movimentacoes, linhasDre] = await Promise.all([
+    db.movimentacao.findMany({
+      where: { empresaId, status: { in: ["PAGO", "CONCILIADO"] }, data: { not: null } },
+      select: {
+        valorCentavos: true,
+        tipo: true,
+        data: true,
+        categoria: { select: { id: true, nome: true, linhaDreId: true } },
+      },
+    }),
+    listarLinhasDre(),
+  ]);
+
+  // Agrupa por linha da DRE e, dentro dela, por categoria real — nunca uma
+  // linha fictícia repetindo o nome da seção.
+  const itensPorLinha = new Map<string, Map<string, ItemLinhaDre>>();
+
+  for (const mov of movimentacoes) {
+    const categoria = mov.categoria;
+    if (!categoria?.linhaDreId || !mov.data) continue; // sem linha vinculada: fora da DRE
+
+    const mesIndex = meses.findIndex((m) => isSameMonth(m, mov.data!));
+    if (mesIndex === -1) continue;
+
+    let itensDaLinha = itensPorLinha.get(categoria.linhaDreId);
+    if (!itensDaLinha) {
+      itensDaLinha = new Map();
+      itensPorLinha.set(categoria.linhaDreId, itensDaLinha);
+    }
+
+    let item = itensDaLinha.get(categoria.id);
+    if (!item) {
+      item = {
+        categoriaId: categoria.id,
+        nome: categoria.nome,
+        tipo: mov.tipo as ItemLinhaDre["tipo"],
+        valores: somaZerada(tamanho),
+        totalCentavos: 0,
+      };
+      itensDaLinha.set(categoria.id, item);
+    }
+
+    item.valores[mesIndex] += mov.valorCentavos;
+    item.totalCentavos += mov.valorCentavos;
+  }
+
+  const linhas: LinhaDreResultado[] = linhasDre
+    .map((linha): LinhaDreResultado => {
+      const itens = [...(itensPorLinha.get(linha.id)?.values() ?? [])];
+
+      // Linhas de tipo único (Receita Bruta, Deduções, Custos, Despesas
+      // Operacionais, Tributos) somam a magnitude direta — quem subtrai é a
+      // cascata abaixo. Só a linha mista (tipoPermitido nulo — Outras
+      // Receitas/Despesas) precisa netar receita e despesa aqui dentro,
+      // porque a cascata só faz `+ outrasReceitasDespesas`, uma vez.
+      const mista = linha.tipoPermitido === null;
+      const valores = itens.reduce((soma, item) => {
+        const sinal = mista && item.tipo === "DESPESA" ? -1 : 1;
+        return soma.map((v, i) => v + sinal * item.valores[i]);
+      }, somaZerada(tamanho));
+
       return {
-        id: def.id,
-        nome: def.nome,
-        sinal: def.sinal,
+        id: linha.id,
+        nome: linha.nome,
+        ordem: linha.ordem,
+        itens,
         valores,
         totalCentavos: valores.reduce((a, b) => a + b, 0),
       };
-    });
+    })
+    .filter((l) => l.itens.length > 0);
 
-    // O sinal aplica-se aqui: uma despesa não operacional soma tamanho ao
-    // total exibido, mas subtrai do valor da seção.
-    const valores = linhas.reduce(
-      (total, linha) => total.map((v, i) => v + linha.sinal * linha.valores[i]),
-      somaZerada(tamanho),
-    );
+  const buscar = (id: string) => linhas.find((l) => l.id === id)?.valores ?? somaZerada(tamanho);
 
-    return {
-      chave,
-      rotulo: ROTULO_SECAO[chave],
-      linhas,
-      valores,
-      totalCentavos: valores.reduce((a, b) => a + b, 0),
-    };
-  }).filter((s) => s.linhas.length > 0);
-
-  const porSecao = (chave: ChaveSecaoDre) => secoes.find((s) => s.chave === chave)?.valores ?? somaZerada(tamanho);
-
-  const receitaBruta = porSecao("RECEITA_BRUTA");
-  const deducoes = porSecao("DEDUCOES");
-  const custos = porSecao("CUSTOS");
-  const despesasOperacionais = porSecao("DESPESAS_OPERACIONAIS");
-  const resultadoNaoOperacional = porSecao("RESULTADO_NAO_OPERACIONAL");
-  const tributosSobreLucro = porSecao("TRIBUTOS_LUCRO");
+  const receitaBruta = buscar("RECEITA_BRUTA");
+  const deducoes = buscar("DEDUCOES");
+  const custos = buscar("CUSTOS");
+  const despesasOperacionais = buscar("DESPESAS_OPERACIONAIS");
+  const outrasReceitasDespesas = buscar("OUTRAS_RECEITAS_DESPESAS");
+  const tributosSobreLucro = buscar("TRIBUTOS_LUCRO");
 
   const receitaLiquida = receitaBruta.map((v, i) => v - deducoes[i]);
-  const margemContribuicao = receitaLiquida.map((v, i) => calcularMargem(v, receitaBruta[i]));
-  const lucroBruto = receitaLiquida.map((v, i) => v - custos[i] - despesasOperacionais[i]);
-  const lucroAntesTributos = lucroBruto.map((v, i) => v + resultadoNaoOperacional[i]);
-  const lucroLiquido = lucroAntesTributos.map((v, i) => v - tributosSobreLucro[i]);
-  const margem = lucroLiquido.map((v, i) => calcularMargem(v, receitaLiquida[i]));
+  const margemContribuicao = receitaLiquida.map((v, i) => v - custos[i]);
+  const resultadoOperacional = margemContribuicao.map((v, i) => v - despesasOperacionais[i]);
+  const resultadoLiquido = resultadoOperacional.map(
+    (v, i) => v + outrasReceitasDespesas[i] - tributosSobreLucro[i],
+  );
+
+  const margemContribuicaoPercentual = margemContribuicao.map((v, i) =>
+    calcularMargem(v, receitaLiquida[i]),
+  );
+  const margem = resultadoLiquido.map((v, i) => calcularMargem(v, receitaLiquida[i]));
 
   return {
     meses,
-    secoes,
+    linhas,
     receitaBruta,
     deducoes,
     receitaLiquida,
-    margemContribuicao,
     custos,
+    margemContribuicao,
+    margemContribuicaoPercentual,
     despesasOperacionais,
-    lucroBruto,
-    resultadoNaoOperacional,
-    lucroAntesTributos,
+    resultadoOperacional,
+    outrasReceitasDespesas,
     tributosSobreLucro,
-    lucroLiquido,
+    resultadoLiquido,
     margem,
   };
 }
-

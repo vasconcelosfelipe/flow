@@ -18,18 +18,14 @@ import {
 } from "@/components/ui/select";
 import { ICONES, iconeDe, type ChaveIcone } from "@/lib/icones";
 import { cn } from "@/lib/utils";
-import { ORDEM_SECOES, ROTULO_SECAO } from "@/services/dre/definicoes";
 import type { CategoriaCompleta, FormularioCategoria } from "@/services/categorias/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoMovimentacao } from "@/types/dominio";
 
 const SEM_LINHA = "nenhuma";
 
-const SECOES_RECEITA = ["RECEITA_BRUTA", "RESULTADO_NAO_OPERACIONAL"];
-
-function secoesParaTipo(tipo: TipoMovimentacao) {
-  return ORDEM_SECOES.filter((s) =>
-    tipo === "RECEITA" ? SECOES_RECEITA.includes(s) : !SECOES_RECEITA.includes(s),
-  );
+function linhasParaTipo(linhas: LinhaDreOpcao[], tipo: TipoMovimentacao) {
+  return linhas.filter((l) => l.tipoPermitido === null || l.tipoPermitido === tipo);
 }
 
 const PALETA_CORES = [
@@ -53,11 +49,13 @@ const schema = z.object({
  */
 export function FormularioCategoria({
   categoria,
+  linhas,
   aoSalvar,
   aoExcluir,
   aoCancelar,
 }: {
   categoria: CategoriaCompleta | null;
+  linhas: LinhaDreOpcao[];
   aoSalvar: (dados: FormularioCategoria) => void;
   aoExcluir?: (id: string) => void;
   aoCancelar: () => void;
@@ -87,14 +85,14 @@ export function FormularioCategoria({
   const linhaDreId = watch("linhaDreId");
   const IconeSelecionado = iconeDe(icone);
 
-  const secoesDisponiveis = useMemo(() => secoesParaTipo(tipo), [tipo]);
+  const linhasDisponiveis = useMemo(() => linhasParaTipo(linhas, tipo), [linhas, tipo]);
 
   useEffect(() => {
     if (linhaDreId === SEM_LINHA) return;
-    if (!secoesDisponiveis.includes(linhaDreId as never)) {
+    if (!linhasDisponiveis.some((l) => l.id === linhaDreId)) {
       setValue("linhaDreId", SEM_LINHA);
     }
-  }, [secoesDisponiveis, linhaDreId, setValue]);
+  }, [linhasDisponiveis, linhaDreId, setValue]);
 
   function enviar(dados: z.infer<typeof schema>) {
     aoSalvar({
@@ -147,23 +145,23 @@ export function FormularioCategoria({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Conta na DRE</Label>
+        <Label>Linha da DRE</Label>
         <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
           <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
-            {secoesDisponiveis.map((secao) => (
-              <SelectItem key={secao} value={secao}>
-                {ROTULO_SECAO[secao]}
+            {linhasDisponiveis.map((linha) => (
+              <SelectItem key={linha.id} value={linha.id}>
+                {linha.nome}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <p className="text-nano text-ink-muted">
-          Define em qual linha do resultado esta categoria soma. Sem conta, os lançamentos ficam
-          fora da DRE.
+          Define em qual linha da DRE esta categoria soma. Sem linha, os lançamentos ficam fora
+          do relatório.
         </p>
       </div>
 

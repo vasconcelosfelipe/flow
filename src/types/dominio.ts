@@ -37,16 +37,6 @@ export type FormaPagamento =
   | "DINHEIRO"
   | "OUTRO";
 
-export type TipoGrupoDre =
-  | "RECEITA"
-  | "DEDUCAO"
-  | "CUSTO"
-  | "DESPESA"
-  | "RECEITA_FINANCEIRA"
-  | "DESPESA_FINANCEIRA"
-  | "TRIBUTOS_LUCRO"
-  | "OUTROS";
-
 export type TipoContato = "CLIENTE" | "FORNECEDOR" | "AMBOS";
 
 export const ROTULO_TIPO_CONTATO: Record<TipoContato, string> = {

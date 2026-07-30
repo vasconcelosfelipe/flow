@@ -12,9 +12,16 @@ import { FormularioCategoria } from "@/features/categorias/formulario-categoria"
 import { LinhaCategoria } from "@/features/categorias/linha-categoria";
 import { criarCategoria, editarCategoria, excluirCategoria } from "@/services/categorias/actions";
 import type { CategoriaCompleta, FormularioCategoria as DadosFormulario } from "@/services/categorias/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoMovimentacao } from "@/types/dominio";
 
-export function GerenciadorCategorias({ inicial }: { inicial: CategoriaCompleta[] }) {
+export function GerenciadorCategorias({
+  inicial,
+  linhas,
+}: {
+  inicial: CategoriaCompleta[];
+  linhas: LinhaDreOpcao[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [aba, setAba] = useState<TipoMovimentacao>("DESPESA");
@@ -82,10 +89,11 @@ export function GerenciadorCategorias({ inicial }: { inicial: CategoriaCompleta[
         aberto={editando !== null}
         aoMudarAberto={(aberto) => !aberto && setEditando(null)}
         titulo={categoriaEmEdicao ? "Editar categoria" : "Nova categoria"}
-        descricao="Nome, tipo, conta de DRE, cor e ícone da categoria."
+        descricao="Nome, tipo, linha da DRE, cor e ícone da categoria."
       >
         <FormularioCategoria
           categoria={categoriaEmEdicao}
+          linhas={linhas}
           aoSalvar={salvar}
           aoExcluir={categoriaEmEdicao ? excluir : undefined}
           aoCancelar={() => setEditando(null)}

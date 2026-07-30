@@ -175,17 +175,38 @@ model Categoria {
   icone       String        @default("outro")
   cor         String        @default("#64748B")
   tipo        TipoMovimentacao
-  // Seção da DRE onde esta categoria aparece
-  secaoDre    ChaveSecaoDre?
+  // Linha fixa da DRE onde esta categoria soma — a tela de Categorias é a
+  // única responsável por essa configuração; a DRE nunca decide isso sozinha,
+  // só consulta.
+  linhaDreId  String?
   ativa       Boolean       @default(true)
   criadoEm   DateTime      @default(now())
   atualizadoEm DateTime     @updatedAt
 
   empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  linhaDre      LinhaDre?      @relation(fields: [linhaDreId], references: [id])
   movimentacoes Movimentacao[]
 
   @@index([empresaId])
   @@map("categorias")
+}
+
+// As linhas fixas da DRE gerencial — cadastro de referência, não por
+// empresa. Cada categoria aponta para uma delas; a DRE soma as movimentações
+// de cada categoria dentro da linha para a qual ela aponta. Nenhuma lista de
+// categorias fica hardcoded no código: quem decide a composição de cada
+// linha é o cadastro de Categorias, não o serviço de DRE.
+model LinhaDre {
+  id            String            @id
+  nome          String
+  ordem         Int
+  // `null` = aceita categoria de receita e de despesa (só a linha "Outras
+  // Receitas/Despesas" mistura os dois tipos por natureza).
+  tipoPermitido TipoMovimentacao?
+
+  categorias    Categoria[]
+
+  @@map("linhas_dre")
 }
 
 model Contato {
@@ -384,15 +405,6 @@ enum TipoContato {
   CLIENTE
   FORNECEDOR
   AMBOS
-}
-
-enum ChaveSecaoDre {
-  RECEITA_BRUTA
-  DEDUCOES
-  CUSTOS
-  DESPESAS_OPERACIONAIS
-  RESULTADO_NAO_OPERACIONAL
-  TRIBUTOS_LUCRO
 }
 
 enum FrequenciaRegra {

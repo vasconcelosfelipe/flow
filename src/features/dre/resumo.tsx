@@ -16,9 +16,9 @@ function somar(valores: number[]): number {
  */
 export function ResumoDre({ dre }: { dre: DreResultado }) {
   const receitaLiquida = somar(dre.receitaLiquida);
-  const lucroLiquido = somar(dre.lucroLiquido);
-  const margemBp = receitaLiquida === 0 ? null : Math.round((lucroLiquido / receitaLiquida) * 10_000);
-  const positivo = lucroLiquido >= 0;
+  const resultadoLiquido = somar(dre.resultadoLiquido);
+  const margemBp = receitaLiquida === 0 ? null : Math.round((resultadoLiquido / receitaLiquida) * 10_000);
+  const positivo = resultadoLiquido >= 0;
 
   return (
     <div className="grid grid-cols-3 gap-2.5">
@@ -39,8 +39,8 @@ export function ResumoDre({ dre }: { dre: DreResultado }) {
         >
           <Scale className="size-3.5" aria-hidden="true" />
         </span>
-        <p className="mt-2.5 text-nano text-ink-muted">Lucro líquido</p>
-        <AmountText centavos={lucroLiquido} tamanho="sm" className="mt-0.5 block" />
+        <p className="mt-2.5 text-nano text-ink-muted">Resultado líquido</p>
+        <AmountText centavos={resultadoLiquido} tamanho="sm" className="mt-0.5 block" />
       </div>
 
       <div className="rounded-2xl border border-line bg-surface p-3.5 shadow-card">

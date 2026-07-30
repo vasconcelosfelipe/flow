@@ -1,70 +1,64 @@
 import type { Centavos } from "@/lib/money";
+import type { TipoMovimentacao } from "@/types/dominio";
 
 /**
- * Contrato da DRE, seguindo o modelo:
+ * Contrato da DRE, seguindo o modelo gerencial:
  *
- * Receita Bruta → Deduções → Receita Líquida → Custos e Despesas
- * Operacionais → Lucro Bruto → Receitas/Despesas Não Operacionais →
- * Resultado Não Operacional → Lucro Antes dos Tributos → Tributos sobre o
- * Lucro → Lucro Líquido.
+ * Receita Bruta → (-) Deduções → (=) Receita Líquida → (-) Custos dos
+ * Produtos → (=) Margem de Contribuição → (-) Despesas Operacionais →
+ * (=) Resultado Operacional → (+/-) Outras Receitas/Despesas →
+ * (-) Tributos sobre o Lucro → (=) Resultado Líquido.
  *
- * A DRE mostra só estas linhas — nunca uma por categoria financeira. Uma
- * categoria como "Juros de empréstimo" ou "IRPJ" vive vinculada a uma destas
- * seções (`SecaoDre`) e some dentro dela quando a pessoa expande; ela nunca
- * ganha uma linha própria no relatório.
- *
- * Fase 1 soma sobre `lib/mock`; Fase 2 substitui por uma consulta agregada
- * no Prisma — a sequência de totalizadores e as seções não mudam, só de
- * onde vem a soma.
+ * A cascata em si é fixa — sempre estas linhas, nesta ordem. O que NÃO é
+ * fixo é quais categorias compõem cada linha: isso vem inteiramente de
+ * `Categoria.linhaDreId`, configurado na tela de Categorias. A DRE nunca
+ * decide sozinha "categoria X pertence à linha Y" — ela só pergunta ao
+ * banco. Cada linha mostra suas categorias reais quando expandida; nunca
+ * uma linha fictícia repetindo o nome da própria seção.
  *
  * Cada linha/total carrega um valor por mês do recorte pedido: um só mês na
  * visão mensal, doze na anual.
  */
 
-export type LinhaDre = {
-  id: string;
+/** Uma categoria real, com o total que ela soma dentro de uma linha da DRE. */
+export type ItemLinhaDre = {
+  categoriaId: string;
   nome: string;
-  /** Como esta categoria entra na soma da seção — uma despesa aparece ao
-   * lado da receita da mesma seção, mas subtrai. */
-  sinal: 1 | -1;
+  tipo: TipoMovimentacao;
   valores: Centavos[];
   totalCentavos: Centavos;
 };
 
-export type ChaveSecaoDre =
-  | "RECEITA_BRUTA"
-  | "DEDUCOES"
-  | "CUSTOS"
-  | "DESPESAS_OPERACIONAIS"
-  | "RESULTADO_NAO_OPERACIONAL"
-  | "TRIBUTOS_LUCRO";
-
-/** Uma das seções que agregam categorias — a unidade que expande/colapsa na tela. */
-export type SecaoDre = {
-  chave: ChaveSecaoDre;
-  rotulo: string;
-  linhas: LinhaDre[];
+/** Uma das seis linhas fixas — a unidade que expande/colapsa na tela. */
+export type LinhaDreResultado = {
+  id: string;
+  nome: string;
+  ordem: number;
+  itens: ItemLinhaDre[];
+  /** Soma dos itens; na linha mista (Outras Receitas/Despesas) já é líquida. */
   valores: Centavos[];
   totalCentavos: Centavos;
 };
 
 export type DreResultado = {
   meses: Date[];
-  secoes: SecaoDre[];
+  /** Só as linhas com ao menos uma categoria com movimentação no período. */
+  linhas: LinhaDreResultado[];
 
   receitaBruta: Centavos[];
   deducoes: Centavos[];
   receitaLiquida: Centavos[];
-  /** Receita líquida sobre receita bruta, em basis points. `null` sem base. */
-  margemContribuicao: (number | null)[];
   custos: Centavos[];
+  margemContribuicao: Centavos[];
+  /** Margem de contribuição sobre receita líquida, em basis points. */
+  margemContribuicaoPercentual: (number | null)[];
   despesasOperacionais: Centavos[];
-  lucroBruto: Centavos[];
-  resultadoNaoOperacional: Centavos[];
-  lucroAntesTributos: Centavos[];
+  resultadoOperacional: Centavos[];
+  /** Já líquido — receitas somam, despesas subtraem dentro da própria linha. */
+  outrasReceitasDespesas: Centavos[];
   tributosSobreLucro: Centavos[];
-  lucroLiquido: Centavos[];
+  resultadoLiquido: Centavos[];
 
-  /** Margem do lucro líquido sobre a receita líquida, em basis points. `null` sem base. */
+  /** Resultado líquido sobre receita líquida, em basis points. */
   margem: (number | null)[];
 };

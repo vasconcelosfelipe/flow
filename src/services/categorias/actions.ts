@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireSessao } from "@/lib/sessao";
 import type { FormularioCategoria } from "@/services/categorias/dto";
-import type { ChaveSecaoDre } from "@/services/dre/dto";
 
 async function obterEmpresa() {
   const sessao = await requireSessao();
@@ -22,7 +21,7 @@ export async function criarCategoria(dados: FormularioCategoria) {
       icone: dados.icone,
       cor: dados.cor,
       tipo: dados.tipo,
-      secaoDre: dados.linhaDreId as ChaveSecaoDre | null,
+      linhaDreId: dados.linhaDreId,
     },
   });
   revalidatePath("/categorias");
@@ -37,7 +36,7 @@ export async function editarCategoria(id: string, dados: FormularioCategoria) {
       icone: dados.icone,
       cor: dados.cor,
       tipo: dados.tipo,
-      secaoDre: dados.linhaDreId as ChaveSecaoDre | null,
+      linhaDreId: dados.linhaDreId,
     },
   });
   revalidatePath("/categorias");
