@@ -30,17 +30,27 @@ export function LogoMark({ className }: { className?: string }) {
 export function Logo({
   className,
   tema = "claro",
+  disposicao = "linha",
 }: {
   className?: string;
   /** `escuro` para uso sobre a zona de comando ou telas de acesso. */
   tema?: "claro" | "escuro";
+  /** `empilhada` põe a marca acima do nome — usada na splash de abertura. */
+  disposicao?: "linha" | "empilhada";
 }) {
   return (
-    <span className={cn("flex items-center gap-2", className)}>
-      <LogoMark />
+    <span
+      className={cn(
+        "flex items-center",
+        disposicao === "linha" ? "gap-2" : "flex-col gap-3",
+        className,
+      )}
+    >
+      <LogoMark className={disposicao === "empilhada" ? "size-14" : undefined} />
       <span
         className={cn(
-          "text-lg font-semibold tracking-[-0.03em]",
+          "font-semibold tracking-[-0.03em]",
+          disposicao === "linha" ? "text-lg" : "text-2xl",
           tema === "escuro" ? "text-night-text" : "text-ink",
         )}
       >
