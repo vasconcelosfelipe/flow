@@ -61,7 +61,7 @@ export function UserMenu({ usuario }: { usuario: SessaoAtual["usuario"] }) {
         {usuario.adminPlataforma && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => router.push("/console")}>
+            <DropdownMenuItem onSelect={() => router.push("/console/empresas")}>
               <ShieldCheck className="mr-2 size-4" />
               Console admin
             </DropdownMenuItem>
