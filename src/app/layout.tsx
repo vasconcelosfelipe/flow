@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import { Manrope, Outfit } from "next/font/google";
 import "./globals.css";
 
 /**
@@ -15,10 +15,10 @@ const manrope = Manrope({
 });
 
 /**
- * Space Grotesk só para o logotipo "Flow" — geométrica com mais caráter que
- * a Manrope do corpo, é o que separa a marca do texto de UI ao redor dela.
+ * Outfit só para o logotipo "Flow" — geométrica arredondada, mais caráter
+ * que a Manrope do corpo mas do mesmo tom quente, sem soar "tech frio".
  */
-const spaceGrotesk = Space_Grotesk({
+const outfit = Outfit({
   variable: "--font-logo",
   subsets: ["latin"],
   weight: ["600", "700"],
@@ -77,7 +77,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} ${spaceGrotesk.variable} antialiased`}>
+    <html lang="pt-BR" className={`${manrope.variable} ${outfit.variable} antialiased`}>
       <body>{children}</body>
     </html>
   );
