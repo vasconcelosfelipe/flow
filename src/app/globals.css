@@ -208,10 +208,21 @@
        aparece uma faixa branca (fundo padrão do navegador) sempre que o
        conteúdo da página é mais curto que a tela. */
     height: 100%;
+    /* Sem isto, os carrosséis horizontais (chips de filtro, tabela anual da
+       DRE) fazem o documento inteiro ficar "rolável" para os lados em ~1
+       chip de largura — invisível em uso normal, mas o vaul (Drawer dos
+       modais) só restaura a posição vertical ao fechar, não a horizontal.
+       Resultado: abrir e fechar um modal deixava a página deslocada para o
+       lado, empurrando a barra inferior para fora do lugar até a próxima
+       navegação recalcular o layout. Documento nunca rola de lado — só os
+       carrosséis internos, que já tratam seu próprio overflow-x.
+    */
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-canvas text-ink;
+    overflow-x: hidden;
   }
 
   /* Todo número lido em coluna precisa alinhar por construção — a Manrope tem
