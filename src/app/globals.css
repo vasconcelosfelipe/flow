@@ -284,23 +284,6 @@
   }
 
   /*
-   * Respiro do conteúdo antes da barra inferior fixa (56px de altura) — soma
-   * a área de segurança do aparelho porque a barra também soma.
-   *
-   * Um valor fixo (`pb-20`) fica correto num navegador comum, onde o Safari
-   * reserva a faixa do indicador de início na própria interface e
-   * `env(safe-area-inset-bottom)` chega a 0. Instalado como PWA (tela cheia,
-   * sem chrome do Safari), esse valor passa a ser real — cerca de 34px no
-   * iPhone — e a barra fica mais alta do que o `main` havia reservado para
-   * ela: o último card acaba raspando na barra, exatamente o que ficou
-   * "curto" ao instalar. Este valor cresce e encolhe junto com a barra, nos
-   * dois contextos.
-   */
-  .pb-nav-safe {
-    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom) + 1.25rem);
-  }
-
-  /*
    * Cabeçalho fixo: o fundo (bg-night) já cobre a área do notch/Dynamic
    * Island por conta do `viewport-fit=cover` no layout — sem isso, o iOS
    * deixa uma faixa preta acima da barra em vez de continuar o azul. Este
@@ -322,19 +305,18 @@
 }
 
 /*
- * App-shell PWA: html e body ocupam exatamente a tela e não scrollam.
- * O scroll acontece dentro do <main>, que é o único container scrollável.
- * Sem isso, o iOS desloca o layout viewport quando o conteúdo muda de
- * altura entre páginas, fazendo o `fixed bottom-0` da barra de navegação
- * aparecer "subindo" — o elemento continua fixo, mas o ponto de ancoragem
- * muda junto com o viewport.
- * `overscroll-behavior: none` elimina o rubber-band que amplifica o efeito.
+ * Trancar html/body em `height: 100dvh; overflow: hidden` impedia o Safari
+ * de detectar rolagem no documento — sem esse gesto, a barra de chrome do
+ * navegador (endereço/abas) nunca recolhe e fica permanentemente expandida,
+ * "comendo" a faixa inferior da tela (o mesmo efeito aparecia em modo PWA
+ * standalone, sem chrome do Safari, por conta do `dvh` aninhado dentro de
+ * outro `dvh` nunca resolver para o mesmo valor). A barra inferior usa
+ * `position: sticky` (ver BottomNav) em vez de `fixed`, o que já resolve o
+ * "salto" ao redimensionar o viewport sem precisar bloquear o scroll nativo.
  */
 html,
 body {
-  height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

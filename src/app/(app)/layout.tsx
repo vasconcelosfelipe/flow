@@ -18,12 +18,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={300}>
       <DesktopRail />
 
-      <div className="md:pl-16 h-dvh overflow-y-auto overscroll-contain md:h-auto md:overflow-visible">
+      <div className="flex min-h-dvh flex-col md:pl-16">
         <AppHeader sessao={sessao} />
-        <main className="pb-nav-safe md:pb-10">{children}</main>
+        <main className="flex-1 pb-6 md:pb-10">{children}</main>
+        <BottomNav />
       </div>
 
-      <BottomNav />
       <Toaster position="top-center" />
     </TooltipProvider>
   );
