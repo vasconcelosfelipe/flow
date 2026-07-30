@@ -47,7 +47,7 @@ export function SplashScreen() {
             transition={{ duration: 0.5, delay: semAnimacao ? 0 : 0.35, ease: "easeOut" }}
             className="font-logo mt-4 text-5xl font-bold tracking-[-0.02em] text-night-text"
           >
-            flow
+            Flow
           </motion.span>
         </motion.div>
       )}
