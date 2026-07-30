@@ -10,7 +10,7 @@ import { Logo } from "@/components/layout/logo";
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="textura-noite flex min-h-dvh flex-col items-center justify-center bg-night px-4 py-10">
+    <div className="textura-noite flex min-h-dvh flex-col items-center justify-center bg-night px-4 py-10 pb-safe">
       <div className="mb-10">
         <Logo tema="escuro" className="scale-125" />
       </div>

@@ -200,9 +200,14 @@
   }
 
   html {
-    @apply font-sans;
+    @apply font-sans bg-canvas;
     /* Impede o zoom automático do iOS ao focar um campo. */
     -webkit-text-size-adjust: 100%;
+    /* Instalado como PWA (viewport-fit=cover), a área abaixo do home
+       indicator só é pintada se `html` tiver cor de fundo — do contrário
+       aparece uma faixa branca (fundo padrão do navegador) sempre que o
+       conteúdo da página é mais curto que a tela. */
+    height: 100%;
   }
 
   body {

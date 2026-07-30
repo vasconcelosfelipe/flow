@@ -49,7 +49,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
         </Container>
       </nav>
 
-      <main className="pb-10">{children}</main>
+      <main className="pb-[calc(2.5rem+env(safe-area-inset-bottom))]">{children}</main>
     </div>
   );
 }
