@@ -53,20 +53,20 @@ export function FormularioConvite({
     <form onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
         <Label htmlFor="nome">Nome</Label>
-        <Input id="nome" {...register("nome")} placeholder="Ex.: Camila Rocha" className="h-10" />
+        <Input id="nome" {...register("nome")} placeholder="Ex.: Camila Rocha" className="h-11" />
         {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="email">E-mail</Label>
-        <Input id="email" type="email" {...register("email")} placeholder="nome@empresa.com.br" className="h-10" />
+        <Input id="email" type="email" {...register("email")} placeholder="nome@empresa.com.br" className="h-11" />
         {errors.email && <p className="text-nano text-negative-text">{errors.email.message}</p>}
       </div>
 
       <div className="space-y-1.5">
         <Label>Empresa</Label>
         <Select value={empresaId} onValueChange={(v) => setValue("empresaId", v)}>
-          <SelectTrigger className="h-10 w-full rounded-lg border-line bg-surface">
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
             <SelectValue placeholder="Escolha a empresa" />
           </SelectTrigger>
           <SelectContent>
@@ -83,7 +83,7 @@ export function FormularioConvite({
       <div className="space-y-1.5">
         <Label>Papel</Label>
         <Select value={papel} onValueChange={(v) => setValue("papel", v as PapelMembro)}>
-          <SelectTrigger className="h-10 w-full rounded-lg border-line bg-surface">
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -67,13 +67,13 @@ export function FormularioEmpresa({
     <form onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
         <Label htmlFor="nome">Nome da empresa</Label>
-        <Input id="nome" {...register("nome")} placeholder="Ex.: Aurora Comércio" className="h-10" />
+        <Input id="nome" {...register("nome")} placeholder="Ex.: Aurora Comércio" className="h-11" />
         {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="slug">Slug</Label>
-        <Input id="slug" {...register("slug")} placeholder="Ex.: aurora" className="h-10" />
+        <Input id="slug" {...register("slug")} placeholder="Ex.: aurora" className="h-11" />
         {errors.slug ? (
           <p className="text-nano text-negative-text">{errors.slug.message}</p>
         ) : (
@@ -89,7 +89,7 @@ export function FormularioEmpresa({
           onChange={(e) => setValue("cnpj", formatarCnpj(e.target.value), { shouldValidate: true })}
           placeholder="Opcional"
           inputMode="numeric"
-          className="h-10"
+          className="h-11"
         />
         {errors.cnpj && <p className="text-nano text-negative-text">{errors.cnpj.message}</p>}
       </div>

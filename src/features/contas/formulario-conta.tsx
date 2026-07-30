@@ -88,7 +88,7 @@ export function FormularioConta({
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" {...register("nome")} placeholder="Ex.: Conta Corrente" className="h-10" />
+          <Input id="nome" {...register("nome")} placeholder="Ex.: Conta Corrente" className="h-11" />
           {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
         </div>
       </div>
@@ -96,7 +96,7 @@ export function FormularioConta({
       <div className="space-y-1.5">
         <Label>Tipo</Label>
         <Select value={tipo} onValueChange={(v) => setValue("tipo", v as TipoConta)}>
-          <SelectTrigger className="h-10 w-full rounded-lg border-line bg-surface">
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

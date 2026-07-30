@@ -72,7 +72,7 @@ export function FormularioContato({
     <form onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
         <Label htmlFor="nome">Nome</Label>
-        <Input id="nome" {...register("nome")} placeholder="Ex.: Distribuidora Central" className="h-10" />
+        <Input id="nome" {...register("nome")} placeholder="Ex.: Distribuidora Central" className="h-11" />
         {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
       </div>
 
@@ -85,7 +85,7 @@ export function FormularioContato({
               type="button"
               onClick={() => setValue("tipo", valor)}
               className={cn(
-                "h-10 rounded-lg border px-1 text-micro font-medium transition-colors",
+                "h-11 rounded-lg border px-1 text-micro font-medium transition-colors",
                 tipo === valor
                   ? "border-brand bg-brand-wash text-brand"
                   : "border-line text-ink-muted hover:bg-muted",
@@ -107,7 +107,7 @@ export function FormularioContato({
           }
           placeholder="Opcional"
           inputMode="numeric"
-          className="h-10"
+          className="h-11"
         />
         {errors.documento && <p className="text-nano text-negative-text">{errors.documento.message}</p>}
       </div>

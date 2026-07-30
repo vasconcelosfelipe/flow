@@ -3,7 +3,7 @@ import { isSameMonth } from "date-fns";
 import { db } from "@/lib/db";
 import { calcularMargem } from "@/lib/money";
 import type { ChaveSecaoDre, DreResultado, LinhaDre, SecaoDre } from "@/services/dre/dto";
-import { DEFINICAO_LINHAS, ORDEM_SECOES, ROTULO_SECAO } from "@/services/dre/definicoes";
+import { ORDEM_SECOES, ROTULO_SECAO } from "@/services/dre/definicoes";
 import type { DefinicaoLinhaDre } from "@/services/dre/definicoes";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type { TipoGrupoDre } from "@/types/dominio";
@@ -97,14 +97,11 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
     }
   }
 
-  // Merge dynamic lines with static structure for any secoes without categories
-  const linhasFinais = dinamicas.length > 0 ? dinamicas : DEFINICAO_LINHAS;
-
   const movs = realizadas(rawMovs);
   const tamanho = meses.length;
 
   const secoes: SecaoDre[] = ORDEM_SECOES.map((chave) => {
-    const linhas: LinhaDre[] = linhasFinais.filter((def) => def.secao === chave).map((def) => {
+    const linhas: LinhaDre[] = dinamicas.filter((def) => def.secao === chave).map((def) => {
       const valores = somarPorMes(movs, def.categorias, meses);
       return {
         id: def.id,

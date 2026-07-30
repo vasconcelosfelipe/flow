@@ -118,7 +118,7 @@ export function FormularioCategoria({
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" {...register("nome")} placeholder="Ex.: Marketing" className="h-10" />
+          <Input id="nome" {...register("nome")} placeholder="Ex.: Marketing" className="h-11" />
           {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
         </div>
       </div>
@@ -132,7 +132,7 @@ export function FormularioCategoria({
               type="button"
               onClick={() => setValue("tipo", valor)}
               className={cn(
-                "h-10 rounded-lg border text-micro font-medium transition-colors",
+                "h-11 rounded-lg border text-micro font-medium transition-colors",
                 tipo === valor
                   ? valor === "RECEITA"
                     ? "border-positive bg-positive-wash text-positive-text"
@@ -149,7 +149,7 @@ export function FormularioCategoria({
       <div className="space-y-1.5">
         <Label>Conta na DRE</Label>
         <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
-          <SelectTrigger className="h-10 w-full rounded-lg border-line bg-surface">
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

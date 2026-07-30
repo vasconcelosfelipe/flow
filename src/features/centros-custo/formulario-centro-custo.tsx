@@ -68,7 +68,7 @@ export function FormularioCentroCusto({
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" {...register("nome")} placeholder="Ex.: Loja física" className="h-10" />
+          <Input id="nome" {...register("nome")} placeholder="Ex.: Loja física" className="h-11" />
           {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
         </div>
       </div>
