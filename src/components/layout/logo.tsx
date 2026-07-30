@@ -49,8 +49,8 @@ export function Logo({
       <LogoMark className={disposicao === "empilhada" ? "size-14" : undefined} />
       <span
         className={cn(
-          "font-semibold tracking-[-0.03em]",
-          disposicao === "linha" ? "text-lg" : "text-2xl",
+          "font-logo font-bold tracking-[-0.02em]",
+          disposicao === "linha" ? "text-xl" : "text-4xl",
           tema === "escuro" ? "text-night-text" : "text-ink",
         )}
       >

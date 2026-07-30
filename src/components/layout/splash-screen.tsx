@@ -39,13 +39,13 @@ export function SplashScreen() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <LogoMark className="size-16" />
+            <LogoMark className="size-20" />
           </motion.div>
           <motion.span
             initial={semAnimacao ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: semAnimacao ? 0 : 0.35, ease: "easeOut" }}
-            className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-night-text"
+            className="font-logo mt-4 text-5xl font-bold tracking-[-0.02em] text-night-text"
           >
             Flow
           </motion.span>

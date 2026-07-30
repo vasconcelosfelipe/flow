@@ -274,6 +274,11 @@
       28px 28px;
   }
 
+  /* Logotipo "Flow" — Space Grotesk, separada da fonte de UI (Manrope). */
+  .font-logo {
+    font-family: var(--font-logo);
+  }
+
   /* Barra inferior e ações fixas precisam respeitar o recorte do aparelho. */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
