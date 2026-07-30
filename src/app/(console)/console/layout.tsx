@@ -15,7 +15,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
   const sessao = await requireSessao();
   if (!sessao.usuario.adminPlataforma) notFound();
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="min-h-app-safe bg-canvas">
       <header className="pt-safe sticky top-0 z-50 bg-night text-night-text">
         <Container className="flex h-14 items-center gap-3">
           <Link

@@ -284,6 +284,21 @@
   }
 
   /*
+   * Telas curtas (login, console) sem scroll próprio dependem só da altura
+   * mínima do container para cobrir a tela inteira — se ela ficar aquém do
+   * real, a faixa que sobra expõe a cor padrão do WKWebView (branca), não a
+   * cor da página. `100dvh` já mostrou ficar aquém no PWA standalone do iOS
+   * quando o conteúdo não tem scroll para "assentar" o cálculo dinâmico;
+   * `100lvh` (maior viewport possível, sem chrome do navegador) é a opção
+   * mais confiável nesse cenário porque em standalone não existe chrome
+   * dinâmico para recolher — a tela é sempre a mesma.
+   */
+  .min-h-app-safe {
+    min-height: 100vh;
+    min-height: 100lvh;
+  }
+
+  /*
    * Cabeçalho fixo: o fundo (bg-night) já cobre a área do notch/Dynamic
    * Island por conta do `viewport-fit=cover` no layout — sem isso, o iOS
    * deixa uma faixa preta acima da barra em vez de continuar o azul. Este
