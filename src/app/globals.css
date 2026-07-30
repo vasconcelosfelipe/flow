@@ -222,7 +222,6 @@
 
   body {
     @apply bg-canvas text-ink;
-    overflow-x: hidden;
   }
 
   /* Todo número lido em coluna precisa alinhar por construção — a Manrope tem

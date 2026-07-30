@@ -19,7 +19,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="sticky bottom-0 z-50 border-t border-line bg-surface md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface md:hidden"
       aria-label="Navegação principal"
     >
       <ul className="flex items-stretch justify-around px-1">

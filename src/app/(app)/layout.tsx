@@ -20,10 +20,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
       <div className="flex min-h-dvh flex-col md:pl-16">
         <AppHeader sessao={sessao} />
-        <main className="flex-1 pb-6 md:pb-10">{children}</main>
-        <BottomNav />
+        {/* A barra inferior é `fixed` (não faz parte do fluxo), então o
+            conteúdo precisa reservar o próprio espaço embaixo — senão o
+            último card fica escondido atrás dela. */}
+        <main className="flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] md:pb-10">
+          {children}
+        </main>
       </div>
 
+      <BottomNav />
       <Toaster position="top-center" />
     </TooltipProvider>
   );
