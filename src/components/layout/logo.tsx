@@ -54,7 +54,7 @@ export function Logo({
           tema === "escuro" ? "text-night-text" : "text-ink",
         )}
       >
-        Flow
+        flow
       </span>
     </span>
   );
