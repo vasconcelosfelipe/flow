@@ -57,8 +57,8 @@ export function ResponsiveModal({
             <DialogTitle>{titulo}</DialogTitle>
             <DialogDescription className="sr-only">{descricao}</DialogDescription>
           </DialogHeader>
-          <div className="max-h-[70vh] overflow-y-auto">{children}</div>
-          {rodape && <div className="flex justify-end gap-2 pt-2">{rodape}</div>}
+          <div className="max-h-[70vh] overflow-x-hidden overflow-y-auto">{children}</div>
+          {rodape && <div className="flex justify-end gap-2 pt-2 pb-1">{rodape}</div>}
         </DialogContent>
       </Dialog>
     );
@@ -71,9 +71,9 @@ export function ResponsiveModal({
           <DrawerTitle>{titulo}</DrawerTitle>
           <DrawerDescription className="sr-only">{descricao}</DrawerDescription>
         </DrawerHeader>
-        <div className="max-h-[65vh] overflow-y-auto px-4">{children}</div>
+        <div className="max-h-[65vh] overflow-x-hidden overflow-y-auto px-4">{children}</div>
         {rodape && (
-          <div className="flex flex-col gap-2 border-t border-line px-4 py-4 pb-safe">
+          <div className="flex flex-col gap-2 border-t border-line px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
             {rodape}
           </div>
         )}
