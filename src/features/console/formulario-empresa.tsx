@@ -8,6 +8,7 @@ import { PowerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatarCnpj, validarCnpj } from "@/lib/documentos";
 import type { EmpresaConsole, FormularioEmpresaConsole } from "@/services/console/dto";
 
 const schema = z.object({
@@ -18,7 +19,11 @@ const schema = z.object({
     .min(2, "Digite ao menos 2 letras.")
     .max(30)
     .regex(/^[a-z0-9-]+$/, "Use só letras minúsculas, números e hífen."),
-  cnpj: z.string().trim().max(20).optional(),
+  cnpj: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || validarCnpj(v), "CNPJ inválido."),
 });
 
 /**
@@ -41,18 +46,21 @@ export function FormularioEmpresa({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
       nome: empresa?.nome ?? "",
       slug: empresa?.slug ?? "",
-      cnpj: empresa?.cnpj ?? "",
+      cnpj: empresa?.cnpj ? formatarCnpj(empresa.cnpj) : "",
     },
   });
 
   function enviar(dados: z.infer<typeof schema>) {
-    aoSalvar({ id: empresa?.id, nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj || null });
+    // Guarda só dígitos — a máscara é responsabilidade da exibição, não do dado.
+    const cnpj = dados.cnpj ? dados.cnpj.replace(/\D/g, "") : null;
+    aoSalvar({ id: empresa?.id, nome: dados.nome, slug: dados.slug, cnpj });
   }
 
   return (
@@ -75,7 +83,15 @@ export function FormularioEmpresa({
 
       <div className="space-y-1.5">
         <Label htmlFor="cnpj">CNPJ</Label>
-        <Input id="cnpj" {...register("cnpj")} placeholder="Opcional" className="h-10" />
+        <Input
+          id="cnpj"
+          {...register("cnpj")}
+          onChange={(e) => setValue("cnpj", formatarCnpj(e.target.value), { shouldValidate: true })}
+          placeholder="Opcional"
+          inputMode="numeric"
+          className="h-10"
+        />
+        {errors.cnpj && <p className="text-nano text-negative-text">{errors.cnpj.message}</p>}
       </div>
 
       {empresa && aoAlternarAtiva && (

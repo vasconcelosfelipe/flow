@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { formatarDocumento, validarDocumento } from "@/lib/documentos";
 import { ROTULO_TIPO_CONTATO, type TipoContato } from "@/types/dominio";
 import type { ContatoCompleto, FormularioContato } from "@/services/contatos/dto";
 
@@ -18,7 +19,11 @@ const TIPOS_CONTATO = Object.keys(ROTULO_TIPO_CONTATO) as TipoContato[];
 const schema = z.object({
   nome: z.string().trim().min(2, "Digite ao menos 2 letras.").max(60),
   tipo: z.enum(["CLIENTE", "FORNECEDOR", "AMBOS"]),
-  documento: z.string().trim().max(20).optional(),
+  documento: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || validarDocumento(v), "CPF ou CNPJ inválido."),
 });
 
 /**
@@ -49,14 +54,16 @@ export function FormularioContato({
     defaultValues: {
       nome: contato?.nome ?? "",
       tipo: contato?.tipo ?? "CLIENTE",
-      documento: contato?.documento ?? "",
+      documento: contato?.documento ? formatarDocumento(contato.documento) : "",
     },
   });
 
   const tipo = watch("tipo");
 
   function enviar(dados: z.infer<typeof schema>) {
-    aoSalvar({ id: contato?.id, nome: dados.nome, tipo: dados.tipo, documento: dados.documento || null });
+    // Guarda só dígitos — a máscara é responsabilidade da exibição, não do dado.
+    const documento = dados.documento ? dados.documento.replace(/\D/g, "") : null;
+    aoSalvar({ id: contato?.id, nome: dados.nome, tipo: dados.tipo, documento });
   }
 
   const emUso = (contato?.quantidadeMovimentacoes ?? 0) > 0;
@@ -92,7 +99,17 @@ export function FormularioContato({
 
       <div className="space-y-1.5">
         <Label htmlFor="documento">CPF ou CNPJ</Label>
-        <Input id="documento" {...register("documento")} placeholder="Opcional" className="h-10" />
+        <Input
+          id="documento"
+          {...register("documento")}
+          onChange={(e) =>
+            setValue("documento", formatarDocumento(e.target.value), { shouldValidate: true })
+          }
+          placeholder="Opcional"
+          inputMode="numeric"
+          className="h-10"
+        />
+        {errors.documento && <p className="text-nano text-negative-text">{errors.documento.message}</p>}
       </div>
 
       {contato && aoExcluir && (

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { parseMoeda } from "@/lib/money";
 import { criarMovimentacao } from "@/services/movimentacoes/actions";
 
 type OpcaoConta = { id: string; nome: string };
@@ -27,6 +28,7 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
 
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
+  const [erroValor, setErroValor] = useState<string | null>(null);
   const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [status, setStatus] = useState<"PAGO" | "PENDENTE" | "CONCILIADO">("PAGO");
@@ -35,6 +37,7 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
   function resetar() {
     setDescricao("");
     setValor("");
+    setErroValor(null);
     setTipo("DESPESA");
     setData(new Date().toISOString().slice(0, 10));
     setStatus("PAGO");
@@ -43,8 +46,12 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const centavos = Math.round(parseFloat(valor.replace(",", ".")) * 100);
-    if (!centavos || !contaId) return;
+    const centavos = parseMoeda(valor);
+    if (!centavos || centavos <= 0) {
+      setErroValor("Digite um valor válido.");
+      return;
+    }
+    if (!contaId) return;
     startTransition(async () => {
       await criarMovimentacao({ descricao, tipo, valorCentavos: centavos, contaId, status, data });
       setAberto(false);
@@ -91,14 +98,17 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
               <Label htmlFor="nov-valor">Valor (R$)</Label>
               <Input
                 id="nov-valor"
-                type="number"
-                min="0.01"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="0,00"
                 value={valor}
-                onChange={(e) => setValor(e.target.value)}
+                onChange={(e) => {
+                  setValor(e.target.value);
+                  setErroValor(null);
+                }}
                 required
               />
+              {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
             </div>
 
             <div className="space-y-1.5">
