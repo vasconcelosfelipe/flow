@@ -9,12 +9,23 @@ import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet
 import { LinhaPendencia } from "@/features/pendencias/linha-pendencia";
 import type { GrupoContato } from "@/services/pendencias/dto";
 
+type OpcaoConta = { id: string; nome: string };
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+
 /**
  * Agrupada por contato, não por dia: aqui a pergunta é "quem me deve" ou
  * "para quem eu devo", não "o que aconteceu hoje" — essa já é a resposta da
  * tela de Movimentações.
  */
-export function ListaPendencias({ grupos }: { grupos: GrupoContato[] }) {
+export function ListaPendencias({
+  grupos,
+  contas = [],
+  categorias = [],
+}: {
+  grupos: GrupoContato[];
+  contas?: OpcaoConta[];
+  categorias?: OpcaoCategoria[];
+}) {
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
 
@@ -49,6 +60,8 @@ export function ListaPendencias({ grupos }: { grupos: GrupoContato[] }) {
       {abertoId && (
         <DetalheMovimentacaoSheet
           movimentacao={todosOsItens.find((m) => m.id === abertoId) ?? null}
+          contas={contas}
+          categorias={categorias}
           aoFechar={() => setAbertoId(null)}
         />
       )}

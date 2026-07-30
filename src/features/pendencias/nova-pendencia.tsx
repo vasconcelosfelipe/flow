@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition, useState } from "react";
+import { useEffect, useTransition, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,17 @@ import { parseMoeda } from "@/lib/money";
 import { criarPendencia } from "@/services/movimentacoes/actions";
 
 type OpcaoConta = { id: string; nome: string };
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
 
-export function BotaoNovaPendencia({ contas }: { contas: OpcaoConta[] }) {
+const SEM_CATEGORIA = "nenhuma";
+
+export function BotaoNovaPendencia({
+  contas,
+  categorias = [],
+}: {
+  contas: OpcaoConta[];
+  categorias?: OpcaoCategoria[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [aberto, setAberto] = useState(false);
@@ -31,6 +40,15 @@ export function BotaoNovaPendencia({ contas }: { contas: OpcaoConta[] }) {
   const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
   const [vencimento, setVencimento] = useState(new Date().toISOString().slice(0, 10));
   const [contaId, setContaId] = useState(contas[0]?.id ?? "");
+  const [categoriaId, setCategoriaId] = useState(SEM_CATEGORIA);
+
+  const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
+
+  useEffect(() => {
+    if (categoriaId === SEM_CATEGORIA) return;
+    if (!categoriasDoTipo.some((c) => c.id === categoriaId)) setCategoriaId(SEM_CATEGORIA);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipo]);
 
   function resetar() {
     setDescricao("");
@@ -39,6 +57,7 @@ export function BotaoNovaPendencia({ contas }: { contas: OpcaoConta[] }) {
     setTipo("DESPESA");
     setVencimento(new Date().toISOString().slice(0, 10));
     setContaId(contas[0]?.id ?? "");
+    setCategoriaId(SEM_CATEGORIA);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -50,7 +69,14 @@ export function BotaoNovaPendencia({ contas }: { contas: OpcaoConta[] }) {
     }
     if (!contaId) return;
     startTransition(async () => {
-      await criarPendencia({ descricao, tipo, valorCentavos: centavos, contaId, dataVencimento: vencimento });
+      await criarPendencia({
+        descricao,
+        tipo,
+        valorCentavos: centavos,
+        contaId,
+        categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
+        dataVencimento: vencimento,
+      });
       setAberto(false);
       resetar();
       router.refresh();
@@ -107,6 +133,19 @@ export function BotaoNovaPendencia({ contas }: { contas: OpcaoConta[] }) {
                 <SelectContent>
                   <SelectItem value="DESPESA">A pagar</SelectItem>
                   <SelectItem value="RECEITA">A receber</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Categoria</Label>
+              <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+                  {categoriasDoTipo.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

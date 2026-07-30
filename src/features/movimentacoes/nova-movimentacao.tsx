@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition, useState } from "react";
+import { useEffect, useTransition, useState } from "react";
 import { Plus, Upload } from "lucide-react";
 import Link from "next/link";
 
@@ -20,8 +20,17 @@ import { parseMoeda } from "@/lib/money";
 import { criarMovimentacao } from "@/services/movimentacoes/actions";
 
 type OpcaoConta = { id: string; nome: string };
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
 
-export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
+const SEM_CATEGORIA = "nenhuma";
+
+export function BotoesMovimentacoes({
+  contas,
+  categorias = [],
+}: {
+  contas: OpcaoConta[];
+  categorias?: OpcaoCategoria[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [aberto, setAberto] = useState(false);
@@ -33,6 +42,15 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [status, setStatus] = useState<"PAGO" | "PENDENTE" | "CONCILIADO">("PAGO");
   const [contaId, setContaId] = useState(contas[0]?.id ?? "");
+  const [categoriaId, setCategoriaId] = useState(SEM_CATEGORIA);
+
+  const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
+
+  useEffect(() => {
+    if (categoriaId === SEM_CATEGORIA) return;
+    if (!categoriasDoTipo.some((c) => c.id === categoriaId)) setCategoriaId(SEM_CATEGORIA);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tipo]);
 
   function resetar() {
     setDescricao("");
@@ -42,6 +60,7 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
     setData(new Date().toISOString().slice(0, 10));
     setStatus("PAGO");
     setContaId(contas[0]?.id ?? "");
+    setCategoriaId(SEM_CATEGORIA);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -53,7 +72,15 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
     }
     if (!contaId) return;
     startTransition(async () => {
-      await criarMovimentacao({ descricao, tipo, valorCentavos: centavos, contaId, status, data });
+      await criarMovimentacao({
+        descricao,
+        tipo,
+        valorCentavos: centavos,
+        contaId,
+        categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
+        status,
+        data,
+      });
       setAberto(false);
       resetar();
       router.refresh();
@@ -118,6 +145,19 @@ export function BotoesMovimentacoes({ contas }: { contas: OpcaoConta[] }) {
                 <SelectContent>
                   <SelectItem value="RECEITA">Receita</SelectItem>
                   <SelectItem value="DESPESA">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Categoria</Label>
+              <Select value={categoriaId} onValueChange={setCategoriaId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+                  {categoriasDoTipo.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

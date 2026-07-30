@@ -11,12 +11,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet";
 import type { GrupoDiario } from "@/services/movimentacoes/dto";
 
+type OpcaoConta = { id: string; nome: string };
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+
 /**
  * Cabeçalho de grupo, linhas, e o modo de seleção múltipla — tudo num único
  * client component porque a seleção é estado efêmero de tela, sem razão para
  * viver na URL nem no servidor.
  */
-export function ListaMovimentacoes({ grupos }: { grupos: GrupoDiario[] }) {
+export function ListaMovimentacoes({
+  grupos,
+  contas = [],
+  categorias = [],
+}: {
+  grupos: GrupoDiario[];
+  contas?: OpcaoConta[];
+  categorias?: OpcaoCategoria[];
+}) {
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [abertoId, setAbertoId] = useState<string | null>(null);
@@ -111,6 +122,8 @@ export function ListaMovimentacoes({ grupos }: { grupos: GrupoDiario[] }) {
       {abertoId && (
         <DetalheMovimentacaoSheet
           movimentacao={todosOsItens.find((m) => m.id === abertoId) ?? null}
+          contas={contas}
+          categorias={categorias}
           aoFechar={() => setAbertoId(null)}
         />
       )}

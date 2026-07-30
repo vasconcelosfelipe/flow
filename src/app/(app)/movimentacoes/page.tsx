@@ -45,7 +45,10 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">Movimentações</h1>
-        <BotoesMovimentacoes contas={contas.map((c) => ({ id: c.id, nome: c.nome }))} />
+        <BotoesMovimentacoes
+          contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+          categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+        />
       </div>
 
       <PeriodPicker />
@@ -58,7 +61,11 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         {pagina.total} {pagina.total === 1 ? "movimentação" : "movimentações"}
       </p>
 
-      <ListaMovimentacoes grupos={pagina.grupos} />
+      <ListaMovimentacoes
+        grupos={pagina.grupos}
+        contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+        categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+      />
     </Container>
   );
 }

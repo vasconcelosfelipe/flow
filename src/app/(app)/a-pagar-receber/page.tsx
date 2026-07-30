@@ -6,6 +6,7 @@ import { FiltrosPendencias } from "@/features/pendencias/filtros";
 import { ListaPendencias } from "@/features/pendencias/lista-pendencias";
 import { BotaoNovaPendencia } from "@/features/pendencias/nova-pendencia";
 import { requireSessao } from "@/lib/sessao";
+import { listarCategorias } from "@/services/categorias";
 import { listarContas } from "@/services/contas";
 import { listarPendencias } from "@/services/pendencias";
 import type { TipoMovimentacao } from "@/types/dominio";
@@ -18,19 +19,23 @@ export default async function APagarReceberPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const tipo = params.tipo === "DESPESA" || params.tipo === "RECEITA" ? params.tipo : undefined;
 
-  const [pagina, contas] = await Promise.all([
+  const [pagina, contas, categorias] = await Promise.all([
     listarPendencias(empresaAtiva.id, {
       tipo: tipo as TipoMovimentacao | undefined,
       situacao: params.situacao === "vencidas" ? "vencidas" : undefined,
     }),
     listarContas(empresaAtiva.id),
+    listarCategorias(empresaAtiva.id),
   ]);
 
   return (
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">A pagar e a receber</h1>
-        <BotaoNovaPendencia contas={contas.map((c) => ({ id: c.id, nome: c.nome }))} />
+        <BotaoNovaPendencia
+          contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+          categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -50,7 +55,11 @@ export default async function APagarReceberPage({ searchParams }: Props) {
 
       <FiltrosPendencias />
 
-      <ListaPendencias grupos={pagina.grupos} />
+      <ListaPendencias
+        grupos={pagina.grupos}
+        contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+        categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+      />
     </Container>
   );
 }
