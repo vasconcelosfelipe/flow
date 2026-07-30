@@ -22,6 +22,14 @@ function FormularioLogin() {
   const next = searchParams.get("next") ?? "/selecionar-empresa";
   const [entrando, setEntrando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // O campo de senha só entra no DOM depois deste toque — o iOS oferece
+  // Face ID/Touch ID assim que um <input type="password"> aparece na tela
+  // (heurística do WebKit, não algo que o app aciona), então montar o
+  // formulário no carregamento faz o preenchimento biométrico surgir sem
+  // nenhuma ação da pessoa. Adiar para depois de um toque explícito é o
+  // mesmo padrão de apps nativos ("Entrar" → tela de credenciais) e não
+  // desliga o autofill: ele continua funcionando normalmente a partir daqui.
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const {
     register,
@@ -44,6 +52,18 @@ function FormularioLogin() {
     router.push(next);
   }
 
+  if (!mostrarFormulario) {
+    return (
+      <Button
+        type="button"
+        className="mt-6 h-11 w-full"
+        onClick={() => setMostrarFormulario(true)}
+      >
+        Entrar
+      </Button>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit(enviar)} className="mt-6 space-y-4">
       <div className="space-y-1.5">
@@ -52,6 +72,7 @@ function FormularioLogin() {
           id="email"
           type="email"
           autoComplete="email"
+          autoFocus
           {...register("email")}
           placeholder="voce@empresa.com.br"
           className="h-11"
