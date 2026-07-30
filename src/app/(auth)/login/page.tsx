@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Suspense, useState } from "react";
-import { BarChart3, Tags, Upload } from "lucide-react";
+import { Clock, ShieldCheck, TrendingUp } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,22 @@ const schema = z.object({
   senha: z.string().min(1, "Digite sua senha."),
 });
 
-const DESTAQUES = [
-  { icone: Upload, texto: "Importe o extrato do banco em OFX" },
-  { icone: Tags, texto: "Categorize e organize automaticamente" },
-  { icone: BarChart3, texto: "Veja a DRE pronta, sem planilha" },
+const BENEFICIOS = [
+  {
+    icone: Clock,
+    titulo: "Economize horas por mês",
+    descricao: "Importe o extrato e pronto",
+  },
+  {
+    icone: ShieldCheck,
+    titulo: "Nunca perca um pagamento",
+    descricao: "Tudo sempre em dia",
+  },
+  {
+    icone: TrendingUp,
+    titulo: "Decisões com dados reais",
+    descricao: "DRE pronta na hora",
+  },
 ];
 
 /**
@@ -30,27 +42,37 @@ const DESTAQUES = [
  * o app aciona). Montando o formulário só depois de um toque em "Entrar", o
  * autofill biométrico passa a aparecer depois de uma ação deliberada da
  * pessoa, não no instante em que o app abre.
+ *
+ * Gradiente da marca em vez do cartão branco do formulário — a diferença de
+ * cor já entrega que esta é uma tela de chegada, não a de acesso em si.
  */
 function BoasVindas({ aoEntrar }: { aoEntrar: () => void }) {
   return (
-    <div className="rounded-2xl border border-line bg-surface p-6 text-center shadow-night">
-      <h1 className="text-titulo font-semibold text-ink">Organize as finanças da empresa</h1>
-      <p className="mt-1 text-micro text-ink-muted">
-        Do extrato bancário ao resultado do mês, em poucos passos.
+    <div className="overflow-hidden rounded-2xl bg-linear-to-br from-brand-deep to-brand p-6 text-center shadow-raised">
+      <h1 className="text-titulo font-bold whitespace-nowrap text-white">Finanças sob controle</h1>
+      <p className="mt-1.5 text-micro whitespace-nowrap text-white/75">
+        Sem planilha, sem estresse.
       </p>
 
-      <div className="mt-5 space-y-3 text-left">
-        {DESTAQUES.map((d) => (
-          <div key={d.texto} className="flex items-center gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-wash text-brand">
-              <d.icone className="size-4" aria-hidden="true" />
+      <div className="mt-6 space-y-2.5 text-left">
+        {BENEFICIOS.map((b) => (
+          <div key={b.titulo} className="flex items-center gap-3 rounded-xl bg-white/10 p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15 text-white">
+              <b.icone className="size-4" aria-hidden="true" />
             </span>
-            <p className="text-micro font-medium text-ink">{d.texto}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-micro font-semibold text-white">{b.titulo}</p>
+              <p className="truncate text-nano text-white/70">{b.descricao}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <Button type="button" className="mt-6 h-11 w-full" onClick={aoEntrar}>
+      <Button
+        type="button"
+        className="mt-6 h-11 w-full bg-white text-brand hover:bg-white/90"
+        onClick={aoEntrar}
+      >
         Entrar
       </Button>
     </div>

@@ -69,6 +69,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Sem isto, o teclado redimensiona o viewport visual ao abrir — como a
+  // barra inferior é `sticky` dentro de um layout medido em `dvh`, o
+  // redimensionamento faz ela "subir" junto com o teclado a cada campo
+  // focado. Com `overlays-content`, o teclado só cobre por cima; o layout
+  // por baixo não recalcula, e a barra fica parada.
+  interactiveWidget: "overlays-content",
 };
 
 export default function RootLayout({

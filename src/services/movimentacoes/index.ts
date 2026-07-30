@@ -91,7 +91,9 @@ export async function listarMovimentacoes(
     ...(filtro.contaId ? { contaId: filtro.contaId } : {}),
     ...(filtro.categoriaId ? { categoriaId: filtro.categoriaId } : {}),
     ...(filtro.tipo ? { tipo: filtro.tipo } : {}),
-    ...(filtro.status ? { status: filtro.status } : {}),
+    // Sem filtro de status, "excluída" (CANCELADO) some da lista — é o
+    // equivalente de exclusão das outras entidades (ativa: false).
+    status: filtro.status ?? { not: "CANCELADO" },
     ...(filtro.busca
       ? { descricao: { contains: filtro.busca, mode: "insensitive" as const } }
       : {}),

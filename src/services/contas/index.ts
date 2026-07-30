@@ -19,6 +19,7 @@ export async function listarContas(empresaId: string): Promise<ContaCompleta[]> 
     nome: c.nome,
     cor: c.cor,
     tipo: c.tipo,
+    saldoInicialCentavos: c.saldoInicial,
     saldoCentavos:
       c.saldoInicial +
       c.movimentacoes.reduce(

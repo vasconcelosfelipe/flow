@@ -144,6 +144,22 @@ export function FiltrosMovimentacoes({
             ))}
           </SelectContent>
         </Select>
+
+        <Select
+          value={params.get("status") ?? "todos"}
+          onValueChange={(v) => aplicar({ status: v })}
+        >
+          <SelectTrigger className="h-9 w-auto shrink-0 rounded-lg border-line bg-surface text-micro">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="PAGO">Pago</SelectItem>
+            <SelectItem value="PENDENTE">Pendente</SelectItem>
+            <SelectItem value="CONCILIADO">Conciliado</SelectItem>
+            <SelectItem value="CANCELADO">Excluído</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

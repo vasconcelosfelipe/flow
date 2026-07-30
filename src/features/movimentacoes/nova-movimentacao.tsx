@@ -109,102 +109,116 @@ export function BotoesMovimentacoes({
         descricao="Registre uma entrada ou saída manualmente."
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="nov-descricao">Descrição</Label>
-              <Input
-                id="nov-descricao"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Ex: Aluguel de equipamento"
-                required
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="nov-descricao">Descrição</Label>
+            <Input
+              id="nov-descricao"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex: Aluguel de equipamento"
+              className="h-11"
+              required
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="nov-valor">Valor (R$)</Label>
-              <Input
-                id="nov-valor"
-                type="text"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={valor}
-                onChange={(e) => {
-                  setValor(e.target.value);
-                  setErroValor(null);
-                }}
-                required
-              />
-              {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="nov-valor">Valor (R$)</Label>
+            <Input
+              id="nov-valor"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={valor}
+              onChange={(e) => {
+                setValor(e.target.value);
+                setErroValor(null);
+              }}
+              className="h-11"
+              required
+            />
+            {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
+          </div>
 
+          <div className="space-y-1.5">
+            <Label>Tipo</Label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RECEITA">Receita</SelectItem>
+                <SelectItem value="DESPESA">Despesa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select value={categoriaId} onValueChange={setCategoriaId}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+                {categoriasDoTipo.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="nov-data">Data</Label>
+            <Input
+              id="nov-data"
+              type="date"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              className="h-11"
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PAGO">Pago</SelectItem>
+                <SelectItem value="PENDENTE">Pendente</SelectItem>
+                <SelectItem value="CONCILIADO">Conciliado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {contas.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Tipo</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Conta</Label>
+              <Select value={contaId} onValueChange={setContaId}>
+                <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="RECEITA">Receita</SelectItem>
-                  <SelectItem value="DESPESA">Despesa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Categoria</Label>
-              <Select value={categoriaId} onValueChange={setCategoriaId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
-                  {categoriasDoTipo.map((c) => (
+                  {contas.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="nov-data">Data</Label>
-              <Input
-                id="nov-data"
-                type="date"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PAGO">Pago</SelectItem>
-                  <SelectItem value="PENDENTE">Pendente</SelectItem>
-                  <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {contas.length > 0 && (
-              <div className="col-span-2 space-y-1.5">
-                <Label>Conta</Label>
-                <Select value={contaId} onValueChange={setContaId}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {contas.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => { setAberto(false); resetar(); }}>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setAberto(false); resetar(); }}
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending || !contaId}>
+            <Button type="submit" className="flex-1" disabled={pending || !contaId}>
               {pending ? "Salvando…" : "Salvar"}
             </Button>
           </div>

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { iconeDeConta } from "@/lib/icones-conta";
+import { parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { ROTULO_TIPO_CONTA, type TipoConta } from "@/types/dominio";
 import type { ContaCompleta, FormularioConta } from "@/services/contas/dto";
@@ -33,6 +34,7 @@ const schema = z.object({
   nome: z.string().trim().min(2, "Digite ao menos 2 letras.").max(40),
   tipo: z.enum(["CORRENTE", "POUPANCA", "CAIXA", "CARTAO", "INVESTIMENTO"]),
   cor: z.string(),
+  saldoInicial: z.string().trim(),
 });
 
 /**
@@ -64,6 +66,7 @@ export function FormularioConta({
       nome: conta?.nome ?? "",
       tipo: conta?.tipo ?? "CORRENTE",
       cor: conta?.cor ?? PALETA_CORES[0],
+      saldoInicial: conta ? (conta.saldoInicialCentavos / 100).toFixed(2).replace(".", ",") : "0,00",
     },
   });
 
@@ -72,7 +75,13 @@ export function FormularioConta({
   const IconeSelecionado = iconeDeConta(tipo);
 
   function enviar(dados: z.infer<typeof schema>) {
-    aoSalvar({ id: conta?.id, ...dados });
+    aoSalvar({
+      id: conta?.id,
+      nome: dados.nome,
+      tipo: dados.tipo,
+      cor: dados.cor,
+      saldoInicialCentavos: parseMoeda(dados.saldoInicial) ?? 0,
+    });
   }
 
   const emUso = (conta?.quantidadeMovimentacoes ?? 0) > 0;
@@ -107,6 +116,21 @@ export function FormularioConta({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="saldoInicial">Saldo inicial (R$)</Label>
+        <Input
+          id="saldoInicial"
+          type="text"
+          inputMode="decimal"
+          {...register("saldoInicial")}
+          placeholder="0,00"
+          className="h-11"
+        />
+        <p className="text-nano text-ink-muted">
+          Saldo da conta antes do primeiro lançamento registrado aqui.
+        </p>
       </div>
 
       <div className="space-y-1.5">

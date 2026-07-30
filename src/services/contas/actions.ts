@@ -14,13 +14,29 @@ async function obterEmpresa() {
 
 export async function criarConta(dados: FormularioConta) {
   const empresaId = await obterEmpresa();
-  await db.conta.create({ data: { empresaId, nome: dados.nome, cor: dados.cor, tipo: dados.tipo } });
+  await db.conta.create({
+    data: {
+      empresaId,
+      nome: dados.nome,
+      cor: dados.cor,
+      tipo: dados.tipo,
+      saldoInicial: dados.saldoInicialCentavos,
+    },
+  });
   revalidatePath("/contas");
 }
 
 export async function editarConta(id: string, dados: FormularioConta) {
   const empresaId = await obterEmpresa();
-  await db.conta.update({ where: { id, empresaId }, data: { nome: dados.nome, cor: dados.cor, tipo: dados.tipo } });
+  await db.conta.update({
+    where: { id, empresaId },
+    data: {
+      nome: dados.nome,
+      cor: dados.cor,
+      tipo: dados.tipo,
+      saldoInicial: dados.saldoInicialCentavos,
+    },
+  });
   revalidatePath("/contas");
 }
 

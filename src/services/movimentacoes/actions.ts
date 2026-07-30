@@ -64,6 +64,36 @@ export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInpu
   revalidatePath("/");
 }
 
+/**
+ * Excluir é sempre um "esconder": marca como cancelada em vez de apagar a
+ * linha do banco. Preserva histórico (auditoria, extrato de importação) e
+ * evita violar a referência de `ImportacaoLinha`, que aponta pra esta
+ * movimentação quando ela veio de um OFX.
+ *
+ * Uma movimentação conciliada está casada com uma linha do extrato
+ * importado — excluí-la direto apagaria essa conciliação sem avisar.
+ * Por isso é bloqueado até a pessoa desfazer a conciliação primeiro.
+ */
+export async function excluirMovimentacao(id: string) {
+  const empresaId = await obterEmpresa();
+  const mov = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
+  if (mov.status === "CONCILIADO") {
+    throw new Error("Desfaça a conciliação antes de excluir esta movimentação.");
+  }
+  await db.movimentacao.update({ where: { id, empresaId }, data: { status: "CANCELADO" } });
+  revalidatePath("/movimentacoes");
+  revalidatePath("/a-pagar-receber");
+  revalidatePath("/");
+}
+
+/** Volta uma movimentação conciliada para "paga" — mesma data de caixa, só desfaz o casamento com o extrato. */
+export async function desfazerConciliacao(id: string) {
+  const empresaId = await obterEmpresa();
+  await db.movimentacao.update({ where: { id, empresaId }, data: { status: "PAGO" } });
+  revalidatePath("/movimentacoes");
+  revalidatePath("/");
+}
+
 export type NovaPendenciaInput = {
   descricao: string;
   tipo: "RECEITA" | "DESPESA";

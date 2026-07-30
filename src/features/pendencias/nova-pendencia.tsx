@@ -97,90 +97,102 @@ export function BotaoNovaPendencia({
         descricao="Registre uma conta a pagar ou a receber."
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="pend-descricao">Descrição</Label>
-              <Input
-                id="pend-descricao"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Ex: Fatura do fornecedor"
-                required
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pend-descricao">Descrição</Label>
+            <Input
+              id="pend-descricao"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex: Fatura do fornecedor"
+              className="h-11"
+              required
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="pend-valor">Valor (R$)</Label>
-              <Input
-                id="pend-valor"
-                type="text"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={valor}
-                onChange={(e) => {
-                  setValor(e.target.value);
-                  setErroValor(null);
-                }}
-                required
-              />
-              {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="pend-valor">Valor (R$)</Label>
+            <Input
+              id="pend-valor"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={valor}
+              onChange={(e) => {
+                setValor(e.target.value);
+                setErroValor(null);
+              }}
+              className="h-11"
+              required
+            />
+            {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
+          </div>
 
+          <div className="space-y-1.5">
+            <Label>Tipo</Label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DESPESA">A pagar</SelectItem>
+                <SelectItem value="RECEITA">A receber</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select value={categoriaId} onValueChange={setCategoriaId}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+                {categoriasDoTipo.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pend-vencimento">Vencimento</Label>
+            <Input
+              id="pend-vencimento"
+              type="date"
+              value={vencimento}
+              onChange={(e) => setVencimento(e.target.value)}
+              className="h-11"
+              required
+            />
+          </div>
+
+          {contas.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Tipo</Label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Conta</Label>
+              <Select value={contaId} onValueChange={setContaId}>
+                <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DESPESA">A pagar</SelectItem>
-                  <SelectItem value="RECEITA">A receber</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Categoria</Label>
-              <Select value={categoriaId} onValueChange={setCategoriaId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
-                  {categoriasDoTipo.map((c) => (
+                  {contas.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="pend-vencimento">Vencimento</Label>
-              <Input
-                id="pend-vencimento"
-                type="date"
-                value={vencimento}
-                onChange={(e) => setVencimento(e.target.value)}
-                required
-              />
-            </div>
-
-            {contas.length > 0 && (
-              <div className="col-span-2 space-y-1.5">
-                <Label>Conta</Label>
-                <Select value={contaId} onValueChange={setContaId}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {contas.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => { setAberto(false); resetar(); }}>
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => { setAberto(false); resetar(); }}
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={pending || !contaId}>
+            <Button type="submit" className="flex-1" disabled={pending || !contaId}>
               {pending ? "Salvando…" : "Salvar"}
             </Button>
           </div>

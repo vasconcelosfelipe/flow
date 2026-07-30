@@ -12,6 +12,8 @@ export type ContaCompleta = {
   nome: string;
   cor: string;
   tipo: TipoConta;
+  /** Base sobre a qual as movimentações somam — não é o saldo atual. */
+  saldoInicialCentavos: Centavos;
   saldoCentavos: Centavos;
   quantidadeMovimentacoes: number;
 };
@@ -21,4 +23,5 @@ export type FormularioConta = {
   nome: string;
   cor: string;
   tipo: TipoConta;
+  saldoInicialCentavos: Centavos;
 };

@@ -8,7 +8,7 @@ import { requireSessao } from "@/lib/sessao";
 import { listarContas } from "@/services/contas";
 import { listarCategorias } from "@/services/categorias";
 import { listarMovimentacoes } from "@/services/movimentacoes";
-import type { TipoMovimentacao } from "@/types/dominio";
+import type { StatusMovimentacao, TipoMovimentacao } from "@/types/dominio";
 
 type Props = {
   searchParams: Promise<{
@@ -18,6 +18,7 @@ type Props = {
     conta?: string;
     categoria?: string;
     tipo?: string;
+    status?: string;
     busca?: string;
     semCategoria?: string;
   }>;
@@ -34,6 +35,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
       contaId: params.conta,
       categoriaId: params.categoria,
       tipo: params.tipo as TipoMovimentacao | undefined,
+      status: params.status as StatusMovimentacao | undefined,
       busca: params.busca,
       semCategoria: params.semCategoria === "1",
     }),

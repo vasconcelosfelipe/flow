@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Building2, Calendar, CreditCard, FileText, Tag, Users } from "lucide-react";
+import { Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
@@ -19,7 +19,11 @@ import {
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { parseMoeda } from "@/lib/money";
-import { editarMovimentacao } from "@/services/movimentacoes/actions";
+import {
+  desfazerConciliacao,
+  editarMovimentacao,
+  excluirMovimentacao,
+} from "@/services/movimentacoes/actions";
 import { ROTULO_STATUS } from "@/types/dominio";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 
@@ -86,15 +90,40 @@ export function DetalheMovimentacaoSheet({
           aoCancelar={() => setEditando(false)}
         />
       ) : (
-        <Detalhe movimentacao={movimentacao} />
+        <Detalhe movimentacao={movimentacao} aoRemover={aoFechar} />
       )}
     </ResponsiveModal>
   );
 }
 
-function Detalhe({ movimentacao }: { movimentacao: MovimentacaoResumo }) {
+function Detalhe({
+  movimentacao,
+  aoRemover,
+}: {
+  movimentacao: MovimentacaoResumo;
+  aoRemover: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const Icone = movimentacao.categoria ? iconeDe(movimentacao.categoria.icone) : Tag;
   const receita = movimentacao.tipo === "RECEITA";
+  const conciliada = movimentacao.status === "CONCILIADO";
+
+  function excluir() {
+    startTransition(async () => {
+      await excluirMovimentacao(movimentacao.id);
+      router.refresh();
+      aoRemover();
+    });
+  }
+
+  function desfazer() {
+    startTransition(async () => {
+      await desfazerConciliacao(movimentacao.id);
+      router.refresh();
+    });
+  }
 
   return (
     <div className="space-y-5 py-2">
@@ -145,6 +174,60 @@ function Detalhe({ movimentacao }: { movimentacao: MovimentacaoResumo }) {
           />
         )}
       </dl>
+
+      <div className="rounded-xl border border-line p-3">
+        {conciliada ? (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-micro text-ink-muted">
+              Conciliada com o extrato — desfaça para poder editar ou excluir.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={desfazer}
+              disabled={pending}
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+              Desfazer
+            </Button>
+          </div>
+        ) : confirmandoExclusao ? (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-micro text-ink">Excluir esta movimentação?</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmandoExclusao(false)}
+                disabled={pending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={excluir}
+                disabled={pending}
+              >
+                {pending ? "Excluindo…" : "Confirmar"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmandoExclusao(true)}
+            className="flex items-center gap-1.5 text-micro font-medium text-negative-text hover:underline"
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            Excluir movimentação
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -208,100 +291,109 @@ function FormularioEdicao({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 py-2">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="edit-descricao">Descrição</Label>
-          <Input
-            id="edit-descricao"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            required
-          />
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-descricao">Descrição</Label>
+        <Input
+          id="edit-descricao"
+          value={descricao}
+          onChange={(e) => setDescricao(e.target.value)}
+          className="h-11"
+          required
+        />
+      </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="edit-valor">Valor (R$)</Label>
-          <Input
-            id="edit-valor"
-            type="text"
-            inputMode="decimal"
-            value={valor}
-            onChange={(e) => {
-              setValor(e.target.value);
-              setErroValor(null);
-            }}
-            required
-          />
-          {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-valor">Valor (R$)</Label>
+        <Input
+          id="edit-valor"
+          type="text"
+          inputMode="decimal"
+          value={valor}
+          onChange={(e) => {
+            setValor(e.target.value);
+            setErroValor(null);
+          }}
+          className="h-11"
+          required
+        />
+        {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
+      </div>
 
+      <div className="space-y-1.5">
+        <Label>Tipo</Label>
+        <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="RECEITA">Receita</SelectItem>
+            <SelectItem value="DESPESA">Despesa</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Categoria</Label>
+        <Select value={categoriaId} onValueChange={setCategoriaId}>
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+            {categoriasDoTipo.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-data">Data</Label>
+        <Input
+          id="edit-data"
+          type="date"
+          value={data}
+          onChange={(e) => setData(e.target.value)}
+          className="h-11"
+          required
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Status</Label>
+        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PAGO">Pago</SelectItem>
+            <SelectItem value="PENDENTE">Pendente</SelectItem>
+            <SelectItem value="CONCILIADO">Conciliado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {contas.length > 0 && (
         <div className="space-y-1.5">
-          <Label>Tipo</Label>
-          <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Label>Conta</Label>
+          <Select value={contaId} onValueChange={setContaId}>
+            <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="RECEITA">Receita</SelectItem>
-              <SelectItem value="DESPESA">Despesa</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Categoria</Label>
-          <Select value={categoriaId} onValueChange={setCategoriaId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
-              {categoriasDoTipo.map((c) => (
+              {contas.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
+      )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="edit-data">Data</Label>
-          <Input
-            id="edit-data"
-            type="date"
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label>Status</Label>
-          <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PAGO">Pago</SelectItem>
-              <SelectItem value="PENDENTE">Pendente</SelectItem>
-              <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {contas.length > 0 && (
-          <div className="col-span-2 space-y-1.5">
-            <Label>Conta</Label>
-            <Select value={contaId} onValueChange={setContaId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {contas.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={aoCancelar}>
+      <div className="flex gap-2 pt-2">
+        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" className="flex-1" disabled={pending}>
           {pending ? "Salvando…" : "Salvar"}
         </Button>
       </div>
