@@ -73,7 +73,7 @@ export function ResponsiveModal({
         </DrawerHeader>
         <div className="max-h-[65vh] overflow-x-hidden overflow-y-auto px-4">{children}</div>
         {rodape && (
-          <div className="flex flex-col gap-2 border-t border-line px-4 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+          <div className="flex flex-col gap-2 border-t border-line px-4 pt-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
             {rodape}
           </div>
         )}
