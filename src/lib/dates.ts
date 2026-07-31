@@ -75,16 +75,32 @@ export function resolverPeriodoDeParams(
   return resolverPeriodo(preset);
 }
 
+/**
+ * Datas de calendário puro (`@db.Date` no Prisma — movimentação, vencimento;
+ * também os marcadores de período da DRE) chegam ou nascem como meia-noite
+ * UTC. `format()`/`isSameDay()` do date-fns leem os componentes no fuso
+ * LOCAL de quem renderiza — no servidor (container em UTC) isso não muda
+ * nada, mas no navegador de qualquer usuário num fuso atrás de UTC (Brasil
+ * inteiro, UTC-3) meia-noite UTC cai no dia anterior local: a data exibida
+ * sai um dia atrasada da que está guardada. Este ajuste desloca o valor
+ * pelo próprio offset do fuso antes de ler os componentes, fazendo o dia
+ * local bater com o dia que o banco guardou.
+ */
+function comoCalendario(data: Date): Date {
+  return new Date(data.getTime() + data.getTimezoneOffset() * 60_000);
+}
+
 /** `2025-07-15` → `"15 jul"`; em outro ano, `"15 jul 2024"`. */
 export function formatarDataCurta(data: Date, hoje = new Date()): string {
-  return isSameYear(data, hoje)
-    ? format(data, "d MMM", { locale: ptBR })
-    : format(data, "d MMM yyyy", { locale: ptBR });
+  const alvo = comoCalendario(data);
+  return isSameYear(alvo, hoje)
+    ? format(alvo, "d MMM", { locale: ptBR })
+    : format(alvo, "d MMM yyyy", { locale: ptBR });
 }
 
 /** `"15/07/2025"` — para campos e detalhes, onde ambiguidade não é aceitável. */
 export function formatarData(data: Date): string {
-  return format(data, "dd/MM/yyyy");
+  return format(comoCalendario(data), "dd/MM/yyyy");
 }
 
 /**
@@ -94,13 +110,13 @@ export function formatarData(data: Date): string {
  * `capitalize` do CSS age em cada palavra e produziria "Julho De 2025".
  */
 export function formatarMesAno(data: Date): string {
-  const texto = format(data, "MMMM 'de' yyyy", { locale: ptBR });
+  const texto = format(comoCalendario(data), "MMMM 'de' yyyy", { locale: ptBR });
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 /** `"jan"`, `"fev"`… — colunas da DRE anual. */
 export function formatarMesCurto(data: Date): string {
-  return format(data, "MMM", { locale: ptBR });
+  return format(comoCalendario(data), "MMM", { locale: ptBR });
 }
 
 /**
@@ -108,14 +124,15 @@ export function formatarMesCurto(data: Date): string {
  * assim que a pessoa pensa sobre o extrato dos últimos dois dias.
  */
 export function rotularDia(data: Date, hoje = new Date()): string {
-  if (isSameDay(data, hoje)) return "Hoje";
-  if (isSameDay(data, subDays(hoje, 1))) return "Ontem";
-  return format(data, "d 'de' MMMM", { locale: ptBR });
+  const alvo = comoCalendario(data);
+  if (isSameDay(alvo, hoje)) return "Hoje";
+  if (isSameDay(alvo, subDays(hoje, 1))) return "Ontem";
+  return format(alvo, "d 'de' MMMM", { locale: ptBR });
 }
 
 /** Chave estável para agrupar por dia sem esbarrar em fuso. */
 export function chaveDia(data: Date): string {
-  return format(data, "yyyy-MM-dd");
+  return format(comoCalendario(data), "yyyy-MM-dd");
 }
 
 /** Os doze meses de um ano, como início de cada mês. Colunas da DRE anual. */
@@ -131,6 +148,6 @@ export function mesesDoAno(ano: number): Date[] {
 export function diasDeAtraso(vencimento: Date, hoje = new Date()): number {
   const umDia = 86_400_000;
   return Math.floor(
-    (startOfDay(hoje).getTime() - startOfDay(vencimento).getTime()) / umDia,
+    (startOfDay(hoje).getTime() - startOfDay(comoCalendario(vencimento)).getTime()) / umDia,
   );
 }
