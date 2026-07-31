@@ -35,8 +35,14 @@ export type ResponsiveModalProps = {
  * Um contrato, duas apresentações: gaveta por baixo no celular (polegar
  * alcança, arrastar fecha) e diálogo centralizado no desktop.
  *
- * Existe para que nenhuma tela precise decidir isso por conta própria — se
- * cada formulário escolhesse, o app teria dois comportamentos de edição.
+ * As duas são a MESMA estrutura de três blocos empilhados verticalmente:
+ * cabeçalho fixo, meio rolável, rodapé fixo. O bloco do meio é quem tem que
+ * encolher (`min-h-0`) para o `overflow-y-auto` funcionar de verdade — sem
+ * `min-h-0`, um item de flexbox nunca fica menor que o próprio conteúdo,
+ * então o "rolável" simplesmente cresce e empurra cabeçalho/rodapé/página
+ * inteira pra fora da tela junto com ele. Essa é a causa de toda a família
+ * de bugs que já vimos aqui (botão sumindo, "rolagem infinita", modal maior
+ * que a tela) — não tem outra regra além desta pra lembrar ao mexer aqui.
  */
 export function ResponsiveModal({
   aberto,
@@ -52,13 +58,21 @@ export function ResponsiveModal({
   if (desktop) {
     return (
       <Dialog open={aberto} onOpenChange={aoMudarAberto}>
-        <DialogContent className={cn("sm:max-w-lg", className)}>
-          <DialogHeader>
+        <DialogContent
+          className={cn("flex max-h-[85vh] flex-col overflow-hidden sm:max-w-lg", className)}
+        >
+          <DialogHeader className="shrink-0">
             <DialogTitle>{titulo}</DialogTitle>
             <DialogDescription className="sr-only">{descricao}</DialogDescription>
           </DialogHeader>
-          <div className="max-h-[70vh] overflow-x-hidden overflow-y-auto">{children}</div>
-          {rodape && <div className="flex justify-end gap-2 pt-2 pb-1">{rodape}</div>}
+
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">{children}</div>
+
+          {rodape && (
+            <div className="flex shrink-0 justify-end gap-2 border-t border-line pt-3">
+              {rodape}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     );
@@ -67,13 +81,15 @@ export function ResponsiveModal({
   return (
     <Drawer open={aberto} onOpenChange={aoMudarAberto}>
       <DrawerContent className={className}>
-        <DrawerHeader className="text-left">
+        <DrawerHeader className="shrink-0 text-left">
           <DrawerTitle>{titulo}</DrawerTitle>
           <DrawerDescription className="sr-only">{descricao}</DrawerDescription>
         </DrawerHeader>
-        <div className="max-h-[65vh] overflow-x-hidden overflow-y-auto px-4">{children}</div>
+
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4">{children}</div>
+
         {rodape && (
-          <div className="flex flex-col gap-2 border-t border-line px-4 pt-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-line px-4 pt-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
             {rodape}
           </div>
         )}
