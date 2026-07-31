@@ -279,6 +279,9 @@ model Movimentacao {
   descricaoOriginal String?         // texto original antes de edição
   observacao      String?
   recorrente      Boolean           @default(false)
+  // FITID do OFX de origem — chave de deduplicação: reimportar o mesmo
+  // extrato não cria lançamento duplicado. `null` para lançamentos manuais.
+  origemFitId     String?
 
   criadoEm       DateTime          @default(now())
   atualizadoEm   DateTime          @updatedAt
@@ -291,6 +294,7 @@ model Movimentacao {
   regra          Regra?       @relation(fields: [regraId], references: [id])
   importacoes    ImportacaoLinha[]
 
+  @@unique([contaId, origemFitId])
   @@index([empresaId, data])
   @@index([empresaId, dataVencimento])
   @@index([empresaId, dataCompetencia])

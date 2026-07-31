@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CircleCheck, GitMerge, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { LinhaImportacao } from "@/services/importacao/dto";
+import type { ResultadoConfirmacao } from "@/services/importacao/dto";
 
 /**
  * Terceiro passo: confirma o que foi feito e aponta para onde ir em seguida.
@@ -12,14 +12,13 @@ import type { LinhaImportacao } from "@/services/importacao/dto";
  * ou se o trabalho terminou aqui.
  */
 export function PassoConfirmacao({
-  incluidas,
+  resultado,
   aoImportarOutro,
 }: {
-  incluidas: LinhaImportacao[];
+  resultado: ResultadoConfirmacao;
   aoImportarOutro: () => void;
 }) {
-  const novas = incluidas.filter((l) => l.status === "NOVA").length;
-  const conciliadas = incluidas.filter((l) => l.status === "CONCILIAVEL").length;
+  const total = resultado.criadas + resultado.conciliadas;
 
   return (
     <div className="flex flex-col items-center pt-8 pb-24 text-center">
@@ -29,24 +28,24 @@ export function PassoConfirmacao({
 
       <h2 className="mt-5 text-titulo font-semibold text-ink">Importação concluída</h2>
       <p className="mt-1 max-w-xs text-corpo text-ink-muted">
-        {incluidas.length} {incluidas.length === 1 ? "lançamento entrou" : "lançamentos entraram"}{" "}
-        no extrato.
+        {total} {total === 1 ? "lançamento entrou" : "lançamentos entraram"} no extrato.
       </p>
 
       <div className="mt-6 w-full max-w-xs space-y-2 rounded-2xl border border-line bg-surface p-4 text-left shadow-card">
-        {novas > 0 && (
+        {resultado.criadas > 0 && (
           <div className="flex items-center gap-2 text-micro">
             <Plus className="size-3.5 shrink-0 text-brand" aria-hidden="true" />
             <span className="text-ink">
-              {novas} {novas === 1 ? "lançamento novo" : "lançamentos novos"}
+              {resultado.criadas} {resultado.criadas === 1 ? "lançamento novo" : "lançamentos novos"}
             </span>
           </div>
         )}
-        {conciliadas > 0 && (
+        {resultado.conciliadas > 0 && (
           <div className="flex items-center gap-2 text-micro">
             <GitMerge className="size-3.5 shrink-0 text-positive-text" aria-hidden="true" />
             <span className="text-ink">
-              {conciliadas} {conciliadas === 1 ? "pendência fechada" : "pendências fechadas"}
+              {resultado.conciliadas}{" "}
+              {resultado.conciliadas === 1 ? "pendência fechada" : "pendências fechadas"}
             </span>
           </div>
         )}

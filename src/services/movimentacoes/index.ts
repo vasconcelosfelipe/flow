@@ -9,7 +9,7 @@ import type {
 
 const TAMANHO_PAGINA = 30;
 
-function mapearMovimentacao(m: {
+export function mapearMovimentacao(m: {
   id: string;
   descricao: string;
   valorCentavos: number;

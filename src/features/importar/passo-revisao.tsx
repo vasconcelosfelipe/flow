@@ -25,12 +25,14 @@ const ABAS: { valor: Aba; rotulo: string }[] = [
 export function PassoRevisao({
   arquivoNome,
   linhas,
+  confirmando,
   aoAlternarLinha,
   aoVoltar,
   aoConfirmar,
 }: {
   arquivoNome: string;
   linhas: TipoLinha[];
+  confirmando: boolean;
   aoAlternarLinha: (id: string) => void;
   aoVoltar: () => void;
   aoConfirmar: () => void;
@@ -78,11 +80,17 @@ export function PassoRevisao({
 
       <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur-sm md:bottom-0 md:left-20 md:pb-4">
         <div className="mx-auto flex max-w-[1180px] items-center gap-3">
-          <Button variant="outline" onClick={aoVoltar}>
+          <Button variant="outline" onClick={aoVoltar} disabled={confirmando}>
             Voltar
           </Button>
-          <Button className="flex-1" disabled={selecionadas === 0} onClick={aoConfirmar}>
-            Importar {selecionadas} {selecionadas === 1 ? "lançamento" : "lançamentos"}
+          <Button
+            className="flex-1"
+            disabled={selecionadas === 0 || confirmando}
+            onClick={aoConfirmar}
+          >
+            {confirmando
+              ? "Importando…"
+              : `Importar ${selecionadas} ${selecionadas === 1 ? "lançamento" : "lançamentos"}`}
           </Button>
         </div>
       </div>

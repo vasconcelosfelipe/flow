@@ -9,15 +9,16 @@ import type { TipoMovimentacao } from "@/types/dominio";
 /**
  * Contrato do fluxo de importação: arquivo → revisão → confirmação.
  *
- * Fase 1 preenche `processarArquivo` com um cenário fixo que exercita os três
- * casos que a Fase 2 vai precisar resolver de verdade: linha nova, linha que
- * já existe (duplicada) e linha que casa com um compromisso em aberto
- * (conciliável). A tela de revisão não muda quando o parser de OFX real entrar.
+ * `id` de cada linha é o FITID do OFX — o mesmo identificador usado como
+ * chave de deduplicação no banco (`Movimentacao.origemFitId`). A revisão
+ * nunca inventa um id próprio porque é esse valor que decide, na confirmação,
+ * se a linha vira lançamento novo ou fecha uma pendência existente.
  */
 
 export type StatusLinhaImportacao = "NOVA" | "DUPLICADA" | "CONCILIAVEL";
 
 export type LinhaImportacao = {
+  /** FITID do OFX — também a chave de dedup gravada em `origemFitId`. */
   id: string;
   descricao: string;
   data: Date;
@@ -35,4 +36,9 @@ export type ResumoImportacao = {
   arquivoNome: string;
   conta: ContaResumo;
   linhas: LinhaImportacao[];
+};
+
+export type ResultadoConfirmacao = {
+  criadas: number;
+  conciliadas: number;
 };

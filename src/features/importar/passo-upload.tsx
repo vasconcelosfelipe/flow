@@ -11,8 +11,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CONTAS_MOCK } from "@/lib/mock/dados";
 import { cn } from "@/lib/utils";
+import { processarArquivoOfx } from "@/services/importacao/actions";
+import type { ResumoImportacao } from "@/services/importacao/dto";
+
+type OpcaoConta = { id: string; nome: string };
+
+/**
+ * Decodifica como texto tentando UTF-8 primeiro; cai para Windows-1252 se a
+ * decodificação falhar. Bancos brasileiros declaram `CHARSET:1252` no
+ * cabeçalho do OFX mas nem sempre é verdade — vários exportam em UTF-8 de
+ * qualquer jeito. `fatal: true` faz o UTF-8 falhar de propósito diante de
+ * uma sequência de bytes inválida, em vez de silenciosamente virar lixo.
+ */
+async function lerArquivoTexto(arquivo: File): Promise<string> {
+  const buffer = await arquivo.arrayBuffer();
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buffer);
+  }
+}
 
 /**
  * Primeiro passo: escolher para qual conta o extrato pertence, e o arquivo.
@@ -22,20 +41,31 @@ import { cn } from "@/lib/utils";
  * pessoa a repetir o passo.
  */
 export function PassoUpload({
+  contas,
   aoProcessar,
 }: {
-  aoProcessar: (nomeArquivo: string, contaId: string) => void;
+  contas: OpcaoConta[];
+  aoProcessar: (resumo: ResumoImportacao) => void;
 }) {
-  const [contaId, setContaId] = useState(CONTAS_MOCK[0].id);
+  const [contaId, setContaId] = useState(contas[0]?.id ?? "");
   const [arrastando, setArrastando] = useState(false);
   const [processando, setProcessando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function receberArquivo(arquivo: File | undefined) {
-    if (!arquivo) return;
+  async function receberArquivo(arquivo: File | undefined) {
+    if (!arquivo || !contaId) return;
+    setErro(null);
     setProcessando(true);
-    // Simula o tempo de leitura/parse do arquivo antes de cair na revisão.
-    setTimeout(() => aoProcessar(arquivo.name, contaId), 700);
+    try {
+      const conteudo = await lerArquivoTexto(arquivo);
+      const resumo = await processarArquivoOfx(conteudo, arquivo.name, contaId);
+      aoProcessar(resumo);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não consegui ler este arquivo.");
+    } finally {
+      setProcessando(false);
+    }
   }
 
   return (
@@ -47,7 +77,7 @@ export function PassoUpload({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CONTAS_MOCK.map((c) => (
+            {contas.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.nome}
               </SelectItem>
@@ -93,6 +123,7 @@ export function PassoUpload({
               type="button"
               variant="outline"
               className="mt-5 gap-1.5"
+              disabled={!contaId}
               onClick={() => inputRef.current?.click()}
             >
               <FileUp className="size-4" aria-hidden="true" />
@@ -108,6 +139,12 @@ export function PassoUpload({
           </>
         )}
       </div>
+
+      {erro && (
+        <p className="rounded-lg bg-negative/10 px-3 py-2 text-center text-micro text-negative-text">
+          {erro}
+        </p>
+      )}
     </div>
   );
 }

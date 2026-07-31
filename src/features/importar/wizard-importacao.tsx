@@ -6,9 +6,10 @@ import { PassoConfirmacao } from "@/features/importar/passo-confirmacao";
 import { PassoRevisao } from "@/features/importar/passo-revisao";
 import { PassoUpload } from "@/features/importar/passo-upload";
 import { cn } from "@/lib/utils";
-import { processarArquivo } from "@/services/importacao";
-import type { ResumoImportacao } from "@/services/importacao/dto";
+import { confirmarImportacao } from "@/services/importacao/actions";
+import type { ResultadoConfirmacao, ResumoImportacao } from "@/services/importacao/dto";
 
+type OpcaoConta = { id: string; nome: string };
 type Passo = "upload" | "revisao" | "confirmacao";
 
 const PASSOS: { chave: Passo; rotulo: string }[] = [
@@ -22,12 +23,14 @@ const PASSOS: { chave: Passo; rotulo: string }[] = [
  * disto precisa da URL porque a importação não é um estado para compartilhar
  * ou revisitar, é uma tarefa que se conclui numa sentada.
  */
-export function WizardImportacao() {
+export function WizardImportacao({ contas }: { contas: OpcaoConta[] }) {
   const [passo, setPasso] = useState<Passo>("upload");
   const [resumo, setResumo] = useState<ResumoImportacao | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+  const [resultado, setResultado] = useState<ResultadoConfirmacao | null>(null);
 
-  function processar(arquivoNome: string, contaId: string) {
-    setResumo(processarArquivo(arquivoNome, contaId));
+  function processar(novoResumo: ResumoImportacao) {
+    setResumo(novoResumo);
     setPasso("revisao");
   }
 
@@ -42,8 +45,26 @@ export function WizardImportacao() {
     );
   }
 
+  async function confirmar() {
+    if (!resumo) return;
+    setConfirmando(true);
+    try {
+      const selecionadas = resumo.linhas.filter((l) => l.incluir);
+      const r = await confirmarImportacao({
+        nomeArquivo: resumo.arquivoNome,
+        contaId: resumo.conta.id,
+        linhas: selecionadas,
+      });
+      setResultado(r);
+      setPasso("confirmacao");
+    } finally {
+      setConfirmando(false);
+    }
+  }
+
   function reiniciar() {
     setResumo(null);
+    setResultado(null);
     setPasso("upload");
   }
 
@@ -79,23 +100,21 @@ export function WizardImportacao() {
         ))}
       </ol>
 
-      {passo === "upload" && <PassoUpload aoProcessar={processar} />}
+      {passo === "upload" && <PassoUpload contas={contas} aoProcessar={processar} />}
 
       {passo === "revisao" && resumo && (
         <PassoRevisao
           arquivoNome={resumo.arquivoNome}
           linhas={resumo.linhas}
+          confirmando={confirmando}
           aoAlternarLinha={alternarLinha}
           aoVoltar={reiniciar}
-          aoConfirmar={() => setPasso("confirmacao")}
+          aoConfirmar={confirmar}
         />
       )}
 
-      {passo === "confirmacao" && resumo && (
-        <PassoConfirmacao
-          incluidas={resumo.linhas.filter((l) => l.incluir)}
-          aoImportarOutro={reiniciar}
-        />
+      {passo === "confirmacao" && resultado && (
+        <PassoConfirmacao resultado={resultado} aoImportarOutro={reiniciar} />
       )}
     </div>
   );
