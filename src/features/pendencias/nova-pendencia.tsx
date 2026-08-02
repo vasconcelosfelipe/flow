@@ -164,15 +164,15 @@ export function BotaoNovaPendencia({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Fornecedor / Contato</Label>
+            <Label>Fornecedor/Cliente</Label>
             <SearchableSelect
               value={contatoId}
               onValueChange={setContatoId}
-              placeholder="Sem fornecedor"
-              searchPlaceholder="Buscar fornecedor…"
-              emptyText="Nenhum fornecedor encontrado."
+              placeholder="Sem fornecedor/cliente"
+              searchPlaceholder="Buscar fornecedor/cliente…"
+              emptyText="Nenhum fornecedor/cliente encontrado."
               options={[
-                { value: SEM_FORNECEDOR, label: "Sem fornecedor" },
+                { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
                 ...contatos.map((c) => ({ value: c.id, label: c.nome })),
               ]}
             />

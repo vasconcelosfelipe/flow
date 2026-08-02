@@ -138,11 +138,11 @@ export function LinhaImportacao({
               onValueChange={(v) =>
                 aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })
               }
-              placeholder="Fornecedor"
-              searchPlaceholder="Buscar fornecedor…"
-              emptyText="Nenhum fornecedor encontrado."
+              placeholder="Fornecedor/cliente"
+              searchPlaceholder="Buscar fornecedor/cliente…"
+              emptyText="Nenhum fornecedor/cliente encontrado."
               options={[
-                { value: SEM_FORNECEDOR, label: "Sem fornecedor" },
+                { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
                 ...contatos.map((c) => ({ value: c.id, label: c.nome })),
               ]}
             />

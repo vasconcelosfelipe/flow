@@ -60,7 +60,7 @@ export function TransactionRow({
       <button
         type="button"
         onClick={() => aoAbrir?.(movimentacao.id)}
-        className="flex min-h-11 flex-1 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
       >
         <span
           className={cn(

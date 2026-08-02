@@ -169,7 +169,7 @@ function Detalhe({
         />
         <LinhaDetalhe icone={CreditCard} rotulo="Conta" valor={movimentacao.conta.nome} />
         {movimentacao.contato && (
-          <LinhaDetalhe icone={Users} rotulo="Contato" valor={movimentacao.contato.nome} />
+          <LinhaDetalhe icone={Users} rotulo="Fornecedor/Cliente" valor={movimentacao.contato.nome} />
         )}
         <LinhaDetalhe icone={FileText} rotulo="Status" valor={ROTULO_STATUS[movimentacao.status]} />
         {movimentacao.totalParcelas && (
@@ -402,15 +402,15 @@ function FormularioEdicao({
       )}
 
       <div className="space-y-1.5">
-        <Label>Fornecedor / Contato</Label>
+        <Label>Fornecedor/Cliente</Label>
         <SearchableSelect
           value={contatoId}
           onValueChange={setContatoId}
-          placeholder="Sem fornecedor"
-          searchPlaceholder="Buscar fornecedor…"
-          emptyText="Nenhum fornecedor encontrado."
+          placeholder="Sem fornecedor/cliente"
+          searchPlaceholder="Buscar fornecedor/cliente…"
+          emptyText="Nenhum fornecedor/cliente encontrado."
           options={[
-            { value: SEM_FORNECEDOR, label: "Sem fornecedor" },
+            { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
         />
