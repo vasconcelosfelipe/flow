@@ -19,17 +19,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={300}>
       <DesktopRail />
 
-      <PullToRefresh>
-        <div className="flex min-h-dvh flex-col md:pl-16">
-          <AppHeader sessao={sessao} />
-          {/* A barra inferior é `fixed` (não faz parte do fluxo), então o
-              conteúdo precisa reservar o próprio espaço embaixo — senão o
-              último card fica escondido atrás dela. */}
-          <main className="flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] md:pb-10">
-            {children}
-          </main>
-        </div>
-      </PullToRefresh>
+      <div className="flex min-h-dvh flex-col md:pl-16">
+        <AppHeader sessao={sessao} />
+        {/* A barra inferior é `fixed` (não faz parte do fluxo), então o
+            conteúdo precisa reservar o próprio espaço embaixo — senão o
+            último card fica escondido atrás dela. */}
+        <main className="flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] md:pb-10">
+          {/* Puxar-para-atualizar só neste miolo — a barra superior e a
+              inferior nunca se movem com o gesto, só o conteúdo entre elas. */}
+          <PullToRefresh>{children}</PullToRefresh>
+        </main>
+      </div>
 
       <BottomNav />
       <Toaster position="top-center" />
