@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/shared/searchable-select";
 import { ICONES, iconeDe, type ChaveIcone } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { CategoriaCompleta, FormularioCategoria } from "@/services/categorias/dto";
@@ -23,6 +24,7 @@ import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoMovimentacao } from "@/types/dominio";
 
 const SEM_LINHA = "nenhuma";
+const SEM_PAI = "nenhuma";
 
 function linhasParaTipo(linhas: LinhaDreOpcao[], tipo: TipoMovimentacao) {
   return linhas.filter((l) => l.tipoPermitido === null || l.tipoPermitido === tipo);
@@ -41,6 +43,7 @@ const schema = z.object({
   cor: z.string(),
   icone: z.string(),
   linhaDreId: z.string(),
+  categoriaPaiId: z.string(),
 });
 
 /**
@@ -49,12 +52,14 @@ const schema = z.object({
  */
 export function FormularioCategoria({
   categoria,
+  categorias,
   linhas,
   aoSalvar,
   aoExcluir,
   aoCancelar,
 }: {
   categoria: CategoriaCompleta | null;
+  categorias: CategoriaCompleta[];
   linhas: LinhaDreOpcao[];
   aoSalvar: (dados: FormularioCategoria) => void;
   aoExcluir?: (id: string) => void;
@@ -76,6 +81,7 @@ export function FormularioCategoria({
       cor: categoria?.cor ?? PALETA_CORES[0],
       icone: categoria?.icone ?? "diversos",
       linhaDreId: categoria?.linhaDreId ?? SEM_LINHA,
+      categoriaPaiId: categoria?.categoriaPaiId ?? SEM_PAI,
     },
   });
 
@@ -83,9 +89,20 @@ export function FormularioCategoria({
   const cor = watch("cor");
   const icone = watch("icone") as ChaveIcone;
   const linhaDreId = watch("linhaDreId");
+  const categoriaPaiId = watch("categoriaPaiId");
   const IconeSelecionado = iconeDe(icone);
 
   const linhasDisponiveis = useMemo(() => linhasParaTipo(linhas, tipo), [linhas, tipo]);
+
+  // Só categorias de topo (sem pai) do mesmo tipo, e nunca a própria categoria
+  // em edição — evita ciclo e limita a hierarquia a um único nível.
+  const paisDisponiveis = useMemo(
+    () =>
+      categorias.filter(
+        (c) => c.tipo === tipo && c.categoriaPaiId === null && c.id !== categoria?.id,
+      ),
+    [categorias, tipo, categoria?.id],
+  );
 
   useEffect(() => {
     if (linhaDreId === SEM_LINHA) return;
@@ -94,12 +111,20 @@ export function FormularioCategoria({
     }
   }, [linhasDisponiveis, linhaDreId, setValue]);
 
+  useEffect(() => {
+    if (categoriaPaiId === SEM_PAI) return;
+    if (!paisDisponiveis.some((c) => c.id === categoriaPaiId)) {
+      setValue("categoriaPaiId", SEM_PAI);
+    }
+  }, [paisDisponiveis, categoriaPaiId, setValue]);
+
   function enviar(dados: z.infer<typeof schema>) {
     aoSalvar({
       id: categoria?.id,
       ...dados,
       icone: dados.icone as ChaveIcone,
       linhaDreId: dados.linhaDreId === SEM_LINHA ? null : dados.linhaDreId,
+      categoriaPaiId: dados.categoriaPaiId === SEM_PAI ? null : dados.categoriaPaiId,
     });
   }
 
@@ -142,6 +167,24 @@ export function FormularioCategoria({
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Categoria pai</Label>
+        <SearchableSelect
+          value={categoriaPaiId}
+          onValueChange={(v) => setValue("categoriaPaiId", v)}
+          placeholder="Nenhuma — categoria principal"
+          searchPlaceholder="Buscar categoria…"
+          emptyText="Nenhuma categoria principal desse tipo ainda."
+          options={[
+            { value: SEM_PAI, label: "Nenhuma — categoria principal" },
+            ...paisDisponiveis.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+        />
+        <p className="text-nano text-ink-muted">
+          Escolha uma categoria principal pra tornar esta uma subcategoria dela.
+        </p>
       </div>
 
       <div className="space-y-1.5">

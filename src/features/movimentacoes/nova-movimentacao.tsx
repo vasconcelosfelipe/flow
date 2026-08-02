@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
+import { SearchableSelect } from "@/components/shared/searchable-select";
 import {
   Select,
   SelectContent,
@@ -161,32 +162,32 @@ export function BotoesMovimentacoes({
 
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
-                {categoriasDoTipo.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={categoriaId}
+              onValueChange={setCategoriaId}
+              placeholder="Sem categoria"
+              searchPlaceholder="Buscar categoria…"
+              emptyText="Nenhuma categoria encontrada."
+              options={[
+                { value: SEM_CATEGORIA, label: "Sem categoria" },
+                ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>Fornecedor / Contato</Label>
-            <Select value={contatoId} onValueChange={setContatoId}>
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SEM_FORNECEDOR}>Sem fornecedor</SelectItem>
-                {contatos.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={contatoId}
+              onValueChange={setContatoId}
+              placeholder="Sem fornecedor"
+              searchPlaceholder="Buscar fornecedor…"
+              emptyText="Nenhum fornecedor encontrado."
+              options={[
+                { value: SEM_FORNECEDOR, label: "Sem fornecedor" },
+                ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
           </div>
 
           <div className="space-y-1.5">

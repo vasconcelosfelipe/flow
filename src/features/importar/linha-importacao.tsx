@@ -3,14 +3,8 @@
 import { AlertCircle, GitMerge, Link2 } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
+import { SearchableSelect } from "@/components/shared/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
@@ -123,39 +117,35 @@ export function LinhaImportacao({
 
         {linha.incluir && (
           <div className="mt-2 grid grid-cols-2 gap-1.5">
-            <Select
+            <SearchableSelect
+              size="sm"
               value={linha.categoriaId ?? SEM_CATEGORIA}
               onValueChange={(v) =>
                 aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })
               }
-            >
-              <SelectTrigger className="h-8 w-full rounded-lg border-line bg-surface text-nano">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
-                {categoriasDoTipo.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Categoria"
+              searchPlaceholder="Buscar categoria…"
+              emptyText="Nenhuma categoria encontrada."
+              options={[
+                { value: SEM_CATEGORIA, label: "Sem categoria" },
+                ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
 
-            <Select
+            <SearchableSelect
+              size="sm"
               value={linha.contatoId ?? SEM_FORNECEDOR}
               onValueChange={(v) =>
                 aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })
               }
-            >
-              <SelectTrigger className="h-8 w-full rounded-lg border-line bg-surface text-nano">
-                <SelectValue placeholder="Fornecedor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SEM_FORNECEDOR}>Sem fornecedor</SelectItem>
-                {contatos.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Fornecedor"
+              searchPlaceholder="Buscar fornecedor…"
+              emptyText="Nenhum fornecedor encontrado."
+              options={[
+                { value: SEM_FORNECEDOR, label: "Sem fornecedor" },
+                ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
           </div>
         )}
       </div>

@@ -11,6 +11,8 @@ export type CategoriaCompleta = {
   linhaDreId: string | null;
   /** Nome da linha da DRE para a qual esta categoria soma. */
   linhaDreNome: string;
+  /** `null` = categoria de topo. Só um nível: uma subcategoria nunca é pai de outra. */
+  categoriaPaiId: string | null;
   quantidadeMovimentacoes: number;
 };
 
@@ -21,4 +23,5 @@ export type FormularioCategoria = {
   cor: string;
   tipo: TipoMovimentacao;
   linhaDreId: string | null;
+  categoriaPaiId: string | null;
 };

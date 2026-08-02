@@ -17,6 +17,7 @@ export async function listarCategorias(empresaId: string): Promise<CategoriaComp
     tipo: c.tipo,
     linhaDreId: c.linhaDreId,
     linhaDreNome: c.linhaDre?.nome ?? "Sem linha de DRE vinculada",
+    categoriaPaiId: c.categoriaPaiId,
     quantidadeMovimentacoes: c._count.movimentacoes,
   }));
 }

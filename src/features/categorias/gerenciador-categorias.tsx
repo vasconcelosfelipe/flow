@@ -29,6 +29,18 @@ export function GerenciadorCategorias({
 
   const visiveis = useMemo(() => inicial.filter((c) => c.tipo === aba), [inicial, aba]);
 
+  // Árvore de um nível: raízes (sem pai, ou cujo pai não está mais na lista
+  // ativa) seguidas de suas subcategorias, na ordem em que já vêm (por nome).
+  const arvore = useMemo(() => {
+    const raizes = visiveis.filter(
+      (c) => c.categoriaPaiId === null || !visiveis.some((p) => p.id === c.categoriaPaiId),
+    );
+    return raizes.map((raiz) => ({
+      raiz,
+      filhas: visiveis.filter((c) => c.categoriaPaiId === raiz.id),
+    }));
+  }, [visiveis]);
+
   function salvar(dados: DadosFormulario) {
     startTransition(async () => {
       if (dados.id) {
@@ -75,12 +87,21 @@ export function GerenciadorCategorias({
         />
       ) : (
         <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-          {visiveis.map((categoria) => (
-            <LinhaCategoria
-              key={categoria.id}
-              categoria={categoria}
-              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
-            />
+          {arvore.map(({ raiz, filhas }) => (
+            <div key={raiz.id} className="divide-y divide-line">
+              <LinhaCategoria
+                categoria={raiz}
+                aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+              />
+              {filhas.map((filha) => (
+                <LinhaCategoria
+                  key={filha.id}
+                  categoria={filha}
+                  subcategoria
+                  aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+                />
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -89,10 +110,11 @@ export function GerenciadorCategorias({
         aberto={editando !== null}
         aoMudarAberto={(aberto) => !aberto && setEditando(null)}
         titulo={categoriaEmEdicao ? "Editar categoria" : "Nova categoria"}
-        descricao="Nome, tipo, linha da DRE, cor e ícone da categoria."
+        descricao="Nome, tipo, linha da DRE, categoria pai, cor e ícone da categoria."
       >
         <FormularioCategoria
           categoria={categoriaEmEdicao}
+          categorias={inicial}
           linhas={linhas}
           aoSalvar={salvar}
           aoExcluir={categoriaEmEdicao ? excluir : undefined}

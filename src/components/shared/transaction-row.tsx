@@ -20,9 +20,13 @@ export type TransactionRowProps = {
  * A linha mais repetida do produto — uma pessoa passa por centenas delas por
  * importação.
  *
- * Prioridade de leitura: valor primeiro (é o que se procura), depois descrição,
- * depois categoria. "Sem categoria" é tratado como pendência visível, não como
+ * Prioridade de leitura: descrição primeiro (é o que identifica o lançamento),
+ * depois categoria — como uma pílula, igual uma etiqueta — e fornecedor,
+ * depois o valor. "Sem categoria" é tratado como pendência visível, não como
  * campo vazio, porque categorizar é o trabalho que a tela existe para provocar.
+ *
+ * A descrição trunca (nunca quebra linha) e o valor nunca encolhe — sem isso
+ * uma descrição longa empurra o valor pra fora do cartão em vez de cortar.
  */
 export function TransactionRow({
   movimentacao,
@@ -30,7 +34,7 @@ export function TransactionRow({
   selecionada,
   aoAlternarSelecao,
 }: TransactionRowProps) {
-  const { categoria, tipo, status } = movimentacao;
+  const { categoria, contato, tipo, status } = movimentacao;
   const Icone = categoria ? iconeDe(categoria.icone) : AlertCircle;
   const receita = tipo === "RECEITA";
   const semCategoria = categoria === null;
@@ -40,7 +44,7 @@ export function TransactionRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-3 transition-colors",
+        "flex items-center gap-3 px-4 py-4 transition-colors",
         selecionada ? "bg-brand-wash" : "hover:bg-muted/60",
       )}
     >
@@ -60,7 +64,7 @@ export function TransactionRow({
       >
         <span
           className={cn(
-            "grid size-10 shrink-0 place-items-center rounded-xl",
+            "grid size-11 shrink-0 place-items-center rounded-xl",
             semCategoria && "bg-attention-wash text-attention",
             previsto && !semCategoria && "border border-dashed",
           )}
@@ -75,7 +79,7 @@ export function TransactionRow({
           <Icone className="size-4.5" aria-hidden="true" />
         </span>
 
-        <span className="min-w-0 flex-1">
+        <span className="min-w-0 flex-1 space-y-1">
           <span className="flex items-center gap-1.5">
             <span className="truncate text-corpo font-medium text-ink">
               {movimentacao.descricao}
@@ -85,19 +89,27 @@ export function TransactionRow({
             )}
           </span>
 
-          <span className="mt-0.5 flex items-center gap-1.5 text-nano text-ink-muted">
+          <span className="flex min-w-0 flex-wrap items-center gap-1.5">
             {semCategoria ? (
-              <span className="font-medium text-attention-text">Sem categoria</span>
+              <span className="text-nano font-medium text-attention-text">Sem categoria</span>
             ) : (
-              <span className="truncate">{categoria.nome}</span>
+              <span
+                className="inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-nano font-medium"
+                style={{ backgroundColor: `${categoria.cor}1a`, color: categoria.cor }}
+              >
+                {categoria.nome}
+              </span>
+            )}
+            {contato && (
+              <span className="truncate text-nano text-ink-muted">{contato.nome}</span>
             )}
             {movimentacao.totalParcelas && (
-              <span className="shrink-0">
+              <span className="shrink-0 text-nano text-ink-muted">
                 · {movimentacao.numeroParcela}/{movimentacao.totalParcelas}
               </span>
             )}
             {previsto && (
-              <span className="flex shrink-0 items-center gap-0.5">
+              <span className="flex shrink-0 items-center gap-0.5 text-nano text-ink-muted">
                 <Clock className="size-3" aria-hidden="true" />
                 {status === "PREVISTO" ? "Previsto" : "A pagar"}
               </span>
@@ -107,7 +119,7 @@ export function TransactionRow({
 
         <AmountText
           centavos={receita ? movimentacao.valorCentavos : -movimentacao.valorCentavos}
-          className={cn(previsto && "opacity-60")}
+          className={cn("shrink-0", previsto && "opacity-60")}
         />
       </button>
     </div>

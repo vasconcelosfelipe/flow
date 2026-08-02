@@ -22,6 +22,7 @@ export async function criarCategoria(dados: FormularioCategoria) {
       cor: dados.cor,
       tipo: dados.tipo,
       linhaDreId: dados.linhaDreId,
+      categoriaPaiId: dados.categoriaPaiId,
     },
   });
   revalidatePath("/categorias");
@@ -37,6 +38,7 @@ export async function editarCategoria(id: string, dados: FormularioCategoria) {
       cor: dados.cor,
       tipo: dados.tipo,
       linhaDreId: dados.linhaDreId,
+      categoriaPaiId: dados.categoriaPaiId,
     },
   });
   revalidatePath("/categorias");

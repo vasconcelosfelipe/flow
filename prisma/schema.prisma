@@ -179,15 +179,21 @@ model Categoria {
   // única responsável por essa configuração; a DRE nunca decide isso sozinha,
   // só consulta.
   linhaDreId  String?
+  // Só um nível: uma subcategoria nunca tem suas próprias subcategorias — a
+  // tela de Categorias só oferece categorias de topo como opção de pai.
+  categoriaPaiId String?
   ativa       Boolean       @default(true)
   criadoEm   DateTime      @default(now())
   atualizadoEm DateTime     @updatedAt
 
   empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   linhaDre      LinhaDre?      @relation(fields: [linhaDreId], references: [id])
+  categoriaPai  Categoria?     @relation("Subcategorias", fields: [categoriaPaiId], references: [id])
+  subcategorias Categoria[]    @relation("Subcategorias")
   movimentacoes Movimentacao[]
 
   @@index([empresaId])
+  @@index([categoriaPaiId])
   @@map("categorias")
 }
 
