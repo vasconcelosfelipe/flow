@@ -199,16 +199,30 @@ function LinhaComponente({
 
       {aberto &&
         linha.itens.map((item) => (
-          <TableRow key={item.categoriaId} className="bg-muted/20 hover:bg-muted/20">
-            <TableCell className="sticky left-0 z-10 bg-muted pl-9 text-micro text-ink-muted">
-              {item.tipo === "DESPESA" && "(-) "}
-              {item.nome}
-            </TableCell>
-            <CelulasMoeda valores={item.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
-            <TableCell className={cn("text-right", COL_TOTAL)}>
-              <AmountText centavos={item.totalCentavos} tom="neutro" tamanho="sm" compacto />
-            </TableCell>
-          </TableRow>
+          <Fragment key={item.categoriaId}>
+            <TableRow className="bg-muted/20 hover:bg-muted/20">
+              <TableCell className="sticky left-0 z-10 bg-muted pl-9 text-micro text-ink-muted">
+                {item.tipo === "DESPESA" && "(-) "}
+                {item.nome}
+              </TableCell>
+              <CelulasMoeda valores={item.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
+              <TableCell className={cn("text-right", COL_TOTAL)}>
+                <AmountText centavos={item.totalCentavos} tom="neutro" tamanho="sm" compacto />
+              </TableCell>
+            </TableRow>
+            {item.subitens.map((sub) => (
+              <TableRow key={sub.categoriaId} className="bg-muted/20 hover:bg-muted/20">
+                <TableCell className="sticky left-0 z-10 bg-muted pl-14 text-nano text-ink-muted/80">
+                  {sub.tipo === "DESPESA" && "(-) "}
+                  {sub.nome}
+                </TableCell>
+                <CelulasMoeda valores={sub.valores} trimestresAbertos={trimestresAbertos} tom="neutro" />
+                <TableCell className={cn("text-right", COL_TOTAL)}>
+                  <AmountText centavos={sub.totalCentavos} tom="neutro" tamanho="sm" compacto />
+                </TableCell>
+              </TableRow>
+            ))}
+          </Fragment>
         ))}
     </Fragment>
   );

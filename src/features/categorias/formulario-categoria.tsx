@@ -104,6 +104,11 @@ export function FormularioCategoria({
     [categorias, tipo, categoria?.id],
   );
 
+  const paiSelecionado = useMemo(
+    () => (categoriaPaiId === SEM_PAI ? null : (categorias.find((c) => c.id === categoriaPaiId) ?? null)),
+    [categorias, categoriaPaiId],
+  );
+
   useEffect(() => {
     if (linhaDreId === SEM_LINHA) return;
     if (!linhasDisponiveis.some((l) => l.id === linhaDreId)) {
@@ -117,6 +122,15 @@ export function FormularioCategoria({
       setValue("categoriaPaiId", SEM_PAI);
     }
   }, [paisDisponiveis, categoriaPaiId, setValue]);
+
+  // Subcategoria nunca escolhe linha nem ícone próprios — herda os dois da
+  // mãe, sempre. Faz a DRE somar as duas na mesma linha, aninhar a
+  // subcategoria por baixo, e a lista de categorias ler como uma família só.
+  useEffect(() => {
+    if (!paiSelecionado) return;
+    setValue("linhaDreId", paiSelecionado.linhaDreId ?? SEM_LINHA);
+    setValue("icone", paiSelecionado.icone);
+  }, [paiSelecionado, setValue]);
 
   function enviar(dados: z.infer<typeof schema>) {
     aoSalvar({
@@ -189,22 +203,30 @@ export function FormularioCategoria({
 
       <div className="space-y-1.5">
         <Label>Linha da DRE</Label>
-        <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
-            {linhasDisponiveis.map((linha) => (
-              <SelectItem key={linha.id} value={linha.id}>
-                {linha.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {paiSelecionado ? (
+          <div className="flex h-11 w-full items-center rounded-lg border border-line bg-muted px-3 text-corpo text-ink-muted">
+            {linhasDisponiveis.find((l) => l.id === paiSelecionado.linhaDreId)?.nome ??
+              "Nenhuma — fora da DRE"}
+          </div>
+        ) : (
+          <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
+            <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
+              {linhasDisponiveis.map((linha) => (
+                <SelectItem key={linha.id} value={linha.id}>
+                  {linha.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <p className="text-nano text-ink-muted">
-          Define em qual linha da DRE esta categoria soma. Sem linha, os lançamentos ficam fora
-          do relatório.
+          {paiSelecionado
+            ? `Herdada de "${paiSelecionado.nome}" — mude na categoria mãe pra afetar todas as subcategorias.`
+            : "Define em qual linha da DRE esta categoria soma. Sem linha, os lançamentos ficam fora do relatório."}
         </p>
       </div>
 
@@ -230,29 +252,36 @@ export function FormularioCategoria({
 
       <div className="space-y-1.5">
         <Label>Ícone</Label>
-        <div className="grid grid-cols-7 gap-1.5">
-          {(Object.keys(ICONES) as ChaveIcone[]).map((chave) => {
-            const Icone = ICONES[chave];
-            const selecionado = icone === chave;
-            return (
-              <button
-                key={chave}
-                type="button"
-                aria-label={chave}
-                aria-pressed={selecionado}
-                onClick={() => setValue("icone", chave)}
-                className={cn(
-                  "grid aspect-square place-items-center rounded-lg border transition-colors",
-                  selecionado
-                    ? "border-brand bg-brand-wash text-brand"
-                    : "border-line text-ink-muted hover:bg-muted",
-                )}
-              >
-                <Icone className="size-4" aria-hidden="true" />
-              </button>
-            );
-          })}
-        </div>
+        {paiSelecionado ? (
+          <p className="text-nano text-ink-muted">
+            Subcategoria usa o mesmo ícone de &quot;{paiSelecionado.nome}&quot; — sem escolha
+            própria, pra família de categorias ficar visualmente óbvia na lista.
+          </p>
+        ) : (
+          <div className="grid grid-cols-7 gap-1.5">
+            {(Object.keys(ICONES) as ChaveIcone[]).map((chave) => {
+              const Icone = ICONES[chave];
+              const selecionado = icone === chave;
+              return (
+                <button
+                  key={chave}
+                  type="button"
+                  aria-label={chave}
+                  aria-pressed={selecionado}
+                  onClick={() => setValue("icone", chave)}
+                  className={cn(
+                    "grid aspect-square place-items-center rounded-lg border transition-colors",
+                    selecionado
+                      ? "border-brand bg-brand-wash text-brand"
+                      : "border-line text-ink-muted hover:bg-muted",
+                  )}
+                >
+                  <Icone className="size-4" aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {categoria && aoExcluir && (

@@ -26,7 +26,7 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
         valorCentavos: true,
         tipo: true,
         data: true,
-        categoria: { select: { id: true, nome: true, linhaDreId: true } },
+        categoria: { select: { id: true, nome: true, linhaDreId: true, categoriaPaiId: true } },
       },
     }),
     listarLinhasDre(),
@@ -35,6 +35,9 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
   // Agrupa por linha da DRE e, dentro dela, por categoria real — nunca uma
   // linha fictícia repetindo o nome da seção.
   const itensPorLinha = new Map<string, Map<string, ItemLinhaDre>>();
+  // categoriaId → categoriaPaiId, só das categorias que de fato apareceram
+  // em alguma movimentação do período — usado pra aninhar subitens abaixo.
+  const paiPorCategoriaId = new Map<string, string>();
 
   for (const mov of movimentacoes) {
     const categoria = mov.categoria;
@@ -57,8 +60,10 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
         tipo: mov.tipo as ItemLinhaDre["tipo"],
         valores: somaZerada(tamanho),
         totalCentavos: 0,
+        subitens: [],
       };
       itensDaLinha.set(categoria.id, item);
+      if (categoria.categoriaPaiId) paiPorCategoriaId.set(categoria.id, categoria.categoriaPaiId);
     }
 
     item.valores[mesIndex] += mov.valorCentavos;
@@ -67,7 +72,7 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
 
   const linhas: LinhaDreResultado[] = linhasDre
     .map((linha): LinhaDreResultado => {
-      const itens = [...(itensPorLinha.get(linha.id)?.values() ?? [])];
+      const todosOsItens = [...(itensPorLinha.get(linha.id)?.values() ?? [])];
 
       // Linhas de tipo único (Receita Bruta, Deduções, Custos, Despesas
       // Operacionais, Tributos) somam a magnitude direta — quem subtrai é a
@@ -75,10 +80,22 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
       // Receitas/Despesas) precisa netar receita e despesa aqui dentro,
       // porque a cascata só faz `+ outrasReceitasDespesas`, uma vez.
       const mista = linha.tipoPermitido === null;
-      const valores = itens.reduce((soma, item) => {
+      const valores = todosOsItens.reduce((soma, item) => {
         const sinal = mista && item.tipo === "DESPESA" ? -1 : 1;
         return soma.map((v, i) => v + sinal * item.valores[i]);
       }, somaZerada(tamanho));
+
+      // Aninha: subcategoria vira `subitens` da categoria mãe em vez de item
+      // solto — a soma acima já rodou sobre a lista flat, então o total da
+      // linha não muda, só a forma como os itens aparecem organizados.
+      const porId = new Map(todosOsItens.map((item) => [item.categoriaId, item]));
+      const itens = todosOsItens.filter((item) => {
+        const paiId = paiPorCategoriaId.get(item.categoriaId);
+        const pai = paiId ? porId.get(paiId) : undefined;
+        if (!pai) return true;
+        pai.subitens.push(item);
+        return false;
+      });
 
       return {
         id: linha.id,

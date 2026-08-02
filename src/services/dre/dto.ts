@@ -27,6 +27,10 @@ export type ItemLinhaDre = {
   tipo: TipoMovimentacao;
   valores: Centavos[];
   totalCentavos: Centavos;
+  /** Subcategorias — sempre herdam a mesma linha da DRE da categoria mãe,
+   * então aparecem aninhadas aqui em vez de como item irmão solto. Só um
+   * nível: nunca tem subitens dentro de um subitem. */
+  subitens: ItemLinhaDre[];
 };
 
 /** Uma das seis linhas fixas — a unidade que expande/colapsa na tela. */
