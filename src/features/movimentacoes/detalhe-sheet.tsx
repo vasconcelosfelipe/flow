@@ -215,9 +215,8 @@ function Detalhe({
             </Button>
             <Button
               type="button"
-              variant="destructive"
               size="lg"
-              className="flex-1"
+              className="flex-1 border-transparent bg-negative text-white hover:bg-negative/90"
               onClick={excluir}
               disabled={pending}
             >
@@ -228,9 +227,8 @@ function Detalhe({
       ) : (
         <Button
           type="button"
-          variant="outline"
           size="lg"
-          className="w-full gap-1.5 text-negative-text hover:text-negative-text"
+          className="w-full gap-1.5 border-transparent bg-negative text-white hover:bg-negative/90"
           onClick={() => setConfirmandoExclusao(true)}
         >
           <Trash2 className="size-4" aria-hidden="true" />

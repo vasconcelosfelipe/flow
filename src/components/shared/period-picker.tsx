@@ -111,10 +111,12 @@ export function PeriodPicker({
         descricao="Selecione a data inicial e a data final do intervalo."
         rodape={
           <>
-            <Button variant="outline" onClick={() => setModalAberto(false)}>
+            <Button variant="outline" size="lg" className="flex-1" onClick={() => setModalAberto(false)}>
               Cancelar
             </Button>
             <Button
+              size="lg"
+              className="flex-1"
               disabled={!intervalo?.from || !intervalo?.to}
               onClick={() => {
                 if (!intervalo?.from || !intervalo?.to) return;

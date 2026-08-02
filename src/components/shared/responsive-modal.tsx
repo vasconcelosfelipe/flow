@@ -89,7 +89,7 @@ export function ResponsiveModal({
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4">{children}</div>
 
         {rodape && (
-          <div className="flex shrink-0 flex-col gap-2 border-t border-line px-4 pt-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+          <div className="flex shrink-0 gap-2 border-t border-line px-4 pt-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
             {rodape}
           </div>
         )}
