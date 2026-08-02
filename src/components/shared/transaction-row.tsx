@@ -80,8 +80,8 @@ export function TransactionRow({
         </span>
 
         <span className="min-w-0 flex-1 space-y-1">
-          <span className="flex items-center gap-1.5">
-            <span className="truncate text-corpo font-medium text-ink">
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 truncate text-corpo font-medium text-ink">
               {movimentacao.descricao}
             </span>
             {movimentacao.recorrente && (
