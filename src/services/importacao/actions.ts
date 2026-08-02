@@ -85,6 +85,8 @@ export async function processarArquivoOfx(
       categoriaSugerida: null,
       conciliaCom: pendenciaCasada ? mapearMovimentacao(pendenciaCasada) : null,
       incluir: status !== "DUPLICADA",
+      categoriaId: pendenciaCasada?.categoriaId ?? null,
+      contatoId: pendenciaCasada?.contatoId ?? null,
     };
   });
 
@@ -125,7 +127,13 @@ export async function confirmarImportacao(input: {
       if (linha.status === "CONCILIAVEL" && linha.conciliaCom) {
         const mov = await db.movimentacao.update({
           where: { id: linha.conciliaCom.id },
-          data: { status: "CONCILIADO", data: linha.data, origemFitId: linha.id },
+          data: {
+            status: "CONCILIADO",
+            data: linha.data,
+            origemFitId: linha.id,
+            categoriaId: linha.categoriaId,
+            contatoId: linha.contatoId,
+          },
         });
         await db.importacaoLinha.create({
           data: { importacaoId: importacao.id, movimentacaoId: mov.id },
@@ -136,6 +144,8 @@ export async function confirmarImportacao(input: {
           data: {
             empresaId,
             contaId: input.contaId,
+            categoriaId: linha.categoriaId,
+            contatoId: linha.contatoId,
             descricao: linha.descricao,
             tipo: linha.tipo,
             valorCentavos: linha.valorCentavos,

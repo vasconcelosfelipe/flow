@@ -8,6 +8,7 @@ import { BotaoNovaPendencia } from "@/features/pendencias/nova-pendencia";
 import { requireSessao } from "@/lib/sessao";
 import { listarCategorias } from "@/services/categorias";
 import { listarContas } from "@/services/contas";
+import { listarContatos } from "@/services/contatos";
 import { listarPendencias } from "@/services/pendencias";
 import type { TipoMovimentacao } from "@/types/dominio";
 
@@ -19,13 +20,14 @@ export default async function APagarReceberPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const tipo = params.tipo === "DESPESA" || params.tipo === "RECEITA" ? params.tipo : undefined;
 
-  const [pagina, contas, categorias] = await Promise.all([
+  const [pagina, contas, categorias, contatos] = await Promise.all([
     listarPendencias(empresaAtiva.id, {
       tipo: tipo as TipoMovimentacao | undefined,
       situacao: params.situacao === "vencidas" ? "vencidas" : undefined,
     }),
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),
+    listarContatos(empresaAtiva.id),
   ]);
 
   return (
@@ -35,6 +37,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
         <BotaoNovaPendencia
           contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
           categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+          contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
         />
       </div>
 
@@ -59,6 +62,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
         grupos={pagina.grupos}
         contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+        contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
       />
     </Container>
   );

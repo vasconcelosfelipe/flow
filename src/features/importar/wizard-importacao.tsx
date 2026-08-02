@@ -10,6 +10,8 @@ import { confirmarImportacao } from "@/services/importacao/actions";
 import type { ResultadoConfirmacao, ResumoImportacao } from "@/services/importacao/dto";
 
 type OpcaoConta = { id: string; nome: string };
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
 type Passo = "upload" | "revisao" | "confirmacao";
 
 const PASSOS: { chave: Passo; rotulo: string }[] = [
@@ -23,7 +25,15 @@ const PASSOS: { chave: Passo; rotulo: string }[] = [
  * disto precisa da URL porque a importação não é um estado para compartilhar
  * ou revisitar, é uma tarefa que se conclui numa sentada.
  */
-export function WizardImportacao({ contas }: { contas: OpcaoConta[] }) {
+export function WizardImportacao({
+  contas,
+  categorias = [],
+  contatos = [],
+}: {
+  contas: OpcaoConta[];
+  categorias?: OpcaoCategoria[];
+  contatos?: OpcaoContato[];
+}) {
   const [passo, setPasso] = useState<Passo>("upload");
   const [resumo, setResumo] = useState<ResumoImportacao | null>(null);
   const [confirmando, setConfirmando] = useState(false);
@@ -40,6 +50,17 @@ export function WizardImportacao({ contas }: { contas: OpcaoConta[] }) {
         ? {
             ...atual,
             linhas: atual.linhas.map((l) => (l.id === id ? { ...l, incluir: !l.incluir } : l)),
+          }
+        : atual,
+    );
+  }
+
+  function atualizarLinha(id: string, ajuste: { categoriaId?: string | null; contatoId?: string | null }) {
+    setResumo((atual) =>
+      atual
+        ? {
+            ...atual,
+            linhas: atual.linhas.map((l) => (l.id === id ? { ...l, ...ajuste } : l)),
           }
         : atual,
     );
@@ -106,8 +127,11 @@ export function WizardImportacao({ contas }: { contas: OpcaoConta[] }) {
         <PassoRevisao
           arquivoNome={resumo.arquivoNome}
           linhas={resumo.linhas}
+          categorias={categorias}
+          contatos={contatos}
           confirmando={confirmando}
           aoAlternarLinha={alternarLinha}
+          aoAtualizarLinha={atualizarLinha}
           aoVoltar={reiniciar}
           aoConfirmar={confirmar}
         />

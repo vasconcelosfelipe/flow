@@ -4,10 +4,23 @@ import { AlertCircle, GitMerge, Link2 } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { LinhaImportacao } from "@/services/importacao/dto";
+
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
+
+const SEM_CATEGORIA = "nenhuma";
+const SEM_FORNECEDOR = "nenhum";
 
 const ROTULO_STATUS = {
   NOVA: "Nova",
@@ -30,13 +43,20 @@ const ESTILO_STATUS = {
  */
 export function LinhaImportacao({
   linha,
+  categorias,
+  contatos,
   aoAlternar,
+  aoAtualizar,
 }: {
   linha: LinhaImportacao;
+  categorias: OpcaoCategoria[];
+  contatos: OpcaoContato[];
   aoAlternar: (id: string) => void;
+  aoAtualizar: (id: string, ajuste: { categoriaId?: string | null; contatoId?: string | null }) => void;
 }) {
   const receita = linha.tipo === "RECEITA";
   const Icone = linha.categoriaSugerida ? iconeDe(linha.categoriaSugerida.icone) : AlertCircle;
+  const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
 
   return (
     <div
@@ -99,6 +119,44 @@ export function LinhaImportacao({
             <GitMerge className="size-3 shrink-0" aria-hidden="true" />
             Fecha a pendência de {linha.conciliaCom.contato?.nome ?? linha.conciliaCom.descricao}
           </p>
+        )}
+
+        {linha.incluir && (
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            <Select
+              value={linha.categoriaId ?? SEM_CATEGORIA}
+              onValueChange={(v) =>
+                aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })
+              }
+            >
+              <SelectTrigger className="h-8 w-full rounded-lg border-line bg-surface text-nano">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+                {categoriasDoTipo.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={linha.contatoId ?? SEM_FORNECEDOR}
+              onValueChange={(v) =>
+                aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })
+              }
+            >
+              <SelectTrigger className="h-8 w-full rounded-lg border-line bg-surface text-nano">
+                <SelectValue placeholder="Fornecedor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_FORNECEDOR}>Sem fornecedor</SelectItem>
+                {contatos.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
     </div>

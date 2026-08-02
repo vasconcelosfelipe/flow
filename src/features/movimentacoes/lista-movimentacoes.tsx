@@ -13,6 +13,7 @@ import type { GrupoDiario } from "@/services/movimentacoes/dto";
 
 type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
 
 /**
  * Cabeçalho de grupo, linhas, e o modo de seleção múltipla — tudo num único
@@ -23,10 +24,12 @@ export function ListaMovimentacoes({
   grupos,
   contas = [],
   categorias = [],
+  contatos = [],
 }: {
   grupos: GrupoDiario[];
   contas?: OpcaoConta[];
   categorias?: OpcaoCategoria[];
+  contatos?: OpcaoContato[];
 }) {
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -124,6 +127,7 @@ export function ListaMovimentacoes({
           movimentacao={todosOsItens.find((m) => m.id === abertoId) ?? null}
           contas={contas}
           categorias={categorias}
+          contatos={contatos}
           aoFechar={() => setAbertoId(null)}
         />
       )}

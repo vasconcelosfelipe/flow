@@ -21,15 +21,19 @@ import { criarMovimentacao } from "@/services/movimentacoes/actions";
 
 type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
+const SEM_FORNECEDOR = "nenhum";
 
 export function BotoesMovimentacoes({
   contas,
   categorias = [],
+  contatos = [],
 }: {
   contas: OpcaoConta[];
   categorias?: OpcaoCategoria[];
+  contatos?: OpcaoContato[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -43,6 +47,7 @@ export function BotoesMovimentacoes({
   const [status, setStatus] = useState<"PAGO" | "PENDENTE" | "CONCILIADO">("PAGO");
   const [contaId, setContaId] = useState(contas[0]?.id ?? "");
   const [categoriaId, setCategoriaId] = useState(SEM_CATEGORIA);
+  const [contatoId, setContatoId] = useState(SEM_FORNECEDOR);
 
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
 
@@ -61,6 +66,7 @@ export function BotoesMovimentacoes({
     setStatus("PAGO");
     setContaId(contas[0]?.id ?? "");
     setCategoriaId(SEM_CATEGORIA);
+    setContatoId(SEM_FORNECEDOR);
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -78,6 +84,7 @@ export function BotoesMovimentacoes({
         valorCentavos: centavos,
         contaId,
         categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
+        contatoId: contatoId === SEM_FORNECEDOR ? null : contatoId,
         status,
         data,
       });
@@ -168,6 +175,21 @@ export function BotoesMovimentacoes({
           </div>
 
           <div className="space-y-1.5">
+            <Label>Fornecedor / Contato</Label>
+            <Select value={contatoId} onValueChange={setContatoId}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_FORNECEDOR}>Sem fornecedor</SelectItem>
+                {contatos.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="nov-data">Data</Label>
             <Input
               id="nov-data"
@@ -213,12 +235,13 @@ export function BotoesMovimentacoes({
             <Button
               type="button"
               variant="outline"
+              size="lg"
               className="flex-1"
               onClick={() => { setAberto(false); resetar(); }}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={pending || !contaId}>
+            <Button type="submit" size="lg" className="flex-1" disabled={pending || !contaId}>
               {pending ? "Salvando…" : "Salvar"}
             </Button>
           </div>

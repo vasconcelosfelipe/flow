@@ -11,6 +11,7 @@ import type { GrupoContato } from "@/services/pendencias/dto";
 
 type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
 
 /**
  * Agrupada por contato, não por dia: aqui a pergunta é "quem me deve" ou
@@ -21,10 +22,12 @@ export function ListaPendencias({
   grupos,
   contas = [],
   categorias = [],
+  contatos = [],
 }: {
   grupos: GrupoContato[];
   contas?: OpcaoConta[];
   categorias?: OpcaoCategoria[];
+  contatos?: OpcaoContato[];
 }) {
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
@@ -62,6 +65,7 @@ export function ListaPendencias({
           movimentacao={todosOsItens.find((m) => m.id === abertoId) ?? null}
           contas={contas}
           categorias={categorias}
+          contatos={contatos}
           aoFechar={() => setAbertoId(null)}
         />
       )}

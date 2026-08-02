@@ -8,6 +8,8 @@ import { LinhaImportacao } from "@/features/importar/linha-importacao";
 import type { LinhaImportacao as TipoLinha, StatusLinhaImportacao } from "@/services/importacao/dto";
 import { cn } from "@/lib/utils";
 
+type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
 type Aba = "todas" | StatusLinhaImportacao;
 
 const ABAS: { valor: Aba; rotulo: string }[] = [
@@ -25,15 +27,21 @@ const ABAS: { valor: Aba; rotulo: string }[] = [
 export function PassoRevisao({
   arquivoNome,
   linhas,
+  categorias,
+  contatos,
   confirmando,
   aoAlternarLinha,
+  aoAtualizarLinha,
   aoVoltar,
   aoConfirmar,
 }: {
   arquivoNome: string;
   linhas: TipoLinha[];
+  categorias: OpcaoCategoria[];
+  contatos: OpcaoContato[];
   confirmando: boolean;
   aoAlternarLinha: (id: string) => void;
+  aoAtualizarLinha: (id: string, ajuste: { categoriaId?: string | null; contatoId?: string | null }) => void;
   aoVoltar: () => void;
   aoConfirmar: () => void;
 }) {
@@ -74,7 +82,14 @@ export function PassoRevisao({
 
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {visiveis.map((linha) => (
-          <LinhaImportacao key={linha.id} linha={linha} aoAlternar={aoAlternarLinha} />
+          <LinhaImportacao
+            key={linha.id}
+            linha={linha}
+            categorias={categorias}
+            contatos={contatos}
+            aoAlternar={aoAlternarLinha}
+            aoAtualizar={aoAtualizarLinha}
+          />
         ))}
       </div>
 

@@ -17,6 +17,7 @@ export type NovaMovimentacaoInput = {
   valorCentavos: number;
   contaId: string;
   categoriaId: string | null;
+  contatoId: string | null;
   status: "PAGO" | "PENDENTE" | "CONCILIADO";
   data: string; // ISO date string YYYY-MM-DD
 };
@@ -29,6 +30,7 @@ export async function criarMovimentacao(dados: NovaMovimentacaoInput) {
       empresaId,
       contaId: dados.contaId,
       categoriaId: dados.categoriaId,
+      contatoId: dados.contatoId,
       descricao: dados.descricao,
       tipo: dados.tipo,
       valorCentavos: dados.valorCentavos,
@@ -50,6 +52,7 @@ export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInpu
     data: {
       contaId: dados.contaId,
       categoriaId: dados.categoriaId,
+      contatoId: dados.contatoId,
       descricao: dados.descricao,
       tipo: dados.tipo,
       valorCentavos: dados.valorCentavos,
@@ -100,6 +103,7 @@ export type NovaPendenciaInput = {
   valorCentavos: number;
   contaId: string;
   categoriaId: string | null;
+  contatoId: string | null;
   dataVencimento: string; // YYYY-MM-DD
 };
 
@@ -111,6 +115,7 @@ export async function criarPendencia(dados: NovaPendenciaInput) {
       empresaId,
       contaId: dados.contaId,
       categoriaId: dados.categoriaId,
+      contatoId: dados.contatoId,
       descricao: dados.descricao,
       tipo: dados.tipo,
       valorCentavos: dados.valorCentavos,

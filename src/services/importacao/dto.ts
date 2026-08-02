@@ -30,6 +30,13 @@ export type LinhaImportacao = {
   conciliaCom: MovimentacaoResumo | null;
   /** Seleção de importação. Duplicadas nascem desmarcadas. */
   incluir: boolean;
+  /**
+   * Categoria e fornecedor escolhidos na revisão, antes de confirmar.
+   * Em linhas `CONCILIAVEL` nascem pré-preenchidos com o que já está na
+   * pendência que a linha fecha — a pessoa só ajusta se quiser.
+   */
+  categoriaId: string | null;
+  contatoId: string | null;
 };
 
 export type ResumoImportacao = {

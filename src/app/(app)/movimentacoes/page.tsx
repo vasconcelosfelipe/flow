@@ -7,6 +7,7 @@ import { resolverPeriodoDeParams } from "@/lib/dates";
 import { requireSessao } from "@/lib/sessao";
 import { listarContas } from "@/services/contas";
 import { listarCategorias } from "@/services/categorias";
+import { listarContatos } from "@/services/contatos";
 import { listarMovimentacoes } from "@/services/movimentacoes";
 import type { StatusMovimentacao, TipoMovimentacao } from "@/types/dominio";
 
@@ -28,7 +29,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const periodo = resolverPeriodoDeParams(params);
 
-  const [pagina, contas, categorias] = await Promise.all([
+  const [pagina, contas, categorias, contatos] = await Promise.all([
     listarMovimentacoes(empresaAtiva.id, {
       de: periodo.de,
       ate: periodo.ate,
@@ -41,6 +42,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     }),
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),
+    listarContatos(empresaAtiva.id),
   ]);
 
   return (
@@ -50,6 +52,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         <BotoesMovimentacoes
           contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
           categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+          contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
         />
       </div>
 
@@ -67,6 +70,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         grupos={pagina.grupos}
         contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
+        contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
       />
     </Container>
   );

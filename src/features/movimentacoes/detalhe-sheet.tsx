@@ -29,8 +29,10 @@ import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 
 type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
+type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
+const SEM_FORNECEDOR = "nenhum";
 
 /**
  * Detalhe de uma movimentação, em folha (celular) ou diálogo (desktop) via
@@ -43,11 +45,13 @@ export function DetalheMovimentacaoSheet({
   movimentacao,
   contas = [],
   categorias = [],
+  contatos = [],
   aoFechar,
 }: {
   movimentacao: MovimentacaoResumo | null;
   contas?: OpcaoConta[];
   categorias?: OpcaoCategoria[];
+  contatos?: OpcaoContato[];
   aoFechar: () => void;
 }) {
   const [editando, setEditando] = useState(false);
@@ -83,6 +87,7 @@ export function DetalheMovimentacaoSheet({
           movimentacao={movimentacao}
           contas={contas}
           categorias={categorias}
+          contatos={contatos}
           aoSalvar={() => {
             setEditando(false);
             aoFechar();
@@ -236,12 +241,14 @@ function FormularioEdicao({
   movimentacao,
   contas,
   categorias,
+  contatos,
   aoSalvar,
   aoCancelar,
 }: {
   movimentacao: MovimentacaoResumo;
   contas: OpcaoConta[];
   categorias: OpcaoCategoria[];
+  contatos: OpcaoContato[];
   aoSalvar: () => void;
   aoCancelar: () => void;
 }) {
@@ -264,6 +271,7 @@ function FormularioEdicao({
   );
   const [contaId, setContaId] = useState(movimentacao.conta.id);
   const [categoriaId, setCategoriaId] = useState(movimentacao.categoria?.id ?? SEM_CATEGORIA);
+  const [contatoId, setContatoId] = useState(movimentacao.contato?.id ?? SEM_FORNECEDOR);
 
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
 
@@ -281,6 +289,7 @@ function FormularioEdicao({
         valorCentavos: centavos,
         contaId,
         categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
+        contatoId: contatoId === SEM_FORNECEDOR ? null : contatoId,
         status,
         data,
       });
@@ -389,11 +398,26 @@ function FormularioEdicao({
         </div>
       )}
 
+      <div className="space-y-1.5">
+        <Label>Fornecedor / Contato</Label>
+        <Select value={contatoId} onValueChange={setContatoId}>
+          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={SEM_FORNECEDOR}>Sem fornecedor</SelectItem>
+            {contatos.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
+        <Button type="button" variant="outline" size="lg" className="flex-1" onClick={aoCancelar}>
           Cancelar
         </Button>
-        <Button type="submit" className="flex-1" disabled={pending}>
+        <Button type="submit" size="lg" className="flex-1" disabled={pending}>
           {pending ? "Salvando…" : "Salvar"}
         </Button>
       </div>
