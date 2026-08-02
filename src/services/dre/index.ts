@@ -19,7 +19,7 @@ function somaZerada(quantidade: number): Centavos[] {
 export async function montarDre(empresaId: string, meses: Date[]): Promise<DreResultado> {
   const tamanho = meses.length;
 
-  const [movimentacoes, linhasDre] = await Promise.all([
+  const [movimentacoes, linhasDre, subcategorias] = await Promise.all([
     db.movimentacao.findMany({
       where: { empresaId, status: { in: ["PAGO", "CONCILIADO"] }, data: { not: null } },
       select: {
@@ -30,14 +30,27 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
       },
     }),
     listarLinhasDre(),
+    // Toda categoria com mãe, mesmo sem nenhuma movimentação no período —
+    // é o que permite sintetizar a linha da mãe com total zero quando só a
+    // subcategoria teve lançamento, pra ela nunca aparecer solta.
+    db.categoria.findMany({
+      where: { empresaId, categoriaPaiId: { not: null }, ativa: true },
+      select: {
+        id: true,
+        categoriaPai: { select: { id: true, nome: true, tipo: true } },
+      },
+    }),
   ]);
+
+  const paiPorCategoriaId = new Map(
+    subcategorias
+      .filter((c) => c.categoriaPai)
+      .map((c) => [c.id, c.categoriaPai!]),
+  );
 
   // Agrupa por linha da DRE e, dentro dela, por categoria real — nunca uma
   // linha fictícia repetindo o nome da seção.
   const itensPorLinha = new Map<string, Map<string, ItemLinhaDre>>();
-  // categoriaId → categoriaPaiId, só das categorias que de fato apareceram
-  // em alguma movimentação do período — usado pra aninhar subitens abaixo.
-  const paiPorCategoriaId = new Map<string, string>();
 
   for (const mov of movimentacoes) {
     const categoria = mov.categoria;
@@ -63,7 +76,6 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
         subitens: [],
       };
       itensDaLinha.set(categoria.id, item);
-      if (categoria.categoriaPaiId) paiPorCategoriaId.set(categoria.id, categoria.categoriaPaiId);
     }
 
     item.valores[mesIndex] += mov.valorCentavos;
@@ -87,15 +99,33 @@ export async function montarDre(empresaId: string, meses: Date[]): Promise<DreRe
 
       // Aninha: subcategoria vira `subitens` da categoria mãe em vez de item
       // solto — a soma acima já rodou sobre a lista flat, então o total da
-      // linha não muda, só a forma como os itens aparecem organizados.
+      // linha não muda, só a forma como os itens aparecem organizados. Se a
+      // mãe não teve lançamento próprio no período, sintetiza uma entrada
+      // dela com total zero só pra subcategoria ter onde aninhar.
       const porId = new Map(todosOsItens.map((item) => [item.categoriaId, item]));
-      const itens = todosOsItens.filter((item) => {
-        const paiId = paiPorCategoriaId.get(item.categoriaId);
-        const pai = paiId ? porId.get(paiId) : undefined;
-        if (!pai) return true;
-        pai.subitens.push(item);
-        return false;
-      });
+      const itens: ItemLinhaDre[] = [];
+
+      for (const item of todosOsItens) {
+        const pai = paiPorCategoriaId.get(item.categoriaId);
+        if (!pai) {
+          itens.push(item);
+          continue;
+        }
+        let itemPai = porId.get(pai.id);
+        if (!itemPai) {
+          itemPai = {
+            categoriaId: pai.id,
+            nome: pai.nome,
+            tipo: pai.tipo,
+            valores: somaZerada(tamanho),
+            totalCentavos: 0,
+            subitens: [],
+          };
+          porId.set(pai.id, itemPai);
+          itens.push(itemPai);
+        }
+        itemPai.subitens.push(item);
+      }
 
       return {
         id: linha.id,
