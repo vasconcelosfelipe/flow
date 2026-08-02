@@ -180,8 +180,8 @@ function Detalhe({
         )}
       </dl>
 
-      <div className="rounded-xl border border-line p-3">
-        {conciliada ? (
+      {conciliada ? (
+        <div className="rounded-xl border border-line p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-micro text-ink-muted">
               Conciliada com o extrato — desfaça para poder editar ou excluir.
@@ -198,41 +198,45 @@ function Detalhe({
               Desfazer
             </Button>
           </div>
-        ) : confirmandoExclusao ? (
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-micro text-ink">Excluir esta movimentação?</p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setConfirmandoExclusao(false)}
-                disabled={pending}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={excluir}
-                disabled={pending}
-              >
-                {pending ? "Excluindo…" : "Confirmar"}
-              </Button>
-            </div>
+        </div>
+      ) : confirmandoExclusao ? (
+        <div className="space-y-2 rounded-xl border border-line p-3">
+          <p className="text-micro text-ink">Excluir esta movimentação?</p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => setConfirmandoExclusao(false)}
+              disabled={pending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              className="flex-1"
+              onClick={excluir}
+              disabled={pending}
+            >
+              {pending ? "Excluindo…" : "Confirmar"}
+            </Button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmandoExclusao(true)}
-            className="flex items-center gap-1.5 text-micro font-medium text-negative-text hover:underline"
-          >
-            <Trash2 className="size-3.5" aria-hidden="true" />
-            Excluir movimentação
-          </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full gap-1.5 text-negative-text hover:text-negative-text"
+          onClick={() => setConfirmandoExclusao(true)}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+          Excluir movimentação
+        </Button>
+      )}
     </div>
   );
 }
