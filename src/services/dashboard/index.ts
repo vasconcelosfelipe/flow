@@ -9,6 +9,7 @@ import {
 
 import { db } from "@/lib/db";
 import { formatarDataCurta, formatarMesCurto, type Periodo } from "@/lib/dates";
+import { contarSemCategoria } from "@/services/movimentacoes";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type {
   Alerta,
@@ -18,18 +19,49 @@ import type {
   ResumoDashboard,
 } from "@/services/dashboard/dto";
 
-const CONCILIADO = ["CONCILIADO", "PAGO"] as const;
-
-function realizadas(movs: MovimentacaoResumo[]) {
-  return movs.filter(
-    (m) => m.data !== null && CONCILIADO.includes(m.status as (typeof CONCILIADO)[number]),
-  );
-}
-
 /** Transferência entre contas não é receita, despesa, nem "sem categoria" —
  * é o mesmo dinheiro mudando de bolso. Fora das métricas de resultado. */
 function semTransferencia(movs: MovimentacaoResumo[]) {
   return movs.filter((m) => m.transferenciaId === null);
+}
+
+function mapearParaResumo(m: {
+  id: string;
+  descricao: string;
+  valorCentavos: number;
+  tipo: string;
+  status: string;
+  data: Date | null;
+  dataVencimento: Date | null;
+  numeroParcela: number | null;
+  totalParcelas: number | null;
+  recorrente: boolean;
+  transferenciaId: string | null;
+  origemFitId: string | null;
+  categoria: { id: string; nome: string; icone: string; cor: string } | null;
+  conta: { id: string; nome: string; cor: string; tipo: string };
+  contato: { id: string; nome: string } | null;
+}): MovimentacaoResumo {
+  return {
+    id: m.id,
+    descricao: m.descricao,
+    valorCentavos: m.valorCentavos,
+    tipo: m.tipo as "RECEITA" | "DESPESA",
+    status: m.status as MovimentacaoResumo["status"],
+    data: m.data,
+    dataVencimento: m.dataVencimento,
+    numeroParcela: m.numeroParcela,
+    totalParcelas: m.totalParcelas,
+    recorrente: m.recorrente,
+    transferenciaId: m.transferenciaId,
+    contaPar: null,
+    origemFitId: m.origemFitId,
+    categoria: m.categoria
+      ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
+      : null,
+    conta: { id: m.conta.id, nome: m.conta.nome, cor: m.conta.cor, tipo: m.conta.tipo as MovimentacaoResumo["conta"]["tipo"] },
+    contato: m.contato ? { id: m.contato.id, nome: m.contato.nome } : null,
+  };
 }
 
 function somar(movs: MovimentacaoResumo[]): number {
@@ -82,15 +114,15 @@ function montarAcumulado(serie: PontoSerie[]): PontoAcumulado[] {
   });
 }
 
-function montarAlertas(movs: MovimentacaoResumo[], hoje: Date): Alerta[] {
+/** `abertas` já vem filtrada por status PENDENTE/PREVISTO — não precisa
+ * refiltrar aqui. `semCategoriaCount` vem de uma consulta separada (só
+ * COUNT, sem trazer linha nenhuma) porque essa checagem é sempre "desde o
+ * início dos tempos", independente do período do dashboard. */
+function montarAlertas(abertas: MovimentacaoResumo[], semCategoriaCount: number, hoje: Date): Alerta[] {
   const alertas: Alerta[] = [];
 
-  const vencidas = movs.filter(
-    (m) =>
-      m.tipo === "DESPESA" &&
-      (m.status === "PENDENTE" || m.status === "PREVISTO") &&
-      m.dataVencimento !== null &&
-      m.dataVencimento < hoje,
+  const vencidas = abertas.filter(
+    (m) => m.tipo === "DESPESA" && m.dataVencimento !== null && m.dataVencimento < hoje,
   );
 
   if (vencidas.length > 0) {
@@ -103,12 +135,11 @@ function montarAlertas(movs: MovimentacaoResumo[], hoje: Date): Alerta[] {
     });
   }
 
-  const semCategoria = movs.filter((m) => m.categoria === null && m.data !== null);
-  if (semCategoria.length > 0) {
+  if (semCategoriaCount > 0) {
     alertas.push({
       id: "sem-categoria",
       severidade: "atencao",
-      titulo: `${semCategoria.length} lançamentos sem categoria`,
+      titulo: `${semCategoriaCount} lançamentos sem categoria`,
       descricao: "Enquanto não forem categorizados, ficam fora da DRE.",
       acao: { rotulo: "Categorizar agora", href: "/movimentacoes?semCategoria=1" },
     });
@@ -122,9 +153,28 @@ export async function obterResumoDashboard(
   periodo: Periodo,
   hoje = new Date(),
 ): Promise<ResumoDashboard> {
-  const [rows, contas] = await Promise.all([
+  const duracao = differenceInDays(periodo.ate, periodo.de) + 1;
+  const anterior = {
+    de: new Date(periodo.de.getTime() - duracao * 86_400_000),
+    ate: periodo.de,
+  };
+
+  // Duas consultas em vez de uma só "trazer tudo": pendências em aberto não
+  // têm limite de data (uma pendência de anos atrás ainda é uma pendência),
+  // mas o histórico realizado só precisa cobrir o período atual + o anterior
+  // (pra comparação) — sem isso, esta consulta cresce pra sempre com o
+  // histórico da empresa e fica mais lenta a cada mês que passa.
+  const [abertasRows, historicoRows, contas, semCategoriaCount] = await Promise.all([
     db.movimentacao.findMany({
-      where: { empresaId },
+      where: { empresaId, status: { in: ["PENDENTE", "PREVISTO"] } },
+      include: { categoria: true, conta: true, contato: true },
+    }),
+    db.movimentacao.findMany({
+      where: {
+        empresaId,
+        status: { in: ["PAGO", "CONCILIADO"] },
+        data: { gte: anterior.de, lte: periodo.ate },
+      },
       include: { categoria: true, conta: true, contato: true },
     }),
     db.conta.findMany({
@@ -136,32 +186,15 @@ export async function obterResumoDashboard(
         },
       },
     }),
+    contarSemCategoria(empresaId),
   ]);
 
-  const todas: MovimentacaoResumo[] = rows.map((m) => ({
-    id: m.id,
-    descricao: m.descricao,
-    valorCentavos: m.valorCentavos,
-    tipo: m.tipo as "RECEITA" | "DESPESA",
-    status: m.status as MovimentacaoResumo["status"],
-    data: m.data,
-    dataVencimento: m.dataVencimento,
-    numeroParcela: m.numeroParcela,
-    totalParcelas: m.totalParcelas,
-    recorrente: m.recorrente,
-    transferenciaId: m.transferenciaId,
-    contaPar: null,
-    origemFitId: m.origemFitId,
-    categoria: m.categoria
-      ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
-      : null,
-    conta: { id: m.conta.id, nome: m.conta.nome, cor: m.conta.cor, tipo: m.conta.tipo as MovimentacaoResumo["conta"]["tipo"] },
-    contato: m.contato ? { id: m.contato.id, nome: m.contato.nome } : null,
-  }));
+  const abertas = abertasRows.map(mapearParaResumo);
+  const historico = historicoRows.map(mapearParaResumo);
 
   // Últimas movimentações mostram tudo (transferência inclusa — é atividade
   // real da conta); resultado/série/histórico ficam de fora dela.
-  const noPeriodo = realizadas(todas).filter(
+  const noPeriodo = historico.filter(
     (m) => m.data !== null && isWithinInterval(m.data, { start: periodo.de, end: periodo.ate }),
   );
   const noPeriodoSemTransferencia = semTransferencia(noPeriodo);
@@ -169,7 +202,7 @@ export async function obterResumoDashboard(
   const receitas = somar(noPeriodoSemTransferencia.filter((m) => m.tipo === "RECEITA"));
   const despesas = somar(noPeriodoSemTransferencia.filter((m) => m.tipo === "DESPESA"));
 
-  const historico = semTransferencia(realizadas(todas));
+  const historicoSemTransferencia = semTransferencia(historico);
   const saldoContas = contas.reduce((total, c) => {
     const saldo =
       c.saldoInicial +
@@ -180,19 +213,14 @@ export async function obterResumoDashboard(
     return total + saldo;
   }, 0);
 
-  const duracao = differenceInDays(periodo.ate, periodo.de) + 1;
-  const anterior = {
-    de: new Date(periodo.de.getTime() - duracao * 86_400_000),
-    ate: periodo.de,
-  };
-  const doAnterior = historico.filter(
+  const doAnterior = historicoSemTransferencia.filter(
     (m) => m.data !== null && m.data >= anterior.de && m.data < anterior.ate,
   );
   const resultadoAnterior =
     somar(doAnterior.filter((m) => m.tipo === "RECEITA")) -
     somar(doAnterior.filter((m) => m.tipo === "DESPESA"));
   const resultado = receitas - despesas;
-  const serie = montarSerie(historico, periodo);
+  const serie = montarSerie(historicoSemTransferencia, periodo);
 
   return {
     saldoTotalCentavos: saldoContas,
@@ -203,14 +231,14 @@ export async function obterResumoDashboard(
       resultadoAnterior === 0
         ? null
         : Math.round(((resultado - resultadoAnterior) / Math.abs(resultadoAnterior)) * 10_000),
-    aPagar: pendencias(todas, "DESPESA", hoje),
-    aReceber: pendencias(todas, "RECEITA", hoje),
+    aPagar: pendencias(abertas, "DESPESA", hoje),
+    aReceber: pendencias(abertas, "RECEITA", hoje),
     serie,
     serieAcumulada: montarAcumulado(serie),
     ultimasMovimentacoes: noPeriodo
       .slice()
       .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
       .slice(0, 6),
-    alertas: montarAlertas(semTransferencia(todas), hoje),
+    alertas: montarAlertas(abertas, semCategoriaCount, hoje),
   };
 }
