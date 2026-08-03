@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -8,8 +9,16 @@ import type { SessaoAtual } from "@/services/empresas/dto";
  * Resolve a sessão do usuário atual a partir dos cookies.
  * Redireciona para /login se não autenticado.
  * Uso: `const sessao = await requireSessao()` em Server Components e Actions.
+ *
+ * Toda página chama isto de novo (layout + page, às vezes mais de uma vez na
+ * mesma page) — sem `cache()` cada chamada refaz a consulta de sessão E o
+ * `membroEmpresa.findMany`, dobrando ou triplicando as idas ao banco em cada
+ * troca de tela. `cache()` do React memoiza por requisição: mesma navegação,
+ * mesmos argumentos, uma única consulta de verdade.
  */
-export async function requireSessao(empresaSlug?: string): Promise<SessaoAtual> {
+export const requireSessao = cache(async function requireSessao(
+  empresaSlug?: string,
+): Promise<SessaoAtual> {
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) redirect("/login");
@@ -62,4 +71,4 @@ export async function requireSessao(empresaSlug?: string): Promise<SessaoAtual> 
     empresaAtiva: ativa,
     empresas,
   };
-}
+});
