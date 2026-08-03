@@ -9,23 +9,26 @@ import type {
 
 const TAMANHO_PAGINA = 30;
 
-export function mapearMovimentacao(m: {
-  id: string;
-  descricao: string;
-  valorCentavos: number;
-  tipo: string;
-  status: string;
-  data: Date | null;
-  dataVencimento: Date | null;
-  numeroParcela: number | null;
-  totalParcelas: number | null;
-  recorrente: boolean;
-  transferenciaId?: string | null;
-  origemFitId?: string | null;
-  categoria: { id: string; nome: string; icone: string; cor: string } | null;
-  conta: { id: string; nome: string; cor: string; tipo: string };
-  contato: { id: string; nome: string } | null;
-}): MovimentacaoResumo {
+export function mapearMovimentacao(
+  m: {
+    id: string;
+    descricao: string;
+    valorCentavos: number;
+    tipo: string;
+    status: string;
+    data: Date | null;
+    dataVencimento: Date | null;
+    numeroParcela: number | null;
+    totalParcelas: number | null;
+    recorrente: boolean;
+    transferenciaId?: string | null;
+    origemFitId?: string | null;
+    categoria: { id: string; nome: string; icone: string; cor: string } | null;
+    conta: { id: string; nome: string; cor: string; tipo: string };
+    contato: { id: string; nome: string } | null;
+  },
+  contaPar: { id: string; nome: string; cor: string; tipo: string } | null = null,
+): MovimentacaoResumo {
   return {
     id: m.id,
     descricao: m.descricao,
@@ -38,6 +41,14 @@ export function mapearMovimentacao(m: {
     totalParcelas: m.totalParcelas,
     recorrente: m.recorrente,
     transferenciaId: m.transferenciaId ?? null,
+    contaPar: contaPar
+      ? {
+          id: contaPar.id,
+          nome: contaPar.nome,
+          cor: contaPar.cor,
+          tipo: contaPar.tipo as MovimentacaoResumo["conta"]["tipo"],
+        }
+      : null,
     origemFitId: m.origemFitId ?? null,
     categoria: m.categoria
       ? {
@@ -57,6 +68,8 @@ export function mapearMovimentacao(m: {
   };
 }
 
+const REALIZADO = ["PAGO", "CONCILIADO"];
+
 function agruparPorDia(movs: MovimentacaoResumo[]): GrupoDiario[] {
   const grupos = new Map<string, GrupoDiario>();
 
@@ -67,15 +80,18 @@ function agruparPorDia(movs: MovimentacaoResumo[]): GrupoDiario[] {
     const chave = chaveDia(data);
     const existente = grupos.get(chave);
     const sinal = mov.tipo === "RECEITA" ? 1 : -1;
+    const realizado = REALIZADO.includes(mov.status);
 
     if (existente) {
       existente.itens.push(mov);
       existente.totalCentavos += sinal * mov.valorCentavos;
+      if (realizado) existente.totalRealizadoCentavos += sinal * mov.valorCentavos;
     } else {
       grupos.set(chave, {
         chave,
         rotulo: rotularDia(data),
         totalCentavos: sinal * mov.valorCentavos,
+        totalRealizadoCentavos: realizado ? sinal * mov.valorCentavos : 0,
         itens: [mov],
       });
     }
@@ -120,6 +136,10 @@ export async function listarMovimentacoes(
           ],
         }
       : {}),
+    // Sem conta filtrada, uma transferência mostra só a perna DESPESA —
+    // evita duas linhas pro mesmo par. Com conta filtrada, o próprio filtro
+    // de contaId já resolve (cada perna tem uma conta diferente).
+    ...(filtro.contaId ? {} : { NOT: { transferenciaId: { not: null }, tipo: "RECEITA" } }),
   };
 
   const [total, rows] = await Promise.all([
@@ -137,7 +157,25 @@ export async function listarMovimentacoes(
     }),
   ]);
 
-  const movs = rows.map(mapearMovimentacao);
+  const idsTransferencia = rows
+    .filter((r) => r.transferenciaId !== null)
+    .map((r) => r.transferenciaId!);
+
+  const pares =
+    idsTransferencia.length > 0
+      ? await db.movimentacao.findMany({
+          where: {
+            transferenciaId: { in: idsTransferencia },
+            id: { notIn: rows.map((r) => r.id) },
+          },
+          select: { transferenciaId: true, conta: true },
+        })
+      : [];
+  const contaParPorTransferencia = new Map(pares.map((p) => [p.transferenciaId!, p.conta]));
+
+  const movs = rows.map((r) =>
+    mapearMovimentacao(r, r.transferenciaId ? (contaParPorTransferencia.get(r.transferenciaId) ?? null) : null),
+  );
 
   return {
     grupos: agruparPorDia(movs),
@@ -150,4 +188,21 @@ export async function contarSemCategoria(empresaId: string): Promise<number> {
   return db.movimentacao.count({
     where: { empresaId, categoriaId: null, data: { not: null } },
   });
+}
+
+/** Saldo real de uma conta específica — mesma conta usada no saldo total do Início. */
+export async function obterSaldoConta(empresaId: string, contaId: string): Promise<number> {
+  const conta = await db.conta.findFirstOrThrow({
+    where: { id: contaId, empresaId },
+    include: {
+      movimentacoes: {
+        where: { status: { in: ["PAGO", "CONCILIADO"] } },
+        select: { tipo: true, valorCentavos: true },
+      },
+    },
+  });
+  return conta.saldoInicial + conta.movimentacoes.reduce(
+    (s, m) => s + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
+    0,
+  );
 }

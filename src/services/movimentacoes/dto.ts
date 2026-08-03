@@ -56,6 +56,8 @@ export type MovimentacaoResumo = {
   recorrente: boolean;
   /** Não-nulo = uma perna de transferência entre contas — ver `transferenciaId`. */
   transferenciaId: string | null;
+  /** Só quando `transferenciaId` não é nulo: a conta do outro lado do par. */
+  contaPar: ContaResumo | null;
   /** Não-nulo = veio de um extrato OFX importado, não digitado à mão. */
   origemFitId: string | null;
 };
@@ -75,6 +77,8 @@ export type GrupoDiario = {
   chave: string;
   rotulo: string;
   totalCentavos: Centavos;
+  /** Só os itens PAGO/CONCILIADO do dia — PREVISTO/PENDENTE não afetam saldo real. */
+  totalRealizadoCentavos: Centavos;
   itens: MovimentacaoResumo[];
 };
 

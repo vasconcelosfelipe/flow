@@ -5,6 +5,7 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
+import { SearchableSelect } from "@/components/shared/searchable-select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -146,42 +147,32 @@ export function FiltrosMovimentacoes({
 
           <div className="space-y-1.5">
             <Label>Conta</Label>
-            <Select
+            <SearchableSelect
               value={params.get("conta") ?? "todos"}
               onValueChange={(v) => aplicar({ conta: v })}
-            >
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue placeholder="Conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas as contas</SelectItem>
-                {contas.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Todas as contas"
+              searchPlaceholder="Buscar conta…"
+              emptyText="Nenhuma conta encontrada."
+              options={[
+                { value: "todos", label: "Todas as contas" },
+                ...contas.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <Select
+            <SearchableSelect
               value={params.get("categoria") ?? "todos"}
               onValueChange={(v) => aplicar({ categoria: v })}
-            >
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas as categorias</SelectItem>
-                {categorias.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Todas as categorias"
+              searchPlaceholder="Buscar categoria…"
+              emptyText="Nenhuma categoria encontrada."
+              options={[
+                { value: "todos", label: "Todas as categorias" },
+                ...categorias.map((c) => ({ value: c.id, label: c.nome })),
+              ]}
+            />
           </div>
 
           <div className="space-y-1.5">

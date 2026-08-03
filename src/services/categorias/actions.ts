@@ -36,7 +36,7 @@ async function heredadoDaMae(empresaId: string, dados: FormularioCategoria) {
 export async function criarCategoria(dados: FormularioCategoria) {
   const empresaId = await obterEmpresa();
   const { linhaDreId, icone, cor } = await heredadoDaMae(empresaId, dados);
-  await db.categoria.create({
+  const categoria = await db.categoria.create({
     data: {
       empresaId,
       nome: dados.nome,
@@ -48,6 +48,7 @@ export async function criarCategoria(dados: FormularioCategoria) {
     },
   });
   revalidatePath("/categorias");
+  return categoria;
 }
 
 export async function editarCategoria(id: string, dados: FormularioCategoria) {

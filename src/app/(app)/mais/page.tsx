@@ -6,7 +6,7 @@ import { requireSessao } from "@/lib/sessao";
 
 const ITENS_CADASTRO = [
   { href: "/contas", rotulo: "Contas", icone: Wallet },
-  { href: "/contatos", rotulo: "Contatos", icone: Users },
+  { href: "/contatos", rotulo: "Fornecedores/Clientes", icone: Users },
   { href: "/categorias", rotulo: "Categorias", icone: Tags },
   { href: "/centros-custo", rotulo: "Centros de custo", icone: Tags },
 ];

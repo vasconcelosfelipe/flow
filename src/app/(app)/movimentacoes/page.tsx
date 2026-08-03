@@ -8,7 +8,7 @@ import { requireSessao } from "@/lib/sessao";
 import { listarContas } from "@/services/contas";
 import { listarCategorias } from "@/services/categorias";
 import { listarContatos } from "@/services/contatos";
-import { listarMovimentacoes } from "@/services/movimentacoes";
+import { listarMovimentacoes, obterSaldoConta } from "@/services/movimentacoes";
 import type { StatusMovimentacao, TipoMovimentacao } from "@/types/dominio";
 
 type Props = {
@@ -40,11 +40,12 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     semCategoria: params.semCategoria === "1",
   };
 
-  const [pagina, contas, categorias, contatos] = await Promise.all([
+  const [pagina, contas, categorias, contatos, saldoContaAncora] = await Promise.all([
     listarMovimentacoes(empresaAtiva.id, filtro),
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),
     listarContatos(empresaAtiva.id),
+    filtro.contaId ? obterSaldoConta(empresaAtiva.id, filtro.contaId) : Promise.resolve(null),
   ]);
 
   return (
@@ -72,6 +73,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         key={JSON.stringify(filtro)}
         grupos={pagina.grupos}
         proximoCursor={pagina.proximoCursor}
+        saldoContaAncora={saldoContaAncora}
         filtro={filtro}
         contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}

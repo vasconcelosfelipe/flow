@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LinhaImportacao } from "@/features/importar/linha-importacao";
 import type { LinhaImportacao as TipoLinha, StatusLinhaImportacao } from "@/services/importacao/dto";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import { cn } from "@/lib/utils";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 type Aba = "todas" | StatusLinhaImportacao;
 
 const ABAS: { valor: Aba; rotulo: string }[] = [
@@ -33,10 +34,13 @@ export function PassoRevisao({
   contas,
   categorias,
   contatos,
+  linhasDre,
   confirmando,
   aoAlternarLinha,
   aoAtualizarLinha,
   aoAlternarIgnorarPermanentemente,
+  aoCriarCategoria,
+  aoCriarContato,
   aoVoltar,
   aoConfirmar,
 }: {
@@ -45,8 +49,9 @@ export function PassoRevisao({
   contaAtualId: string;
   linhas: TipoLinha[];
   contas: OpcaoConta[];
-  categorias: OpcaoCategoria[];
-  contatos: OpcaoContato[];
+  categorias: CategoriaCompleta[];
+  contatos: ContatoCompleto[];
+  linhasDre: LinhaDreOpcao[];
   confirmando: boolean;
   aoAlternarLinha: (id: string) => void;
   aoAtualizarLinha: (
@@ -60,6 +65,8 @@ export function PassoRevisao({
     },
   ) => void;
   aoAlternarIgnorarPermanentemente: (id: string) => void;
+  aoCriarCategoria: (categoria: CategoriaCompleta) => void;
+  aoCriarContato: (contato: ContatoCompleto) => void;
   aoVoltar: () => void;
   aoConfirmar: () => void;
 }) {
@@ -114,9 +121,12 @@ export function PassoRevisao({
             contas={contas.filter((c) => c.id !== contaAtualId)}
             categorias={categorias}
             contatos={contatos}
+            linhasDre={linhasDre}
             aoAlternar={aoAlternarLinha}
             aoAtualizar={aoAtualizarLinha}
             aoAlternarIgnorarPermanentemente={aoAlternarIgnorarPermanentemente}
+            aoCriarCategoria={aoCriarCategoria}
+            aoCriarContato={aoCriarContato}
           />
         ))}
       </div>

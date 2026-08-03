@@ -1,19 +1,22 @@
 "use client";
 
-import { AlertCircle, ArrowLeftRight, EyeOff, GitMerge, Link2 } from "lucide-react";
+import { useState } from "react";
+import { AlertCircle, ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2 } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { SearchableSelect } from "@/components/shared/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaImportacao } from "@/services/importacao/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
@@ -45,14 +48,18 @@ export function LinhaImportacao({
   contas,
   categorias,
   contatos,
+  linhasDre,
   aoAlternar,
   aoAtualizar,
   aoAlternarIgnorarPermanentemente,
+  aoCriarCategoria,
+  aoCriarContato,
 }: {
   linha: LinhaImportacao;
   contas: OpcaoConta[];
-  categorias: OpcaoCategoria[];
-  contatos: OpcaoContato[];
+  categorias: CategoriaCompleta[];
+  contatos: ContatoCompleto[];
+  linhasDre: LinhaDreOpcao[];
   aoAlternar: (id: string) => void;
   aoAtualizar: (
     id: string,
@@ -65,7 +72,10 @@ export function LinhaImportacao({
     },
   ) => void;
   aoAlternarIgnorarPermanentemente: (id: string) => void;
+  aoCriarCategoria: (categoria: CategoriaCompleta) => void;
+  aoCriarContato: (contato: ContatoCompleto) => void;
 }) {
+  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
   const receita = linha.tipo === "RECEITA";
   const Icone = linha.ehTransferencia
     ? ArrowLeftRight
@@ -73,6 +83,8 @@ export function LinhaImportacao({
       ? iconeDe(linha.categoriaSugerida.icone)
       : AlertCircle;
   const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
+  const categoriaSelecionada = categorias.find((c) => c.id === linha.categoriaId);
+  const contatoSelecionado = contatos.find((c) => c.id === linha.contatoId);
   // Só linha ainda "acionável" (nova ou que fecha uma pendência) pode ser
   // marcada pra nunca mais ser sugerida — duplicada/ignorada já são inertes.
   const podeIgnorarPermanentemente = linha.status === "NOVA" || linha.status === "CONCILIAVEL";
@@ -207,40 +219,64 @@ export function LinhaImportacao({
               </div>
             ) : (
               <div className="mt-2 grid grid-cols-2 gap-1.5">
-                <SearchableSelect
-                  size="sm"
-                  value={linha.categoriaId ?? SEM_CATEGORIA}
-                  onValueChange={(v) =>
-                    aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })
-                  }
-                  placeholder="Categoria"
-                  searchPlaceholder="Buscar categoria…"
-                  emptyText="Nenhuma categoria encontrada."
-                  options={[
-                    { value: SEM_CATEGORIA, label: "Sem categoria" },
-                    ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-                  ]}
-                />
+                <button
+                  type="button"
+                  onClick={() => setModalAberto("categoria")}
+                  className="flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-line bg-surface px-2 text-left text-nano outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                  <span className={cn("truncate", !categoriaSelecionada && "text-ink-muted")}>
+                    {categoriaSelecionada?.nome ?? "Sem categoria"}
+                  </span>
+                  <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" aria-hidden="true" />
+                </button>
 
-                <SearchableSelect
-                  size="sm"
-                  value={linha.contatoId ?? SEM_FORNECEDOR}
-                  onValueChange={(v) =>
-                    aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })
-                  }
-                  placeholder="Fornecedor/cliente"
-                  searchPlaceholder="Buscar fornecedor/cliente…"
-                  emptyText="Nenhum fornecedor/cliente encontrado."
-                  options={[
-                    { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-                    ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-                  ]}
-                />
+                <button
+                  type="button"
+                  onClick={() => setModalAberto("contato")}
+                  className="flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-line bg-surface px-2 text-left text-nano outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                >
+                  <span className={cn("truncate", !contatoSelecionado && "text-ink-muted")}>
+                    {contatoSelecionado?.nome ?? "Sem fornecedor/cliente"}
+                  </span>
+                  <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" aria-hidden="true" />
+                </button>
               </div>
             )}
           </>
         )}
       </div>
+
+      {modalAberto === "categoria" && (
+        <SeletorCategoriaContatoModal
+          tipo="categoria"
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          value={linha.categoriaId ?? SEM_CATEGORIA}
+          onValueChange={(v) => aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })}
+          opcoes={[
+            { value: SEM_CATEGORIA, label: "Sem categoria" },
+            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+          categorias={categorias}
+          linhas={linhasDre}
+          aoCriar={aoCriarCategoria}
+        />
+      )}
+
+      {modalAberto === "contato" && (
+        <SeletorCategoriaContatoModal
+          tipo="contato"
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          value={linha.contatoId ?? SEM_FORNECEDOR}
+          onValueChange={(v) => aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })}
+          opcoes={[
+            { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+            ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+          aoCriar={aoCriarContato}
+        />
+      )}
     </div>
   );
 }

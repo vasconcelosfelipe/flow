@@ -17,6 +17,5 @@ export type ContatoCompleto = {
 export type FormularioContato = {
   id?: string;
   nome: string;
-  tipo: TipoContato;
   documento: string | null;
 };

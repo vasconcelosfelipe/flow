@@ -219,7 +219,10 @@ model Contato {
   id         String      @id @default(cuid())
   empresaId  String
   nome       String
-  tipo       TipoContato
+  // Vestigial: cadastro não distingue mais cliente/fornecedor (todo
+  // registro serve pros dois papéis) — coluna mantida com default só pra
+  // não exigir migração destrutiva em dado de produção já existente.
+  tipo       TipoContato @default(AMBOS)
   documento  String?     // CPF ou CNPJ, sem formatação
   email      String?
   telefone   String?

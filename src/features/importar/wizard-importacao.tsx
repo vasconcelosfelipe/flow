@@ -8,10 +8,11 @@ import { PassoUpload } from "@/features/importar/passo-upload";
 import { cn } from "@/lib/utils";
 import { confirmarImportacao } from "@/services/importacao/actions";
 import type { ResultadoConfirmacao, ResumoImportacao } from "@/services/importacao/dto";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 type Passo = "upload" | "revisao" | "confirmacao";
 
 const PASSOS: { chave: Passo; rotulo: string }[] = [
@@ -76,17 +77,24 @@ function carregarRevisao(): ResumoImportacao | null {
  */
 export function WizardImportacao({
   contas,
-  categorias = [],
-  contatos = [],
+  categorias: categoriasIniciais = [],
+  contatos: contatosIniciais = [],
+  linhas = [],
 }: {
   contas: OpcaoConta[];
-  categorias?: OpcaoCategoria[];
-  contatos?: OpcaoContato[];
+  categorias?: CategoriaCompleta[];
+  contatos?: ContatoCompleto[];
+  linhas?: LinhaDreOpcao[];
 }) {
   const [passo, setPasso] = useState<Passo>("upload");
   const [resumo, setResumo] = useState<ResumoImportacao | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoConfirmacao | null>(null);
+  // Categoria/fornecedor criados no meio da revisão de OFX precisam entrar
+  // nessas listas na hora — a revisão é 100% client-side, sem round-trip ao
+  // servidor, então `router.refresh()` não repovoa props já espalhadas.
+  const [categorias, setCategorias] = useState(categoriasIniciais);
+  const [contatos, setContatos] = useState(contatosIniciais);
 
   // Restaura uma revisão em andamento ao montar — só no cliente, sessionStorage
   // não existe durante a renderização no servidor.
@@ -229,10 +237,13 @@ export function WizardImportacao({
           contas={contas}
           categorias={categorias}
           contatos={contatos}
+          linhasDre={linhas}
           confirmando={confirmando}
           aoAlternarLinha={alternarLinha}
           aoAtualizarLinha={atualizarLinha}
           aoAlternarIgnorarPermanentemente={alternarIgnorarPermanentemente}
+          aoCriarCategoria={(categoria) => setCategorias((atual) => [...atual, categoria])}
+          aoCriarContato={(contato) => setContatos((atual) => [...atual, contato])}
           aoVoltar={reiniciar}
           aoConfirmar={confirmar}
         />

@@ -8,7 +8,7 @@ export default async function ContatosPage() {
 
   return (
     <Container className="space-y-4 pt-5">
-      <h1 className="text-titulo font-semibold text-ink">Contatos</h1>
+      <h1 className="text-titulo font-semibold text-ink">Fornecedores/Clientes</h1>
       <GerenciadorContatos inicial={await listarContatos(empresaAtiva.id)} />
     </Container>
   );

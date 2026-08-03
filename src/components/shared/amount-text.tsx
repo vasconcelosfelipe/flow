@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { formatarCompacto, formatarMoeda, formatarValor, type Centavos } from "@/lib/money";
 
 type Tamanho = "sm" | "md" | "lg" | "hero";
-type Tom = "auto" | "neutro" | "positivo" | "negativo" | "invertido";
+type Tom = "auto" | "neutro" | "positivo" | "negativo" | "invertido" | "transferencia";
 
 const TAMANHO: Record<Tamanho, string> = {
   sm: "text-micro",
@@ -80,7 +80,9 @@ export function AmountText({
           ? "text-negative-text"
           : tom === "invertido"
             ? "text-white"
-            : "text-ink";
+            : tom === "transferencia"
+              ? "text-brand"
+              : "text-ink";
 
   // No tamanho herói o "R$" sai do fluxo do número: ele é unidade, não dígito,
   // e disputar peso com o valor é o que faz um saldo grande parecer pequeno.

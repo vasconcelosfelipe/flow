@@ -1,15 +1,8 @@
 "use client";
 
-import { ChevronRight, Handshake, ShoppingBag, Truck } from "lucide-react";
+import { ChevronRight, Handshake } from "lucide-react";
 
-import { ROTULO_TIPO_CONTATO } from "@/types/dominio";
 import type { ContatoCompleto } from "@/services/contatos/dto";
-
-const ICONE_TIPO = {
-  CLIENTE: ShoppingBag,
-  FORNECEDOR: Truck,
-  AMBOS: Handshake,
-} as const;
 
 export function LinhaContato({
   contato,
@@ -18,8 +11,6 @@ export function LinhaContato({
   contato: ContatoCompleto;
   aoAbrir: (id: string) => void;
 }) {
-  const Icone = ICONE_TIPO[contato.tipo];
-
   return (
     <button
       type="button"
@@ -27,15 +18,14 @@ export function LinhaContato({
       className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
     >
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-wash text-brand">
-        <Icone className="size-4.5" aria-hidden="true" />
+        <Handshake className="size-4.5" aria-hidden="true" />
       </span>
 
       <span className="min-w-0 flex-1">
         <span className="block truncate text-corpo font-medium text-ink">{contato.nome}</span>
-        <span className="block truncate text-nano text-ink-muted">
-          {ROTULO_TIPO_CONTATO[contato.tipo]}
-          {contato.documento && ` · ${contato.documento}`}
-        </span>
+        {contato.documento && (
+          <span className="block truncate text-nano text-ink-muted">{contato.documento}</span>
+        )}
       </span>
 
       {contato.quantidadeMovimentacoes > 0 && (

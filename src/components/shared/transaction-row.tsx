@@ -83,17 +83,17 @@ export function TransactionRow({
 
         <span className="min-w-0 flex-1 space-y-1">
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate text-corpo font-medium text-ink">
-              {movimentacao.descricao}
-            </span>
-            {movimentacao.recorrente && (
-              <Repeat className="size-3 shrink-0 text-ink-muted" aria-label="Recorrente" />
-            )}
             {movimentacao.origemFitId !== null && (
               <RefreshCw
                 className="size-3 shrink-0 text-ink-muted"
                 aria-label="Importado do extrato bancário"
               />
+            )}
+            <span className="min-w-0 truncate text-corpo font-medium text-ink">
+              {movimentacao.descricao}
+            </span>
+            {movimentacao.recorrente && (
+              <Repeat className="size-3 shrink-0 text-ink-muted" aria-label="Recorrente" />
             )}
           </span>
 
@@ -131,7 +131,7 @@ export function TransactionRow({
 
         <AmountText
           centavos={receita ? movimentacao.valorCentavos : -movimentacao.valorCentavos}
-          tom={transferencia ? "neutro" : "auto"}
+          tom={transferencia ? "transferencia" : "auto"}
           className={cn("shrink-0", previsto && "opacity-60")}
         />
       </button>

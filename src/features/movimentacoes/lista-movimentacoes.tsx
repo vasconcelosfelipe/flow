@@ -31,6 +31,7 @@ function mesclarGrupos(atuais: GrupoDiario[], novos: GrupoDiario[]): GrupoDiario
       ...ultimo,
       itens: [...ultimo.itens, ...primeiro.itens],
       totalCentavos: ultimo.totalCentavos + primeiro.totalCentavos,
+      totalRealizadoCentavos: ultimo.totalRealizadoCentavos + primeiro.totalRealizadoCentavos,
     };
     return [...atuais.slice(0, -1), mesclado, ...novos.slice(1)];
   }
@@ -45,6 +46,7 @@ function mesclarGrupos(atuais: GrupoDiario[], novos: GrupoDiario[]): GrupoDiario
 export function ListaMovimentacoes({
   grupos: gruposIniciais,
   proximoCursor: proximoCursorInicial = null,
+  saldoContaAncora = null,
   filtro,
   contas = [],
   categorias = [],
@@ -52,6 +54,9 @@ export function ListaMovimentacoes({
 }: {
   grupos: GrupoDiario[];
   proximoCursor?: string | null;
+  /** Saldo real da conta (só quando `filtro.contaId` está setado) — âncora
+   * pro saldo acumulado exibido no cabeçalho de cada dia. */
+  saldoContaAncora?: number | null;
   filtro: FiltroMovimentacoes;
   contas?: OpcaoConta[];
   categorias?: OpcaoCategoria[];
@@ -74,6 +79,22 @@ export function ListaMovimentacoes({
 
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
   const emSelecao = modoSelecao;
+
+  // Saldo acumulado até o fim de cada dia — só existe com uma conta
+  // filtrada (sem isso, misturar contas diferentes não tem um saldo só que
+  // faça sentido). Ordem dos grupos é sempre decrescente (mais recente
+  // primeiro), então o saldo do primeiro grupo já É o saldo atual da conta;
+  // cada grupo mais antigo desconta o líquido realizado do grupo anterior.
+  const saldosPorGrupo = useMemo(() => {
+    if (saldoContaAncora === null) return null;
+    const saldos: number[] = [];
+    let corrente = saldoContaAncora;
+    grupos.forEach((grupo, i) => {
+      if (i > 0) corrente -= grupos[i - 1].totalRealizadoCentavos;
+      saldos.push(corrente);
+    });
+    return saldos;
+  }, [grupos, saldoContaAncora]);
 
   function carregarMais() {
     if (!proximoCursor || carregandoMais) return;
@@ -134,11 +155,13 @@ export function ListaMovimentacoes({
       </div>
 
       <div className="space-y-5">
-        {grupos.map((grupo) => (
+        {grupos.map((grupo, i) => (
           <section key={grupo.chave}>
             <div className="mb-1.5 flex items-baseline justify-between px-1">
               <h2 className="text-micro font-medium text-ink-muted">{grupo.rotulo}</h2>
-              <AmountText centavos={grupo.totalCentavos} tamanho="sm" />
+              {saldosPorGrupo && (
+                <AmountText centavos={saldosPorGrupo[i]} tamanho="sm" tom="neutro" />
+              )}
             </div>
 
             <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">

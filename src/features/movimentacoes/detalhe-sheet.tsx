@@ -155,6 +155,11 @@ function Detalhe({
   const Icone = transferencia ? ArrowLeftRight : movimentacao.categoria ? iconeDe(movimentacao.categoria.icone) : Tag;
   const receita = movimentacao.tipo === "RECEITA";
   const conciliada = movimentacao.status === "CONCILIADO";
+  // Deriva por tipo, não por qual perna virou a linha representativa —
+  // robusto tanto pra vista sem filtro (sempre a perna DESPESA) quanto pra
+  // vista filtrada por uma conta específica (pode ser qualquer uma das duas).
+  const contaSaida = movimentacao.tipo === "DESPESA" ? movimentacao.conta : movimentacao.contaPar;
+  const contaEntrada = movimentacao.tipo === "DESPESA" ? movimentacao.contaPar : movimentacao.conta;
 
   function excluir() {
     startTransition(async () => {
@@ -190,7 +195,7 @@ function Detalhe({
           <AmountText
             centavos={receita ? movimentacao.valorCentavos : -movimentacao.valorCentavos}
             tamanho="lg"
-            tom={transferencia ? "neutro" : "auto"}
+            tom={transferencia ? "transferencia" : "auto"}
           />
           <p className="text-micro text-ink-muted">
             {transferencia
@@ -212,7 +217,14 @@ function Detalhe({
                 : "—"
           }
         />
-        <LinhaDetalhe icone={CreditCard} rotulo="Conta" valor={movimentacao.conta.nome} />
+        {transferencia ? (
+          <>
+            <LinhaDetalhe icone={CreditCard} rotulo="Conta de saída" valor={contaSaida?.nome ?? "—"} />
+            <LinhaDetalhe icone={CreditCard} rotulo="Conta de entrada" valor={contaEntrada?.nome ?? "—"} />
+          </>
+        ) : (
+          <LinhaDetalhe icone={CreditCard} rotulo="Conta" valor={movimentacao.conta.nome} />
+        )}
         {movimentacao.contato && (
           <LinhaDetalhe icone={Users} rotulo="Fornecedor/Cliente" valor={movimentacao.contato.nome} />
         )}

@@ -150,6 +150,7 @@ export async function obterResumoDashboard(
     totalParcelas: m.totalParcelas,
     recorrente: m.recorrente,
     transferenciaId: m.transferenciaId,
+    contaPar: null,
     origemFitId: m.origemFitId,
     categoria: m.categoria
       ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
