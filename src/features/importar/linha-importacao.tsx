@@ -5,6 +5,7 @@ import { AlertCircle, GitMerge, Link2 } from "lucide-react";
 import { AmountText } from "@/components/shared/amount-text";
 import { SearchableSelect } from "@/components/shared/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,10 @@ export function LinhaImportacao({
   categorias: OpcaoCategoria[];
   contatos: OpcaoContato[];
   aoAlternar: (id: string) => void;
-  aoAtualizar: (id: string, ajuste: { categoriaId?: string | null; contatoId?: string | null }) => void;
+  aoAtualizar: (
+    id: string,
+    ajuste: { categoriaId?: string | null; contatoId?: string | null; descricao?: string },
+  ) => void;
 }) {
   const receita = linha.tipo === "RECEITA";
   const Icone = linha.categoriaSugerida ? iconeDe(linha.categoriaSugerida.icone) : AlertCircle;
@@ -83,12 +87,21 @@ export function LinhaImportacao({
       </span>
 
       <div className={cn("min-w-0 flex-1", !linha.incluir && "opacity-60")}>
-        <div className="flex items-start justify-between gap-2">
-          <span className="truncate text-corpo font-medium text-ink">{linha.descricao}</span>
+        <div className="flex items-start gap-2">
+          {linha.incluir ? (
+            <Input
+              value={linha.descricao}
+              onChange={(e) => aoAtualizar(linha.id, { descricao: e.target.value })}
+              aria-label="Descrição do lançamento"
+              className="h-8 min-w-0 flex-1 border-transparent bg-transparent px-1.5 text-corpo font-medium text-ink shadow-none hover:border-line focus-visible:border-line focus-visible:bg-surface"
+            />
+          ) : (
+            <span className="truncate px-1.5 text-corpo font-medium text-ink">{linha.descricao}</span>
+          )}
           <AmountText
             centavos={receita ? linha.valorCentavos : -linha.valorCentavos}
             tamanho="sm"
-            className="shrink-0"
+            className="mt-1 shrink-0"
           />
         </div>
 

@@ -41,7 +41,10 @@ export function PassoRevisao({
   contatos: OpcaoContato[];
   confirmando: boolean;
   aoAlternarLinha: (id: string) => void;
-  aoAtualizarLinha: (id: string, ajuste: { categoriaId?: string | null; contatoId?: string | null }) => void;
+  aoAtualizarLinha: (
+    id: string,
+    ajuste: { categoriaId?: string | null; contatoId?: string | null; descricao?: string },
+  ) => void;
   aoVoltar: () => void;
   aoConfirmar: () => void;
 }) {

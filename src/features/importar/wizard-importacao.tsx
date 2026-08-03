@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { PassoConfirmacao } from "@/features/importar/passo-confirmacao";
 import { PassoRevisao } from "@/features/importar/passo-revisao";
@@ -19,6 +19,55 @@ const PASSOS: { chave: Passo; rotulo: string }[] = [
   { chave: "revisao", rotulo: "Revisão" },
   { chave: "confirmacao", rotulo: "Concluído" },
 ];
+
+const CHAVE_STORAGE = "flow:importacao-revisao";
+
+/**
+ * A revisão de um extrato pode envolver ir cadastrar uma categoria nova no
+ * meio do caminho — sem persistir, voltar da tela de Categorias perderia
+ * toda a categorização já feita nas linhas. `sessionStorage` (não
+ * localStorage) de propósito: o trabalho é da aba/sessão atual, não algo
+ * pra sobreviver semanas — fecha a aba, esvazia sozinho.
+ */
+function salvarRevisao(resumo: ResumoImportacao | null) {
+  try {
+    if (!resumo) {
+      sessionStorage.removeItem(CHAVE_STORAGE);
+      return;
+    }
+    sessionStorage.setItem(CHAVE_STORAGE, JSON.stringify(resumo));
+  } catch {
+    // sessionStorage indisponível (aba anônima, quota) — segue sem persistir
+  }
+}
+
+function carregarRevisao(): ResumoImportacao | null {
+  try {
+    const bruto = sessionStorage.getItem(CHAVE_STORAGE);
+    if (!bruto) return null;
+    const dados = JSON.parse(bruto);
+    return {
+      ...dados,
+      linhas: dados.linhas.map(
+        (l: ResumoImportacao["linhas"][number]) => ({
+          ...l,
+          data: new Date(l.data),
+          conciliaCom: l.conciliaCom
+            ? {
+                ...l.conciliaCom,
+                data: l.conciliaCom.data ? new Date(l.conciliaCom.data) : null,
+                dataVencimento: l.conciliaCom.dataVencimento
+                  ? new Date(l.conciliaCom.dataVencimento)
+                  : null,
+              }
+            : null,
+        }),
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Orquestra os três passos e guarda a seleção de linhas em memória — nada
@@ -39,6 +88,23 @@ export function WizardImportacao({
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoConfirmacao | null>(null);
 
+  // Restaura uma revisão em andamento ao montar — só no cliente, sessionStorage
+  // não existe durante a renderização no servidor.
+  useEffect(() => {
+    const salva = carregarRevisao();
+    if (salva) {
+      setResumo(salva);
+      setPasso("revisao");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persiste a cada mudança — cadastrar uma categoria nova no meio da revisão
+  // e voltar não pode perder o que já foi categorizado.
+  useEffect(() => {
+    salvarRevisao(resumo);
+  }, [resumo]);
+
   function processar(novoResumo: ResumoImportacao) {
     setResumo(novoResumo);
     setPasso("revisao");
@@ -55,7 +121,10 @@ export function WizardImportacao({
     );
   }
 
-  function atualizarLinha(id: string, ajuste: { categoriaId?: string | null; contatoId?: string | null }) {
+  function atualizarLinha(
+    id: string,
+    ajuste: { categoriaId?: string | null; contatoId?: string | null; descricao?: string },
+  ) {
     setResumo((atual) =>
       atual
         ? {
@@ -78,6 +147,8 @@ export function WizardImportacao({
       });
       setResultado(r);
       setPasso("confirmacao");
+      // Já foi gravado — não é mais "revisão em andamento" pra restaurar.
+      setResumo(null);
     } finally {
       setConfirmando(false);
     }

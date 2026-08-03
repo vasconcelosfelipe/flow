@@ -133,6 +133,7 @@ export async function confirmarImportacao(input: {
             origemFitId: linha.id,
             categoriaId: linha.categoriaId,
             contatoId: linha.contatoId,
+            descricao: linha.descricao,
           },
         });
         await db.importacaoLinha.create({
