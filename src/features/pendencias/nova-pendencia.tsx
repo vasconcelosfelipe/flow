@@ -7,8 +7,9 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
-import { SearchableSelect } from "@/components/shared/searchable-select";
+import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import {
   Select,
   SelectContent,
@@ -19,10 +20,11 @@ import {
 import { parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { criarPendencia } from "@/services/movimentacoes/actions";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
@@ -30,16 +32,21 @@ const FORM_ID = "form-nova-pendencia";
 
 export function BotaoNovaPendencia({
   contas,
-  categorias = [],
-  contatos = [],
+  categorias: categoriasIniciais = [],
+  contatos: contatosIniciais = [],
+  linhas = [],
 }: {
   contas: OpcaoConta[];
-  categorias?: OpcaoCategoria[];
-  contatos?: OpcaoContato[];
+  categorias?: CategoriaCompleta[];
+  contatos?: ContatoCompleto[];
+  linhas?: LinhaDreOpcao[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [aberto, setAberto] = useState(false);
+  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
+  const [categorias, setCategorias] = useState(categoriasIniciais);
+  const [contatos, setContatos] = useState(contatosIniciais);
 
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
@@ -51,6 +58,8 @@ export function BotaoNovaPendencia({
   const [contatoId, setContatoId] = useState(SEM_FORNECEDOR);
 
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
+  const categoriaSelecionada = categorias.find((c) => c.id === categoriaId);
+  const contatoSelecionado = contatos.find((c) => c.id === contatoId);
 
   useEffect(() => {
     if (categoriaId === SEM_CATEGORIA) return;
@@ -178,31 +187,19 @@ export function BotaoNovaPendencia({
 
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <SearchableSelect
-              value={categoriaId}
-              onValueChange={setCategoriaId}
+            <GatilhoSelecao
+              label={categoriaSelecionada?.nome ?? null}
               placeholder="Sem categoria"
-              searchPlaceholder="Buscar categoria…"
-              emptyText="Nenhuma categoria encontrada."
-              options={[
-                { value: SEM_CATEGORIA, label: "Sem categoria" },
-                ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
+              onClick={() => setModalAberto("categoria")}
             />
           </div>
 
           <div className="space-y-1.5">
             <Label>Fornecedor/Cliente</Label>
-            <SearchableSelect
-              value={contatoId}
-              onValueChange={setContatoId}
+            <GatilhoSelecao
+              label={contatoSelecionado?.nome ?? null}
               placeholder="Sem fornecedor/cliente"
-              searchPlaceholder="Buscar fornecedor/cliente…"
-              emptyText="Nenhum fornecedor/cliente encontrado."
-              options={[
-                { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-                ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
+              onClick={() => setModalAberto("contato")}
             />
           </div>
 
@@ -235,6 +232,38 @@ export function BotaoNovaPendencia({
           )}
         </form>
       </ResponsiveModal>
+
+      {modalAberto === "categoria" && (
+        <SeletorCategoriaContatoModal
+          tipo="categoria"
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          value={categoriaId}
+          onValueChange={setCategoriaId}
+          opcoes={[
+            { value: SEM_CATEGORIA, label: "Sem categoria" },
+            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+          categorias={categorias}
+          linhas={linhas}
+          aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
+        />
+      )}
+
+      {modalAberto === "contato" && (
+        <SeletorCategoriaContatoModal
+          tipo="contato"
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          value={contatoId}
+          onValueChange={setContatoId}
+          opcoes={[
+            { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+            ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+          aoCriar={(contato) => setContatos((atual) => [...atual, contato])}
+        />
+      )}
     </>
   );
 }

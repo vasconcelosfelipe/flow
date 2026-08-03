@@ -7,11 +7,12 @@ import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet";
 import { LinhaPendencia } from "@/features/pendencias/linha-pendencia";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { GrupoContato } from "@/services/pendencias/dto";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 
 /**
  * Agrupada por contato, não por dia: aqui a pergunta é "quem me deve" ou
@@ -23,11 +24,13 @@ export function ListaPendencias({
   contas = [],
   categorias = [],
   contatos = [],
+  linhas = [],
 }: {
   grupos: GrupoContato[];
   contas?: OpcaoConta[];
-  categorias?: OpcaoCategoria[];
-  contatos?: OpcaoContato[];
+  categorias?: CategoriaCompleta[];
+  contatos?: ContatoCompleto[];
+  linhas?: LinhaDreOpcao[];
 }) {
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
@@ -66,6 +69,7 @@ export function ListaPendencias({
           contas={contas}
           categorias={categorias}
           contatos={contatos}
+          linhas={linhas}
           aoFechar={() => setAbertoId(null)}
         />
       )}

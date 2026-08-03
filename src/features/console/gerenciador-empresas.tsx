@@ -7,7 +7,7 @@ import { Building2, Plus } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
-import { FormularioEmpresa } from "@/features/console/formulario-empresa";
+import { FORM_ID_EMPRESA, FormularioEmpresa } from "@/features/console/formulario-empresa";
 import { LinhaEmpresaConsole } from "@/features/console/linha-empresa";
 import { criarEmpresa, editarEmpresa, alternarEmpresaAtiva } from "@/services/console/actions";
 import type {
@@ -70,12 +70,26 @@ export function GerenciadorEmpresasConsole({ inicial }: { inicial: EmpresaConsol
         aoMudarAberto={(aberto) => !aberto && setEditando(null)}
         titulo={empresaEmEdicao ? "Editar empresa" : "Nova empresa"}
         descricao="Nome, slug e CNPJ da empresa."
+        rodape={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setEditando(null)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" form={FORM_ID_EMPRESA} className="flex-1" disabled={pending}>
+              Salvar
+            </Button>
+          </>
+        }
       >
         <FormularioEmpresa
           empresa={empresaEmEdicao}
           aoSalvar={salvar}
           aoAlternarAtiva={empresaEmEdicao ? alternarAtiva : undefined}
-          aoCancelar={() => setEditando(null)}
         />
       </ResponsiveModal>
     </div>

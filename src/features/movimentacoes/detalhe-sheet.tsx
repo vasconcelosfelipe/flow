@@ -5,11 +5,12 @@ import { useEffect, useState, useTransition } from "react";
 import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
-import { SearchableSelect } from "@/components/shared/searchable-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ import {
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { parseMoeda } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import {
   desfazerConciliacao,
   editarMovimentacao,
@@ -27,10 +29,11 @@ import {
 } from "@/services/movimentacoes/actions";
 import { ROTULO_STATUS } from "@/types/dominio";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
@@ -46,18 +49,24 @@ const FORM_EDICAO_ID = "form-editar-movimentacao";
 export function DetalheMovimentacaoSheet({
   movimentacao,
   contas = [],
-  categorias = [],
-  contatos = [],
+  categorias: categoriasIniciais = [],
+  contatos: contatosIniciais = [],
+  linhas = [],
   aoFechar,
 }: {
   movimentacao: MovimentacaoResumo | null;
   contas?: OpcaoConta[];
-  categorias?: OpcaoCategoria[];
-  contatos?: OpcaoContato[];
+  categorias?: CategoriaCompleta[];
+  contatos?: ContatoCompleto[];
+  linhas?: LinhaDreOpcao[];
   aoFechar: () => void;
 }) {
   const [editando, setEditando] = useState(false);
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  // Categoria/fornecedor criados na hora entram aqui pra ficarem
+  // selecionáveis sem precisar recarregar a página.
+  const [categorias, setCategorias] = useState(categoriasIniciais);
+  const [contatos, setContatos] = useState(contatosIniciais);
 
   if (!movimentacao) return null;
 
@@ -128,6 +137,9 @@ export function DetalheMovimentacaoSheet({
           contas={contas}
           categorias={categorias}
           contatos={contatos}
+          linhas={linhas}
+          aoCriarCategoria={(categoria) => setCategorias((atual) => [...atual, categoria])}
+          aoCriarContato={(contato) => setContatos((atual) => [...atual, contato])}
           aoPendingChange={setSalvandoEdicao}
           aoSalvar={() => {
             setEditando(false);
@@ -302,18 +314,25 @@ function FormularioEdicao({
   contas,
   categorias,
   contatos,
+  linhas,
+  aoCriarCategoria,
+  aoCriarContato,
   aoSalvar,
   aoPendingChange,
 }: {
   movimentacao: MovimentacaoResumo;
   contas: OpcaoConta[];
-  categorias: OpcaoCategoria[];
-  contatos: OpcaoContato[];
+  categorias: CategoriaCompleta[];
+  contatos: ContatoCompleto[];
+  linhas: LinhaDreOpcao[];
+  aoCriarCategoria: (categoria: CategoriaCompleta) => void;
+  aoCriarContato: (contato: ContatoCompleto) => void;
   aoSalvar: () => void;
   aoPendingChange: (pending: boolean) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
 
   useEffect(() => {
     aoPendingChange(pending);
@@ -339,6 +358,8 @@ function FormularioEdicao({
   const [contatoId, setContatoId] = useState(movimentacao.contato?.id ?? SEM_FORNECEDOR);
 
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
+  const categoriaSelecionada = categorias.find((c) => c.id === categoriaId);
+  const contatoSelecionado = contatos.find((c) => c.id === contatoId);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -395,29 +416,33 @@ function FormularioEdicao({
 
       <div className="space-y-1.5">
         <Label>Tipo</Label>
-        <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="RECEITA">Receita</SelectItem>
-            <SelectItem value="DESPESA">Despesa</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-2 gap-2">
+          {(["RECEITA", "DESPESA"] as const).map((valor) => (
+            <button
+              key={valor}
+              type="button"
+              onClick={() => setTipo(valor)}
+              className={cn(
+                "h-11 rounded-lg border text-micro font-medium transition-colors",
+                tipo === valor
+                  ? valor === "RECEITA"
+                    ? "border-positive bg-positive-wash text-positive-text"
+                    : "border-negative bg-negative-wash text-negative-text"
+                  : "border-line text-ink-muted hover:bg-muted",
+              )}
+            >
+              {valor === "RECEITA" ? "Receita" : "Despesa"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-1.5">
         <Label>Categoria</Label>
-        <SearchableSelect
-          value={categoriaId}
-          onValueChange={setCategoriaId}
+        <GatilhoSelecao
+          label={categoriaSelecionada?.nome ?? null}
           placeholder="Sem categoria"
-          searchPlaceholder="Buscar categoria…"
-          emptyText="Nenhuma categoria encontrada."
-          options={[
-            { value: SEM_CATEGORIA, label: "Sem categoria" },
-            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
+          onClick={() => setModalAberto("categoria")}
         />
       </div>
 
@@ -465,18 +490,44 @@ function FormularioEdicao({
 
       <div className="space-y-1.5">
         <Label>Fornecedor/Cliente</Label>
-        <SearchableSelect
+        <GatilhoSelecao
+          label={contatoSelecionado?.nome ?? null}
+          placeholder="Sem fornecedor/cliente"
+          onClick={() => setModalAberto("contato")}
+        />
+      </div>
+
+      {modalAberto === "categoria" && (
+        <SeletorCategoriaContatoModal
+          tipo="categoria"
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          value={categoriaId}
+          onValueChange={setCategoriaId}
+          opcoes={[
+            { value: SEM_CATEGORIA, label: "Sem categoria" },
+            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+          categorias={categorias}
+          linhas={linhas}
+          aoCriar={aoCriarCategoria}
+        />
+      )}
+
+      {modalAberto === "contato" && (
+        <SeletorCategoriaContatoModal
+          tipo="contato"
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
           value={contatoId}
           onValueChange={setContatoId}
-          placeholder="Sem fornecedor/cliente"
-          searchPlaceholder="Buscar fornecedor/cliente…"
-          emptyText="Nenhum fornecedor/cliente encontrado."
-          options={[
+          opcoes={[
             { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
+          aoCriar={aoCriarContato}
         />
-      </div>
+      )}
     </form>
   );
 }

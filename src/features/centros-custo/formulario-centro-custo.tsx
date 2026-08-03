@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { CentroCustoCompleto, FormularioCentroCusto } from "@/services/centros-custo/dto";
 
+export const FORM_ID_CENTRO_CUSTO = "form-centro-custo";
+
 const PALETA_CORES = [
   "#2563EB", "#7C3AED", "#0EA5E9", "#059669",
   "#F97316", "#EF4444", "#EC4899", "#64748B",
@@ -26,12 +28,10 @@ export function FormularioCentroCusto({
   centro,
   aoSalvar,
   aoExcluir,
-  aoCancelar,
 }: {
   centro: CentroCustoCompleto | null;
   aoSalvar: (dados: FormularioCentroCusto) => void;
   aoExcluir?: (id: string) => void;
-  aoCancelar: () => void;
 }) {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
@@ -58,7 +58,7 @@ export function FormularioCentroCusto({
   const emUso = (centro?.quantidadeMovimentacoes ?? 0) > 0;
 
   return (
-    <form onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
+    <form id={FORM_ID_CENTRO_CUSTO} onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="flex items-center gap-3">
         <span
           className="grid size-12 shrink-0 place-items-center rounded-2xl"
@@ -125,15 +125,6 @@ export function FormularioCentroCusto({
           )}
         </div>
       )}
-
-      <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
-          Cancelar
-        </Button>
-        <Button type="submit" className="flex-1">
-          Salvar
-        </Button>
-      </div>
     </form>
   );
 }

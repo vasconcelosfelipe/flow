@@ -8,6 +8,7 @@ import { requireSessao } from "@/lib/sessao";
 import { listarContas } from "@/services/contas";
 import { listarCategorias } from "@/services/categorias";
 import { listarContatos } from "@/services/contatos";
+import { listarLinhasDre } from "@/services/linhas-dre";
 import { listarMovimentacoes, obterSaldoConta } from "@/services/movimentacoes";
 import type { StatusMovimentacao, TipoMovimentacao } from "@/types/dominio";
 
@@ -40,11 +41,12 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     semCategoria: params.semCategoria === "1",
   };
 
-  const [pagina, contas, categorias, contatos, saldoContaAncora] = await Promise.all([
+  const [pagina, contas, categorias, contatos, linhas, saldoContaAncora] = await Promise.all([
     listarMovimentacoes(empresaAtiva.id, filtro),
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),
     listarContatos(empresaAtiva.id),
+    listarLinhasDre(),
     filtro.contaId ? obterSaldoConta(empresaAtiva.id, filtro.contaId) : Promise.resolve(null),
   ]);
 
@@ -54,15 +56,17 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         <h1 className="text-titulo font-semibold text-ink">Movimentações</h1>
         <BotoesMovimentacoes
           contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
-          categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
-          contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
+          categorias={categorias}
+          contatos={contatos}
+          linhas={linhas}
         />
       </div>
 
       <PeriodPicker />
       <FiltrosMovimentacoes
         contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
-        categorias={categorias.map((c) => ({ id: c.id, nome: c.nome }))}
+        categorias={categorias}
+        linhas={linhas}
       />
 
       <p className="text-micro text-ink-muted">
@@ -76,8 +80,9 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         saldoContaAncora={saldoContaAncora}
         filtro={filtro}
         contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
-        categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
-        contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
+        categorias={categorias}
+        contatos={contatos}
+        linhas={linhas}
       />
     </Container>
   );

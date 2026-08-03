@@ -6,17 +6,17 @@ import { Receipt, Tags, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ResponsiveModal } from "@/components/shared/responsive-modal";
-import { SearchableSelect } from "@/components/shared/searchable-select";
 import { TransactionRow } from "@/components/shared/transaction-row";
 import { Button } from "@/components/ui/button";
 import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet";
+import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { atualizarCategoriaEmLote, buscarMaisMovimentacoes } from "@/services/movimentacoes/actions";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { ContatoCompleto } from "@/services/contatos/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { FiltroMovimentacoes, GrupoDiario } from "@/services/movimentacoes/dto";
 
 type OpcaoConta = { id: string; nome: string };
-type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
-type OpcaoContato = { id: string; nome: string };
 
 /** Junta a próxima página aos grupos já carregados — o único dia que pode se
  * repetir entre páginas é a borda (último grupo da página anterior = primeiro
@@ -49,8 +49,9 @@ export function ListaMovimentacoes({
   saldoContaAncora = null,
   filtro,
   contas = [],
-  categorias = [],
+  categorias: categoriasIniciais = [],
   contatos = [],
+  linhas = [],
 }: {
   grupos: GrupoDiario[];
   proximoCursor?: string | null;
@@ -59,17 +60,18 @@ export function ListaMovimentacoes({
   saldoContaAncora?: number | null;
   filtro: FiltroMovimentacoes;
   contas?: OpcaoConta[];
-  categorias?: OpcaoCategoria[];
-  contatos?: OpcaoContato[];
+  categorias?: CategoriaCompleta[];
+  contatos?: ContatoCompleto[];
+  linhas?: LinhaDreOpcao[];
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [categorizando, setCategorizando] = useState(false);
-  const [categoriaEscolhida, setCategoriaEscolhida] = useState("nenhuma");
+  const [categorias, setCategorias] = useState(categoriasIniciais);
   // Sem sincronizar via efeito: a página troca a `key` deste componente
   // (ver movimentacoes/page.tsx) toda vez que o filtro muda, o que remonta o
   // componente do zero com os dados novos em vez de arriscar ficar preso na
@@ -112,10 +114,9 @@ export function ListaMovimentacoes({
     setSelecionados(new Set());
   }
 
-  function confirmarCategorizacao() {
-    if (categoriaEscolhida === "nenhuma") return;
+  function categorizarSelecionadas(categoriaId: string) {
     startTransition(async () => {
-      await atualizarCategoriaEmLote([...selecionados], categoriaEscolhida);
+      await atualizarCategoriaEmLote([...selecionados], categoriaId);
       setCategorizando(false);
       sairDoModoSelecao();
       router.refresh();
@@ -221,47 +222,24 @@ export function ListaMovimentacoes({
           contas={contas}
           categorias={categorias}
           contatos={contatos}
+          linhas={linhas}
           aoFechar={() => setAbertoId(null)}
         />
       )}
 
-      <ResponsiveModal
-        aberto={categorizando}
-        aoMudarAberto={setCategorizando}
-        titulo="Categorizar em lote"
-        descricao={`Escolha a categoria para as ${selecionados.size} movimentações selecionadas.`}
-        rodape={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => setCategorizando(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              className="flex-1"
-              disabled={categoriaEscolhida === "nenhuma" || pending}
-              onClick={confirmarCategorizacao}
-            >
-              Categorizar
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-1.5 py-2">
-          <SearchableSelect
-            value={categoriaEscolhida}
-            onValueChange={setCategoriaEscolhida}
-            placeholder="Escolha uma categoria"
-            searchPlaceholder="Buscar categoria…"
-            emptyText="Nenhuma categoria encontrada."
-            options={categorias.map((c) => ({ value: c.id, label: c.nome }))}
-          />
-        </div>
-      </ResponsiveModal>
+      {categorizando && (
+        <SeletorCategoriaContatoModal
+          tipo="categoria"
+          aberto
+          aoMudarAberto={setCategorizando}
+          value=""
+          onValueChange={categorizarSelecionadas}
+          opcoes={categorias.map((c) => ({ value: c.id, label: c.nome }))}
+          categorias={categorias}
+          linhas={linhas}
+          aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
+        />
+      )}
     </div>
   );
 }

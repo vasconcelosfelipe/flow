@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { SearchableSelect } from "@/components/shared/searchable-select";
 import { Button } from "@/components/ui/button";
@@ -15,17 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
+import type { CategoriaCompleta } from "@/services/categorias/dto";
+import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 
 type OpcaoFiltro = { id: string; nome: string };
 
 export function FiltrosMovimentacoes({
   contas = [],
-  categorias = [],
+  categorias: categoriasIniciais = [],
+  linhas = [],
 }: {
   contas?: OpcaoFiltro[];
-  categorias?: OpcaoFiltro[];
+  categorias?: CategoriaCompleta[];
+  linhas?: LinhaDreOpcao[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,6 +41,8 @@ export function FiltrosMovimentacoes({
   const [busca, setBusca] = useState(params.get("busca") ?? "");
   const buscaAtrasada = useDebouncedValue(busca, 250);
   const [modalAberto, setModalAberto] = useState(false);
+  const [categoriaModalAberto, setCategoriaModalAberto] = useState(false);
+  const [categorias, setCategorias] = useState(categoriasIniciais);
 
   useEffect(() => {
     aplicar({ busca: buscaAtrasada || null });
@@ -162,16 +170,10 @@ export function FiltrosMovimentacoes({
 
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <SearchableSelect
-              value={params.get("categoria") ?? "todos"}
-              onValueChange={(v) => aplicar({ categoria: v })}
+            <GatilhoSelecao
+              label={categorias.find((c) => c.id === params.get("categoria"))?.nome ?? null}
               placeholder="Todas as categorias"
-              searchPlaceholder="Buscar categoria…"
-              emptyText="Nenhuma categoria encontrada."
-              options={[
-                { value: "todos", label: "Todas as categorias" },
-                ...categorias.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
+              onClick={() => setCategoriaModalAberto(true)}
             />
           </div>
 
@@ -195,6 +197,23 @@ export function FiltrosMovimentacoes({
           </div>
         </div>
       </ResponsiveModal>
+
+      {categoriaModalAberto && (
+        <SeletorCategoriaContatoModal
+          tipo="categoria"
+          aberto
+          aoMudarAberto={setCategoriaModalAberto}
+          value={params.get("categoria") ?? "todos"}
+          onValueChange={(v) => aplicar({ categoria: v })}
+          opcoes={[
+            { value: "todos", label: "Todas as categorias" },
+            ...categorias.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+          categorias={categorias}
+          linhas={linhas}
+          aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
+        />
+      )}
     </div>
   );
 }

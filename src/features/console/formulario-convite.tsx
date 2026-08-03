@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { ROTULO_PAPEL, type PapelMembro } from "@/types/dominio";
 import type { EmpresaConsole, FormularioConviteUsuario } from "@/services/console/dto";
+
+export const FORM_ID_CONVITE = "form-convite";
 
 const PAPEIS = Object.keys(ROTULO_PAPEL) as PapelMembro[];
 
@@ -29,11 +30,9 @@ const schema = z.object({
 export function FormularioConvite({
   empresas,
   aoConvidar,
-  aoCancelar,
 }: {
   empresas: EmpresaConsole[];
   aoConvidar: (dados: FormularioConviteUsuario) => void;
-  aoCancelar: () => void;
 }) {
   const {
     register,
@@ -50,7 +49,7 @@ export function FormularioConvite({
   const papel = watch("papel");
 
   return (
-    <form onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2">
+    <form id={FORM_ID_CONVITE} onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
         <Label htmlFor="nome">Nome</Label>
         <Input id="nome" {...register("nome")} placeholder="Ex.: Camila Rocha" className="h-11" />
@@ -94,15 +93,6 @@ export function FormularioConvite({
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
-          Cancelar
-        </Button>
-        <Button type="submit" className="flex-1">
-          Convidar
-        </Button>
       </div>
     </form>
   );

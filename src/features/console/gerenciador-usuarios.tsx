@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { DetalheUsuarioConsole } from "@/features/console/detalhe-usuario";
-import { FormularioConvite } from "@/features/console/formulario-convite";
+import { FORM_ID_CONVITE, FormularioConvite } from "@/features/console/formulario-convite";
 import { LinhaUsuarioConsole } from "@/features/console/linha-usuario";
 import type {
   EmpresaConsole,
@@ -78,8 +78,23 @@ export function GerenciadorUsuariosConsole({
         aoMudarAberto={setConvidando}
         titulo="Convidar usuário"
         descricao="Nome, e-mail, empresa e papel do convite."
+        rodape={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setConvidando(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" form={FORM_ID_CONVITE} className="flex-1">
+              Convidar
+            </Button>
+          </>
+        }
       >
-        <FormularioConvite empresas={empresas} aoConvidar={convidar} aoCancelar={() => setConvidando(false)} />
+        <FormularioConvite empresas={empresas} aoConvidar={convidar} />
       </ResponsiveModal>
     </div>
   );

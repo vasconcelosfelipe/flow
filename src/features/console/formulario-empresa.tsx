@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { formatarCnpj, validarCnpj } from "@/lib/documentos";
 import type { EmpresaConsole, FormularioEmpresaConsole } from "@/services/console/dto";
 
+export const FORM_ID_EMPRESA = "form-empresa";
+
 const schema = z.object({
   nome: z.string().trim().min(2, "Digite ao menos 2 letras.").max(60),
   slug: z
@@ -36,12 +38,10 @@ export function FormularioEmpresa({
   empresa,
   aoSalvar,
   aoAlternarAtiva,
-  aoCancelar,
 }: {
   empresa: EmpresaConsole | null;
   aoSalvar: (dados: FormularioEmpresaConsole) => void;
   aoAlternarAtiva?: (id: string) => void;
-  aoCancelar: () => void;
 }) {
   const {
     register,
@@ -64,7 +64,7 @@ export function FormularioEmpresa({
   }
 
   return (
-    <form onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
+    <form id={FORM_ID_EMPRESA} onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
         <Label htmlFor="nome">Nome da empresa</Label>
         <Input id="nome" {...register("nome")} placeholder="Ex.: Aurora Comércio" className="h-11" />
@@ -120,15 +120,6 @@ export function FormularioEmpresa({
           </div>
         </div>
       )}
-
-      <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
-          Cancelar
-        </Button>
-        <Button type="submit" className="flex-1">
-          Salvar
-        </Button>
-      </div>
     </form>
   );
 }
