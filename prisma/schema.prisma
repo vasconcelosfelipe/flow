@@ -368,11 +368,18 @@ model ImportacaoLinha {
   id              String  @id @default(cuid())
   importacaoId    String
   movimentacaoId  String?
+  // Presentes só quando a pessoa marcou "ignorar permanentemente" na revisão:
+  // a linha do extrato foi descartada de propósito, sem virar lançamento —
+  // contaId + fitId é a chave que impede essa mesma linha de ser sugerida de
+  // novo numa reimportação futura do mesmo arquivo.
+  contaId         String?
+  fitId           String?
 
   importacao      Importacao    @relation(fields: [importacaoId], references: [id], onDelete: Cascade)
   movimentacao    Movimentacao? @relation(fields: [movimentacaoId], references: [id])
 
   @@index([importacaoId])
+  @@index([contaId, fitId])
   @@map("importacao_linhas")
 }
 

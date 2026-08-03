@@ -39,7 +39,7 @@ export async function processarArquivoOfx(
 
   const fitIds = transacoes.map((t) => t.fitId);
 
-  const [existentes, pendencias] = await Promise.all([
+  const [existentes, ignoradas, pendencias] = await Promise.all([
     // Só CONCILIADO conta como "já importada" — é o único status que deveria
     // ter origemFitId de verdade. Uma movimentação que saiu de CONCILIADO (por
     // desfazer, por exclusão, ou por edição direta do status) não deve travar
@@ -49,6 +49,12 @@ export async function processarArquivoOfx(
       where: { contaId, origemFitId: { in: fitIds }, status: "CONCILIADO" },
       select: { origemFitId: true },
     }),
+    // Linhas marcadas "ignorar permanentemente" numa importação anterior —
+    // não viraram lançamento, só a chave de dedup.
+    db.importacaoLinha.findMany({
+      where: { contaId, fitId: { in: fitIds } },
+      select: { fitId: true },
+    }),
     db.movimentacao.findMany({
       where: { empresaId, contaId, status: "PENDENTE", data: null },
       include: { categoria: true, conta: true, contato: true },
@@ -56,6 +62,7 @@ export async function processarArquivoOfx(
   ]);
 
   const fitIdsExistentes = new Set(existentes.map((e) => e.origemFitId));
+  const fitIdsIgnorados = new Set(ignoradas.map((i) => i.fitId));
   // Cada pendência só pode fechar uma linha do extrato — remove do conjunto
   // assim que casada, pra duas transações do mesmo valor não brigarem pela
   // mesma pendência.
@@ -63,8 +70,9 @@ export async function processarArquivoOfx(
 
   const linhas: LinhaImportacao[] = transacoes.map((t) => {
     const duplicada = fitIdsExistentes.has(t.fitId);
+    const ignoradaAntes = !duplicada && fitIdsIgnorados.has(t.fitId);
 
-    const pendenciaCasada = !duplicada
+    const pendenciaCasada = !duplicada && !ignoradaAntes
       ? [...pendenciasDisponiveis.values()].find(
           (p) => p.tipo === t.tipo && p.valorCentavos === t.valorCentavos,
         )
@@ -74,9 +82,11 @@ export async function processarArquivoOfx(
 
     const status: StatusLinhaImportacao = duplicada
       ? "DUPLICADA"
-      : pendenciaCasada
-        ? "CONCILIAVEL"
-        : "NOVA";
+      : ignoradaAntes
+        ? "IGNORADA"
+        : pendenciaCasada
+          ? "CONCILIAVEL"
+          : "NOVA";
 
     return {
       id: t.fitId,
@@ -89,7 +99,8 @@ export async function processarArquivoOfx(
       // enquanto a pessoa categoriza depois, em Movimentações.
       categoriaSugerida: null,
       conciliaCom: pendenciaCasada ? mapearMovimentacao(pendenciaCasada) : null,
-      incluir: status !== "DUPLICADA",
+      incluir: status !== "DUPLICADA" && status !== "IGNORADA",
+      ignorarPermanentemente: false,
       categoriaId: pendenciaCasada?.categoriaId ?? null,
       contatoId: pendenciaCasada?.contatoId ?? null,
       ehTransferencia: false,
@@ -128,10 +139,18 @@ export async function confirmarImportacao(input: {
 
   let criadas = 0;
   let conciliadas = 0;
+  let ignoradas = 0;
 
   for (const linha of input.linhas) {
     try {
-      if (linha.ehTransferencia && linha.contaTransferenciaId) {
+      if (linha.ignorarPermanentemente) {
+        // Não vira lançamento nenhum — só grava a chave de dedup, pra esta
+        // linha nunca mais aparecer como candidata numa reimportação futura.
+        await db.importacaoLinha.create({
+          data: { importacaoId: importacao.id, contaId: input.contaId, fitId: linha.id },
+        });
+        ignoradas++;
+      } else if (linha.ehTransferencia && linha.contaTransferenciaId) {
         // Um crédito/débito do extrato que na verdade é dinheiro migrando
         // entre contas da própria empresa — vira as duas pernas de uma
         // transferência em vez de um lançamento comum. DESPESA = saiu desta
@@ -231,5 +250,5 @@ export async function confirmarImportacao(input: {
   revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 
-  return { criadas, conciliadas };
+  return { criadas, conciliadas, ignoradas };
 }

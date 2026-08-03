@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowLeftRight, GitMerge, Link2 } from "lucide-react";
+import { AlertCircle, ArrowLeftRight, EyeOff, GitMerge, Link2 } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { SearchableSelect } from "@/components/shared/searchable-select";
@@ -23,12 +23,14 @@ const ROTULO_STATUS = {
   NOVA: "Nova",
   DUPLICADA: "Já importada",
   CONCILIAVEL: "Concilia",
+  IGNORADA: "Ignorada",
 } as const;
 
 const ESTILO_STATUS = {
   NOVA: "bg-brand-wash text-brand",
   DUPLICADA: "bg-muted text-ink-muted",
   CONCILIAVEL: "bg-positive-wash text-positive-text",
+  IGNORADA: "bg-muted text-ink-muted",
 } as const;
 
 /**
@@ -45,6 +47,7 @@ export function LinhaImportacao({
   contatos,
   aoAlternar,
   aoAtualizar,
+  aoAlternarIgnorarPermanentemente,
 }: {
   linha: LinhaImportacao;
   contas: OpcaoConta[];
@@ -61,6 +64,7 @@ export function LinhaImportacao({
       contaTransferenciaId?: string | null;
     },
   ) => void;
+  aoAlternarIgnorarPermanentemente: (id: string) => void;
 }) {
   const receita = linha.tipo === "RECEITA";
   const Icone = linha.ehTransferencia
@@ -69,6 +73,9 @@ export function LinhaImportacao({
       ? iconeDe(linha.categoriaSugerida.icone)
       : AlertCircle;
   const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
+  // Só linha ainda "acionável" (nova ou que fecha uma pendência) pode ser
+  // marcada pra nunca mais ser sugerida — duplicada/ignorada já são inertes.
+  const podeIgnorarPermanentemente = linha.status === "NOVA" || linha.status === "CONCILIAVEL";
 
   return (
     <div
@@ -142,6 +149,22 @@ export function LinhaImportacao({
             <GitMerge className="size-3 shrink-0" aria-hidden="true" />
             Fecha a pendência de {linha.conciliaCom.contato?.nome ?? linha.conciliaCom.descricao}
           </p>
+        )}
+
+        {podeIgnorarPermanentemente && (
+          <button
+            type="button"
+            onClick={() => aoAlternarIgnorarPermanentemente(linha.id)}
+            className={cn(
+              "mt-2 mr-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-nano font-medium transition-colors",
+              linha.ignorarPermanentemente
+                ? "bg-negative text-white"
+                : "bg-muted text-ink-muted hover:bg-muted/70",
+            )}
+          >
+            <EyeOff className="size-3" aria-hidden="true" />
+            {linha.ignorarPermanentemente ? "Ignorada permanentemente" : "Ignorar permanentemente"}
+          </button>
         )}
 
         {linha.incluir && (

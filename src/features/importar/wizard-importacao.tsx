@@ -115,7 +115,11 @@ export function WizardImportacao({
       atual
         ? {
             ...atual,
-            linhas: atual.linhas.map((l) => (l.id === id ? { ...l, incluir: !l.incluir } : l)),
+            linhas: atual.linhas.map((l) =>
+              l.id === id
+                ? { ...l, incluir: !l.incluir, ignorarPermanentemente: false }
+                : l,
+            ),
           }
         : atual,
     );
@@ -141,15 +145,32 @@ export function WizardImportacao({
     );
   }
 
+  function alternarIgnorarPermanentemente(id: string) {
+    setResumo((atual) =>
+      atual
+        ? {
+            ...atual,
+            linhas: atual.linhas.map((l) => {
+              if (l.id !== id) return l;
+              const ignorar = !l.ignorarPermanentemente;
+              // Marcar pra ignorar sempre também tira do que vai ser
+              // importado agora; desmarcar devolve pro estado normal.
+              return { ...l, ignorarPermanentemente: ignorar, incluir: !ignorar };
+            }),
+          }
+        : atual,
+    );
+  }
+
   async function confirmar() {
     if (!resumo) return;
     setConfirmando(true);
     try {
-      const selecionadas = resumo.linhas.filter((l) => l.incluir);
+      const relevantes = resumo.linhas.filter((l) => l.incluir || l.ignorarPermanentemente);
       const r = await confirmarImportacao({
         nomeArquivo: resumo.arquivoNome,
         contaId: resumo.conta.id,
-        linhas: selecionadas,
+        linhas: relevantes,
       });
       setResultado(r);
       setPasso("confirmacao");
@@ -211,6 +232,7 @@ export function WizardImportacao({
           confirmando={confirmando}
           aoAlternarLinha={alternarLinha}
           aoAtualizarLinha={atualizarLinha}
+          aoAlternarIgnorarPermanentemente={alternarIgnorarPermanentemente}
           aoVoltar={reiniciar}
           aoConfirmar={confirmar}
         />

@@ -15,7 +15,7 @@ import type { TipoMovimentacao } from "@/types/dominio";
  * se a linha vira lançamento novo ou fecha uma pendência existente.
  */
 
-export type StatusLinhaImportacao = "NOVA" | "DUPLICADA" | "CONCILIAVEL";
+export type StatusLinhaImportacao = "NOVA" | "DUPLICADA" | "CONCILIAVEL" | "IGNORADA";
 
 export type LinhaImportacao = {
   /** FITID do OFX — também a chave de dedup gravada em `origemFitId`. */
@@ -28,8 +28,14 @@ export type LinhaImportacao = {
   categoriaSugerida: CategoriaResumo | null;
   /** Só em `CONCILIAVEL`: o compromisso em aberto que esta linha resolve. */
   conciliaCom: MovimentacaoResumo | null;
-  /** Seleção de importação. Duplicadas nascem desmarcadas. */
+  /** Seleção de importação. Duplicadas e ignoradas nascem desmarcadas. */
   incluir: boolean;
+  /**
+   * Marcada nesta revisão pra nunca mais ser sugerida: não vira lançamento
+   * nenhum, só grava a chave de dedup (`ImportacaoLinha.contaId`+`fitId`) —
+   * é o que faz o status virar `IGNORADA` se o mesmo arquivo for reimportado.
+   */
+  ignorarPermanentemente: boolean;
   /**
    * Categoria e fornecedor escolhidos na revisão, antes de confirmar.
    * Em linhas `CONCILIAVEL` nascem pré-preenchidos com o que já está na
@@ -58,4 +64,5 @@ export type ResumoImportacao = {
 export type ResultadoConfirmacao = {
   criadas: number;
   conciliadas: number;
+  ignoradas: number;
 };

@@ -69,6 +69,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
       </p>
 
       <ListaMovimentacoes
+        key={JSON.stringify(filtro)}
         grupos={pagina.grupos}
         proximoCursor={pagina.proximoCursor}
         filtro={filtro}

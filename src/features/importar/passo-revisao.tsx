@@ -18,6 +18,7 @@ const ABAS: { valor: Aba; rotulo: string }[] = [
   { valor: "NOVA", rotulo: "Novas" },
   { valor: "CONCILIAVEL", rotulo: "Conciliáveis" },
   { valor: "DUPLICADA", rotulo: "Duplicadas" },
+  { valor: "IGNORADA", rotulo: "Ignoradas" },
 ];
 
 /**
@@ -35,6 +36,7 @@ export function PassoRevisao({
   confirmando,
   aoAlternarLinha,
   aoAtualizarLinha,
+  aoAlternarIgnorarPermanentemente,
   aoVoltar,
   aoConfirmar,
 }: {
@@ -57,6 +59,7 @@ export function PassoRevisao({
       contaTransferenciaId?: string | null;
     },
   ) => void;
+  aoAlternarIgnorarPermanentemente: (id: string) => void;
   aoVoltar: () => void;
   aoConfirmar: () => void;
 }) {
@@ -68,6 +71,7 @@ export function PassoRevisao({
       NOVA: linhas.filter((l) => l.status === "NOVA").length,
       CONCILIAVEL: linhas.filter((l) => l.status === "CONCILIAVEL").length,
       DUPLICADA: linhas.filter((l) => l.status === "DUPLICADA").length,
+      IGNORADA: linhas.filter((l) => l.status === "IGNORADA").length,
     }),
     [linhas],
   );
@@ -75,6 +79,7 @@ export function PassoRevisao({
   const visiveis = aba === "todas" ? linhas : linhas.filter((l) => l.status === aba);
   const incluidas = linhas.filter((l) => l.incluir);
   const selecionadas = incluidas.length;
+  const ignorando = linhas.filter((l) => l.ignorarPermanentemente).length;
   // Marcou como transferência mas não escolheu "o outro lado" ainda — não dá
   // pra confirmar sem isso, a linha ficaria sem conta de destino/origem.
   const transferenciaIncompleta = incluidas.some(
@@ -111,6 +116,7 @@ export function PassoRevisao({
             contatos={contatos}
             aoAlternar={aoAlternarLinha}
             aoAtualizar={aoAtualizarLinha}
+            aoAlternarIgnorarPermanentemente={aoAlternarIgnorarPermanentemente}
           />
         ))}
       </div>
@@ -122,14 +128,16 @@ export function PassoRevisao({
           </Button>
           <Button
             className="flex-1"
-            disabled={selecionadas === 0 || confirmando || transferenciaIncompleta}
+            disabled={(selecionadas === 0 && ignorando === 0) || confirmando || transferenciaIncompleta}
             onClick={aoConfirmar}
           >
             {confirmando
               ? "Importando…"
               : transferenciaIncompleta
                 ? "Escolha a conta da transferência"
-                : `Importar ${selecionadas} ${selecionadas === 1 ? "lançamento" : "lançamentos"}`}
+                : selecionadas === 0
+                  ? `Ignorar ${ignorando} ${ignorando === 1 ? "lançamento" : "lançamentos"}`
+                  : `Importar ${selecionadas} ${selecionadas === 1 ? "lançamento" : "lançamentos"}`}
           </Button>
         </div>
       </div>

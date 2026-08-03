@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Receipt, Tags, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
@@ -65,15 +65,12 @@ export function ListaMovimentacoes({
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [categorizando, setCategorizando] = useState(false);
   const [categoriaEscolhida, setCategoriaEscolhida] = useState("nenhuma");
+  // Sem sincronizar via efeito: a página troca a `key` deste componente
+  // (ver movimentacoes/page.tsx) toda vez que o filtro muda, o que remonta o
+  // componente do zero com os dados novos em vez de arriscar ficar preso na
+  // página antiga acumulada pelo "Carregar mais".
   const [grupos, setGrupos] = useState(gruposIniciais);
   const [proximoCursor, setProximoCursor] = useState(proximoCursorInicial);
-
-  // Troca de filtro/período dispara nova busca no servidor — sincroniza o
-  // estado local, senão a lista fica presa na página antiga carregada antes.
-  useEffect(() => {
-    setGrupos(gruposIniciais);
-    setProximoCursor(proximoCursorInicial);
-  }, [gruposIniciais, proximoCursorInicial]);
 
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
   const emSelecao = modoSelecao;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CircleCheck, GitMerge, Plus } from "lucide-react";
+import { CircleCheck, EyeOff, GitMerge, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ResultadoConfirmacao } from "@/services/importacao/dto";
@@ -46,6 +46,15 @@ export function PassoConfirmacao({
             <span className="text-ink">
               {resultado.conciliadas}{" "}
               {resultado.conciliadas === 1 ? "pendência fechada" : "pendências fechadas"}
+            </span>
+          </div>
+        )}
+        {resultado.ignoradas > 0 && (
+          <div className="flex items-center gap-2 text-micro">
+            <EyeOff className="size-3.5 shrink-0 text-ink-muted" aria-hidden="true" />
+            <span className="text-ink">
+              {resultado.ignoradas}{" "}
+              {resultado.ignoradas === 1 ? "lançamento ignorado" : "lançamentos ignorados"}
             </span>
           </div>
         )}
