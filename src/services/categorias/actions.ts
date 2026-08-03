@@ -13,29 +13,35 @@ async function obterEmpresa() {
 }
 
 /**
- * Subcategoria nunca decide a própria linha da DRE nem o próprio ícone —
- * herda os dois da mãe, sempre. O formulário já manda isso pré-preenchido,
- * mas confiar só no cliente deixaria a regra furável; aqui é onde ela é
+ * Subcategoria nunca decide a própria linha da DRE, ícone ou cor — herda os
+ * três da mãe, sempre. O formulário já manda isso pré-preenchido, mas
+ * confiar só no cliente deixaria a regra furável; aqui é onde ela é
  * garantida de verdade.
  */
 async function heredadoDaMae(empresaId: string, dados: FormularioCategoria) {
-  if (!dados.categoriaPaiId) return { linhaDreId: dados.linhaDreId, icone: dados.icone };
+  if (!dados.categoriaPaiId) {
+    return { linhaDreId: dados.linhaDreId, icone: dados.icone, cor: dados.cor };
+  }
   const pai = await db.categoria.findFirst({
     where: { id: dados.categoriaPaiId, empresaId },
-    select: { linhaDreId: true, icone: true },
+    select: { linhaDreId: true, icone: true, cor: true },
   });
-  return { linhaDreId: pai?.linhaDreId ?? null, icone: pai?.icone ?? dados.icone };
+  return {
+    linhaDreId: pai?.linhaDreId ?? null,
+    icone: pai?.icone ?? dados.icone,
+    cor: pai?.cor ?? dados.cor,
+  };
 }
 
 export async function criarCategoria(dados: FormularioCategoria) {
   const empresaId = await obterEmpresa();
-  const { linhaDreId, icone } = await heredadoDaMae(empresaId, dados);
+  const { linhaDreId, icone, cor } = await heredadoDaMae(empresaId, dados);
   await db.categoria.create({
     data: {
       empresaId,
       nome: dados.nome,
       icone,
-      cor: dados.cor,
+      cor,
       tipo: dados.tipo,
       linhaDreId,
       categoriaPaiId: dados.categoriaPaiId,
@@ -46,24 +52,24 @@ export async function criarCategoria(dados: FormularioCategoria) {
 
 export async function editarCategoria(id: string, dados: FormularioCategoria) {
   const empresaId = await obterEmpresa();
-  const { linhaDreId, icone } = await heredadoDaMae(empresaId, dados);
+  const { linhaDreId, icone, cor } = await heredadoDaMae(empresaId, dados);
   await db.categoria.update({
     where: { id, empresaId },
     data: {
       nome: dados.nome,
       icone,
-      cor: dados.cor,
+      cor,
       tipo: dados.tipo,
       linhaDreId,
       categoriaPaiId: dados.categoriaPaiId,
     },
   });
-  // Trocar a linha ou o ícone da mãe precisa arrastar as subcategorias
-  // junto — senão elas ficam presas no valor antigo, quebrando a regra de
-  // sempre herdar.
+  // Trocar a linha, o ícone ou a cor da mãe precisa arrastar as
+  // subcategorias junto — senão elas ficam presas no valor antigo,
+  // quebrando a regra de sempre herdar.
   await db.categoria.updateMany({
     where: { categoriaPaiId: id, empresaId },
-    data: { linhaDreId, icone },
+    data: { linhaDreId, icone, cor },
   });
   revalidatePath("/categorias");
   revalidatePath("/dre");

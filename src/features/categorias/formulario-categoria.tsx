@@ -123,13 +123,14 @@ export function FormularioCategoria({
     }
   }, [paisDisponiveis, categoriaPaiId, setValue]);
 
-  // Subcategoria nunca escolhe linha nem ícone próprios — herda os dois da
-  // mãe, sempre. Faz a DRE somar as duas na mesma linha, aninhar a
+  // Subcategoria nunca escolhe linha, ícone ou cor próprios — herda os três
+  // da mãe, sempre. Faz a DRE somar as duas na mesma linha, aninhar a
   // subcategoria por baixo, e a lista de categorias ler como uma família só.
   useEffect(() => {
     if (!paiSelecionado) return;
     setValue("linhaDreId", paiSelecionado.linhaDreId ?? SEM_LINHA);
     setValue("icone", paiSelecionado.icone);
+    setValue("cor", paiSelecionado.cor);
   }, [paiSelecionado, setValue]);
 
   function enviar(dados: z.infer<typeof schema>) {
@@ -232,22 +233,29 @@ export function FormularioCategoria({
 
       <div className="space-y-1.5">
         <Label>Cor</Label>
-        <div className="flex flex-wrap gap-2">
-          {PALETA_CORES.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={`Cor ${c}`}
-              aria-pressed={cor === c}
-              onClick={() => setValue("cor", c)}
-              className={cn(
-                "size-8 rounded-full ring-offset-2 transition-shadow",
-                cor === c && "ring-2 ring-ink",
-              )}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
+        {paiSelecionado ? (
+          <p className="text-nano text-ink-muted">
+            Subcategoria usa a mesma cor de &quot;{paiSelecionado.nome}&quot; — sem escolha
+            própria, pra família de categorias ficar visualmente óbvia na lista.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {PALETA_CORES.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Cor ${c}`}
+                aria-pressed={cor === c}
+                onClick={() => setValue("cor", c)}
+                className={cn(
+                  "size-8 rounded-full ring-offset-2 transition-shadow",
+                  cor === c && "ring-2 ring-ink",
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-1.5">
