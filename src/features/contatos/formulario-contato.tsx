@@ -62,6 +62,12 @@ export function FormularioContato({
   return (
     <form id={FORM_ID_CONTATO} onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
+        <Label htmlFor="nome">Nome</Label>
+        <Input id="nome" {...register("nome")} placeholder="Ex.: Distribuidora Central" className="h-11" />
+        {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
+      </div>
+
+      <div className="space-y-1.5">
         <Label htmlFor="documento">CPF ou CNPJ</Label>
         <Input
           id="documento"

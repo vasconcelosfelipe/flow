@@ -49,7 +49,7 @@ export function FormularioConvite({
   const papel = watch("papel");
 
   return (
-    <form id={FORM_ID_CONVITE} onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2">
+    <form id={FORM_ID_CONVITE} onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2 pb-6">
       <div className="space-y-1.5">
         <Label htmlFor="nome">Nome</Label>
         <Input id="nome" {...register("nome")} placeholder="Ex.: Camila Rocha" className="h-11" />

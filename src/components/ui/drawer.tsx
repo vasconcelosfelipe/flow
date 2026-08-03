@@ -8,7 +8,21 @@ import { cn } from "@/lib/utils"
 function Drawer({
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      // O viewport do app já usa `interactiveWidget: overlays-content` (ver
+      // src/app/layout.tsx) pra impedir o teclado de redimensionar o layout
+      // e empurrar a barra inferior fixa. O reposicionamento automático do
+      // vaul (que desloca a gaveta pra manter o campo focado visível) lê o
+      // tamanho do visualViewport de qualquer forma e entra em conflito com
+      // isso — o rodapé "sobe" com o teclado de um jeito descolado do
+      // conteúdo. Desligado, a gaveta fica parada e o teclado só cobre por
+      // cima, coerente com o resto do app.
+      repositionInputs={false}
+      {...props}
+    />
+  )
 }
 
 function DrawerTrigger({

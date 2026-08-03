@@ -117,7 +117,9 @@ export async function listarMovimentacoes(
     ...(filtro.busca
       ? { descricao: { contains: filtro.busca, mode: "insensitive" as const } }
       : {}),
-    ...(filtro.semCategoria ? { categoriaId: null, data: { not: null } } : {}),
+    ...(filtro.semCategoria
+      ? { categoriaId: null, data: { not: null }, transferenciaId: null }
+      : {}),
     ...(filtro.de || filtro.ate
       ? {
           OR: [
@@ -186,7 +188,9 @@ export async function listarMovimentacoes(
 
 export async function contarSemCategoria(empresaId: string): Promise<number> {
   return db.movimentacao.count({
-    where: { empresaId, categoriaId: null, data: { not: null } },
+    // Transferência nunca tem categoria por design (não é receita nem
+    // despesa de verdade) — não conta como "esqueceram de categorizar".
+    where: { empresaId, categoriaId: null, data: { not: null }, transferenciaId: null },
   });
 }
 
