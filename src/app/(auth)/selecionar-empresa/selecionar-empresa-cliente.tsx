@@ -1,12 +1,25 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { Building2, ChevronRight } from "lucide-react";
 
+import { selecionarEmpresa } from "@/services/empresas/actions";
 import { ROTULO_PAPEL } from "@/types/dominio";
 import type { EmpresaResumo } from "@/services/empresas/dto";
 
 export function SelecionarEmpresaCliente({ empresas }: { empresas: EmpresaResumo[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function escolher(slug: string) {
+    startTransition(async () => {
+      await selecionarEmpresa(slug);
+      router.push("/");
+      router.refresh();
+    });
+  }
+
   return (
     <div>
       <h1 className="text-titulo font-semibold text-night-text">Escolha uma empresa</h1>
@@ -16,10 +29,12 @@ export function SelecionarEmpresaCliente({ empresas }: { empresas: EmpresaResumo
 
       <div className="mt-6 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-night">
         {empresas.map((empresa) => (
-          <Link
+          <button
             key={empresa.id}
-            href="/"
-            className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+            type="button"
+            disabled={pending}
+            onClick={() => escolher(empresa.slug)}
+            className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none disabled:opacity-60"
           >
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-wash text-brand">
               <Building2 className="size-4.5" aria-hidden="true" />
@@ -31,7 +46,7 @@ export function SelecionarEmpresaCliente({ empresas }: { empresas: EmpresaResumo
               </span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-ink-muted/50" aria-hidden="true" />
-          </Link>
+          </button>
         ))}
       </div>
     </div>

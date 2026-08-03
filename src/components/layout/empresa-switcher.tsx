@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { Building2, Check, ChevronsUpDown } from "lucide-react";
 
 import {
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { selecionarEmpresa } from "@/services/empresas/actions";
 import type { EmpresaResumo } from "@/services/empresas/dto";
 import { ROTULO_PAPEL } from "@/types/dominio";
 
@@ -36,7 +38,16 @@ export function EmpresaSwitcher({
   mostrarConsole = false,
 }: EmpresaSwitcherProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const unica = empresas.length <= 1;
+
+  function trocarPara(slug: string) {
+    startTransition(async () => {
+      await selecionarEmpresa(slug);
+      router.push("/");
+      router.refresh();
+    });
+  }
 
   if (unica && !mostrarConsole) {
     return (
@@ -71,7 +82,7 @@ export function EmpresaSwitcher({
           return (
             <DropdownMenuItem
               key={empresa.id}
-              onSelect={() => router.push(`/?empresa=${empresa.slug}`)}
+              onSelect={() => trocarPara(empresa.slug)}
               className="gap-2"
             >
               <span className="min-w-0 flex-1">

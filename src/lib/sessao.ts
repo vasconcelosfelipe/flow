@@ -1,8 +1,9 @@
 import { cache } from "react";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { COOKIE_EMPRESA_ATIVA } from "@/services/empresas/actions";
 import type { SessaoAtual } from "@/services/empresas/dto";
 
 /**
@@ -56,9 +57,13 @@ export const requireSessao = cache(async function requireSessao(
     papel: m.papel,
   }));
 
-  // Resolve empresa ativa: slug da URL > primeira da lista
+  // Resolve empresa ativa: parâmetro explícito > cookie de preferência
+  // (gravado por `selecionarEmpresa`) > primeira da lista.
+  const store = await cookies();
+  const slugDoCookie = store.get(COOKIE_EMPRESA_ATIVA)?.value;
   const ativa =
     (empresaSlug ? empresas.find((e) => e.slug === empresaSlug) : null) ??
+    (slugDoCookie ? empresas.find((e) => e.slug === slugDoCookie) : null) ??
     empresas[0];
 
   return {
