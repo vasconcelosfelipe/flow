@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { parseMoeda } from "@/lib/money";
+import { cn } from "@/lib/utils";
 import { criarMovimentacao } from "@/services/movimentacoes/actions";
 
 type OpcaoConta = { id: string; nome: string };
@@ -26,6 +27,7 @@ type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
+const FORM_ID = "form-nova-movimentacao";
 
 export function BotoesMovimentacoes({
   contas,
@@ -115,20 +117,24 @@ export function BotoesMovimentacoes({
         aoMudarAberto={(v) => { setAberto(v); if (!v) resetar(); }}
         titulo="Nova movimentação"
         descricao="Registre uma entrada ou saída manualmente."
+        rodape={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => { setAberto(false); resetar(); }}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" form={FORM_ID} size="lg" className="flex-1" disabled={pending || !contaId}>
+              {pending ? "Salvando…" : "Salvar"}
+            </Button>
+          </>
+        }
       >
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="nov-descricao">Descrição</Label>
-            <Input
-              id="nov-descricao"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex: Aluguel de equipamento"
-              className="h-11"
-              required
-            />
-          </div>
-
+        <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label htmlFor="nov-valor">Valor (R$)</Label>
             <Input
@@ -148,16 +154,38 @@ export function BotoesMovimentacoes({
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="nov-descricao">Descrição</Label>
+            <Input
+              id="nov-descricao"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex: Aluguel de equipamento"
+              className="h-11"
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Tipo</Label>
-            <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="RECEITA">Receita</SelectItem>
-                <SelectItem value="DESPESA">Despesa</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-2">
+              {(["DESPESA", "RECEITA"] as const).map((valorTipo) => (
+                <button
+                  key={valorTipo}
+                  type="button"
+                  onClick={() => setTipo(valorTipo)}
+                  className={cn(
+                    "h-11 rounded-lg border text-micro font-medium transition-colors",
+                    tipo === valorTipo
+                      ? valorTipo === "RECEITA"
+                        ? "border-positive bg-positive-wash text-positive-text"
+                        : "border-negative bg-negative-wash text-negative-text"
+                      : "border-line text-ink-muted hover:bg-muted",
+                  )}
+                >
+                  {valorTipo === "RECEITA" ? "Receita" : "Despesa"}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -231,21 +259,6 @@ export function BotoesMovimentacoes({
               </Select>
             </div>
           )}
-
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="flex-1"
-              onClick={() => { setAberto(false); resetar(); }}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" size="lg" className="flex-1" disabled={pending || !contaId}>
-              {pending ? "Salvando…" : "Salvar"}
-            </Button>
-          </div>
         </form>
       </ResponsiveModal>
     </>

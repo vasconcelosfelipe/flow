@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
@@ -34,6 +34,7 @@ type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
+const FORM_EDICAO_ID = "form-editar-movimentacao";
 
 /**
  * Detalhe de uma movimentação, em folha (celular) ou diálogo (desktop) via
@@ -56,6 +57,7 @@ export function DetalheMovimentacaoSheet({
   aoFechar: () => void;
 }) {
   const [editando, setEditando] = useState(false);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   if (!movimentacao) return null;
 
@@ -71,7 +73,28 @@ export function DetalheMovimentacaoSheet({
       titulo={editando ? "Editar movimentação" : movimentacao.descricao}
       descricao={editando ? "Ajuste os dados deste lançamento." : "Detalhes da movimentação selecionada."}
       rodape={
-        editando ? undefined : (
+        editando ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => setEditando(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form={FORM_EDICAO_ID}
+              size="lg"
+              className="flex-1"
+              disabled={salvandoEdicao}
+            >
+              {salvandoEdicao ? "Salvando…" : "Salvar"}
+            </Button>
+          </>
+        ) : (
           <>
             <Button variant="outline" className="flex-1" onClick={aoFechar}>
               Fechar
@@ -89,11 +112,11 @@ export function DetalheMovimentacaoSheet({
           contas={contas}
           categorias={categorias}
           contatos={contatos}
+          aoPendingChange={setSalvandoEdicao}
           aoSalvar={() => {
             setEditando(false);
             aoFechar();
           }}
-          aoCancelar={() => setEditando(false)}
         />
       ) : (
         <Detalhe movimentacao={movimentacao} aoRemover={aoFechar} />
@@ -246,17 +269,22 @@ function FormularioEdicao({
   categorias,
   contatos,
   aoSalvar,
-  aoCancelar,
+  aoPendingChange,
 }: {
   movimentacao: MovimentacaoResumo;
   contas: OpcaoConta[];
   categorias: OpcaoCategoria[];
   contatos: OpcaoContato[];
   aoSalvar: () => void;
-  aoCancelar: () => void;
+  aoPendingChange: (pending: boolean) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    aoPendingChange(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending]);
 
   const dataInicial = (movimentacao.data ?? movimentacao.dataVencimento ?? new Date())
     .toISOString()
@@ -302,18 +330,7 @@ function FormularioEdicao({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-2">
-      <div className="space-y-1.5">
-        <Label htmlFor="edit-descricao">Descrição</Label>
-        <Input
-          id="edit-descricao"
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          className="h-11"
-          required
-        />
-      </div>
-
+    <form id={FORM_EDICAO_ID} onSubmit={handleSubmit} className="space-y-4 py-2">
       <div className="space-y-1.5">
         <Label htmlFor="edit-valor">Valor (R$)</Label>
         <Input
@@ -329,6 +346,17 @@ function FormularioEdicao({
           required
         />
         {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-descricao">Descrição</Label>
+        <Input
+          id="edit-descricao"
+          value={descricao}
+          onChange={(e) => setDescricao(e.target.value)}
+          className="h-11"
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -414,15 +442,6 @@ function FormularioEdicao({
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
         />
-      </div>
-
-      <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" size="lg" className="flex-1" onClick={aoCancelar}>
-          Cancelar
-        </Button>
-        <Button type="submit" size="lg" className="flex-1" disabled={pending}>
-          {pending ? "Salvando…" : "Salvar"}
-        </Button>
       </div>
     </form>
   );
