@@ -76,6 +76,9 @@ export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInpu
  * Uma movimentação conciliada está casada com uma linha do extrato
  * importado — excluí-la direto apagaria essa conciliação sem avisar.
  * Por isso é bloqueado até a pessoa desfazer a conciliação primeiro.
+ *
+ * Uma perna de transferência nunca some sozinha — cancela o par inteiro,
+ * senão o dinheiro "some" de uma conta sem nunca ter "chegado" na outra.
  */
 export async function excluirMovimentacao(id: string) {
   const empresaId = await obterEmpresa();
@@ -83,9 +86,79 @@ export async function excluirMovimentacao(id: string) {
   if (mov.status === "CONCILIADO") {
     throw new Error("Desfaça a conciliação antes de excluir esta movimentação.");
   }
-  await db.movimentacao.update({ where: { id, empresaId }, data: { status: "CANCELADO" } });
+  if (mov.transferenciaId) {
+    await db.movimentacao.updateMany({
+      where: { empresaId, transferenciaId: mov.transferenciaId },
+      data: { status: "CANCELADO" },
+    });
+  } else {
+    await db.movimentacao.update({ where: { id, empresaId }, data: { status: "CANCELADO" } });
+  }
   revalidatePath("/movimentacoes");
   revalidatePath("/a-pagar-receber");
+  revalidatePath("/");
+}
+
+export type NovaTransferenciaInput = {
+  contaOrigemId: string;
+  contaDestinoId: string;
+  valorCentavos: number;
+  data: string; // ISO date string YYYY-MM-DD
+  descricao?: string;
+};
+
+/**
+ * Transferência vira duas movimentações ligadas por `transferenciaId`: uma
+ * DESPESA na conta de origem, uma RECEITA na de destino. Nenhuma categoria
+ * nem contato — não é receita nem despesa de verdade, é o mesmo dinheiro
+ * mudando de bolso, e fica fora da DRE por não apontar pra nenhuma linha.
+ */
+export async function criarTransferencia(dados: NovaTransferenciaInput) {
+  const empresaId = await obterEmpresa();
+  if (dados.contaOrigemId === dados.contaDestinoId) {
+    throw new Error("Escolha duas contas diferentes para a transferência.");
+  }
+
+  const [origem, destino] = await Promise.all([
+    db.conta.findFirstOrThrow({ where: { id: dados.contaOrigemId, empresaId } }),
+    db.conta.findFirstOrThrow({ where: { id: dados.contaDestinoId, empresaId } }),
+  ]);
+
+  const data = new Date(dados.data);
+  const transferenciaId = crypto.randomUUID();
+  const descricaoOrigem = dados.descricao?.trim() || `Transferência para ${destino.nome}`;
+  const descricaoDestino = dados.descricao?.trim() || `Transferência de ${origem.nome}`;
+
+  await db.$transaction([
+    db.movimentacao.create({
+      data: {
+        empresaId,
+        contaId: dados.contaOrigemId,
+        descricao: descricaoOrigem,
+        tipo: "DESPESA",
+        valorCentavos: dados.valorCentavos,
+        status: "PAGO",
+        data,
+        dataCompetencia: data,
+        transferenciaId,
+      },
+    }),
+    db.movimentacao.create({
+      data: {
+        empresaId,
+        contaId: dados.contaDestinoId,
+        descricao: descricaoDestino,
+        tipo: "RECEITA",
+        valorCentavos: dados.valorCentavos,
+        status: "PAGO",
+        data,
+        dataCompetencia: data,
+        transferenciaId,
+      },
+    }),
+  ]);
+
+  revalidatePath("/movimentacoes");
   revalidatePath("/");
 }
 

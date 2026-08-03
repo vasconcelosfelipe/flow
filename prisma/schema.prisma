@@ -288,6 +288,12 @@ model Movimentacao {
   // FITID do OFX de origem — chave de deduplicação: reimportar o mesmo
   // extrato não cria lançamento duplicado. `null` para lançamentos manuais.
   origemFitId     String?
+  // Transferência entre contas próprias vira DUAS movimentações (uma DESPESA
+  // na conta de origem, uma RECEITA na de destino) compartilhando este id —
+  // é o que liga o par pra excluir/exibir junto. `null` = lançamento comum.
+  // Sem categoria nem contato de propósito: transferência não é receita nem
+  // despesa de verdade, e já fica fora da DRE por não ter linhaDreId.
+  transferenciaId String?
 
   criadoEm       DateTime          @default(now())
   atualizadoEm   DateTime          @updatedAt
@@ -301,6 +307,7 @@ model Movimentacao {
   importacoes    ImportacaoLinha[]
 
   @@unique([contaId, origemFitId])
+  @@index([transferenciaId])
   @@index([empresaId, data])
   @@index([empresaId, dataVencimento])
   @@index([empresaId, dataCompetencia])

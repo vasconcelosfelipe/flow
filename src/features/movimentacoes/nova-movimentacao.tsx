@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition, useState } from "react";
-import { Plus, Upload } from "lucide-react";
+import { ArrowLeftRight, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -19,15 +19,22 @@ import {
 } from "@/components/ui/select";
 import { parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { criarMovimentacao } from "@/services/movimentacoes/actions";
+import { criarMovimentacao, criarTransferencia } from "@/services/movimentacoes/actions";
 
 type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
 type OpcaoContato = { id: string; nome: string };
+type TipoLancamento = "DESPESA" | "RECEITA" | "TRANSFERENCIA";
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
 const FORM_ID = "form-nova-movimentacao";
+
+const TIPOS: { valor: TipoLancamento; rotulo: string }[] = [
+  { valor: "DESPESA", rotulo: "Despesa" },
+  { valor: "RECEITA", rotulo: "Receita" },
+  { valor: "TRANSFERENCIA", rotulo: "Transferência" },
+];
 
 export function BotoesMovimentacoes({
   contas,
@@ -45,13 +52,16 @@ export function BotoesMovimentacoes({
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [erroValor, setErroValor] = useState<string | null>(null);
-  const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
+  const [tipo, setTipo] = useState<TipoLancamento>("DESPESA");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [status, setStatus] = useState<"PAGO" | "PENDENTE" | "CONCILIADO">("PAGO");
   const [contaId, setContaId] = useState(contas[0]?.id ?? "");
+  const [contaDestinoId, setContaDestinoId] = useState(contas[1]?.id ?? contas[0]?.id ?? "");
   const [categoriaId, setCategoriaId] = useState(SEM_CATEGORIA);
   const [contatoId, setContatoId] = useState(SEM_FORNECEDOR);
+  const [erroTransferencia, setErroTransferencia] = useState<string | null>(null);
 
+  const transferencia = tipo === "TRANSFERENCIA";
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
 
   useEffect(() => {
@@ -64,10 +74,12 @@ export function BotoesMovimentacoes({
     setDescricao("");
     setValor("");
     setErroValor(null);
+    setErroTransferencia(null);
     setTipo("DESPESA");
     setData(new Date().toISOString().slice(0, 10));
     setStatus("PAGO");
     setContaId(contas[0]?.id ?? "");
+    setContaDestinoId(contas[1]?.id ?? contas[0]?.id ?? "");
     setCategoriaId(SEM_CATEGORIA);
     setContatoId(SEM_FORNECEDOR);
   }
@@ -80,6 +92,27 @@ export function BotoesMovimentacoes({
       return;
     }
     if (!contaId) return;
+
+    if (transferencia) {
+      if (contaId === contaDestinoId) {
+        setErroTransferencia("Escolha duas contas diferentes.");
+        return;
+      }
+      startTransition(async () => {
+        await criarTransferencia({
+          contaOrigemId: contaId,
+          contaDestinoId,
+          valorCentavos: centavos,
+          data,
+          descricao: descricao || undefined,
+        });
+        setAberto(false);
+        resetar();
+        router.refresh();
+      });
+      return;
+    }
+
     startTransition(async () => {
       await criarMovimentacao({
         descricao,
@@ -116,7 +149,7 @@ export function BotoesMovimentacoes({
         aberto={aberto}
         aoMudarAberto={(v) => { setAberto(v); if (!v) resetar(); }}
         titulo="Nova movimentação"
-        descricao="Registre uma entrada ou saída manualmente."
+        descricao="Registre uma entrada, saída ou transferência entre contas."
         rodape={
           <>
             <Button
@@ -154,110 +187,162 @@ export function BotoesMovimentacoes({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="nov-descricao">Descrição</Label>
+            <Label htmlFor="nov-descricao">Descrição{transferencia && " (opcional)"}</Label>
             <Input
               id="nov-descricao"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex: Aluguel de equipamento"
+              placeholder={transferencia ? "Ex: Reforço de caixa" : "Ex: Aluguel de equipamento"}
               className="h-11"
-              required
+              required={!transferencia}
             />
           </div>
 
           <div className="space-y-1.5">
             <Label>Tipo</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(["DESPESA", "RECEITA"] as const).map((valorTipo) => (
+            <div className="grid grid-cols-3 gap-2">
+              {TIPOS.map((t) => (
                 <button
-                  key={valorTipo}
+                  key={t.valor}
                   type="button"
-                  onClick={() => setTipo(valorTipo)}
+                  onClick={() => setTipo(t.valor)}
                   className={cn(
-                    "h-11 rounded-lg border text-micro font-medium transition-colors",
-                    tipo === valorTipo
-                      ? valorTipo === "RECEITA"
+                    "flex h-11 items-center justify-center gap-1 rounded-lg border text-micro font-medium transition-colors",
+                    tipo === t.valor
+                      ? t.valor === "RECEITA"
                         ? "border-positive bg-positive-wash text-positive-text"
-                        : "border-negative bg-negative-wash text-negative-text"
+                        : t.valor === "DESPESA"
+                          ? "border-negative bg-negative-wash text-negative-text"
+                          : "border-brand bg-brand-wash text-brand"
                       : "border-line text-ink-muted hover:bg-muted",
                   )}
                 >
-                  {valorTipo === "RECEITA" ? "Receita" : "Despesa"}
+                  {t.valor === "TRANSFERENCIA" && <ArrowLeftRight className="size-3.5" aria-hidden="true" />}
+                  {t.rotulo}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Categoria</Label>
-            <SearchableSelect
-              value={categoriaId}
-              onValueChange={setCategoriaId}
-              placeholder="Sem categoria"
-              searchPlaceholder="Buscar categoria…"
-              emptyText="Nenhuma categoria encontrada."
-              options={[
-                { value: SEM_CATEGORIA, label: "Sem categoria" },
-                ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
-            />
-          </div>
+          {transferencia ? (
+            <>
+              <div className="space-y-1.5">
+                <Label>Conta de origem</Label>
+                <Select value={contaId} onValueChange={setContaId}>
+                  <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contas.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-1.5">
-            <Label>Fornecedor/Cliente</Label>
-            <SearchableSelect
-              value={contatoId}
-              onValueChange={setContatoId}
-              placeholder="Sem fornecedor/cliente"
-              searchPlaceholder="Buscar fornecedor/cliente…"
-              emptyText="Nenhum fornecedor/cliente encontrado."
-              options={[
-                { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-                ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
-            />
-          </div>
+              <div className="space-y-1.5">
+                <Label>Conta de destino</Label>
+                <Select value={contaDestinoId} onValueChange={setContaDestinoId}>
+                  <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contas.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {erroTransferencia && (
+                  <p className="text-nano text-negative-text">{erroTransferencia}</p>
+                )}
+              </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="nov-data">Data</Label>
-            <Input
-              id="nov-data"
-              type="date"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              className="h-11"
-              required
-            />
-          </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nov-data">Data</Label>
+                <Input
+                  id="nov-data"
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className="h-11"
+                  required
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-1.5">
+                <Label>Categoria</Label>
+                <SearchableSelect
+                  value={categoriaId}
+                  onValueChange={setCategoriaId}
+                  placeholder="Sem categoria"
+                  searchPlaceholder="Buscar categoria…"
+                  emptyText="Nenhuma categoria encontrada."
+                  options={[
+                    { value: SEM_CATEGORIA, label: "Sem categoria" },
+                    ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+                  ]}
+                />
+              </div>
 
-          <div className="space-y-1.5">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PAGO">Pago</SelectItem>
-                <SelectItem value="PENDENTE">Pendente</SelectItem>
-                <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-1.5">
+                <Label>Fornecedor/Cliente</Label>
+                <SearchableSelect
+                  value={contatoId}
+                  onValueChange={setContatoId}
+                  placeholder="Sem fornecedor/cliente"
+                  searchPlaceholder="Buscar fornecedor/cliente…"
+                  emptyText="Nenhum fornecedor/cliente encontrado."
+                  options={[
+                    { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+                    ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+                  ]}
+                />
+              </div>
 
-          {contas.length > 0 && (
-            <div className="space-y-1.5">
-              <Label>Conta</Label>
-              <Select value={contaId} onValueChange={setContaId}>
-                <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {contas.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="nov-data">Data</Label>
+                <Input
+                  id="nov-data"
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className="h-11"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+                  <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PAGO">Pago</SelectItem>
+                    <SelectItem value="PENDENTE">Pendente</SelectItem>
+                    <SelectItem value="CONCILIADO">Conciliado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {contas.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label>Conta</Label>
+                  <Select value={contaId} onValueChange={setContaId}>
+                    <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contas.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
           )}
         </form>
       </ResponsiveModal>

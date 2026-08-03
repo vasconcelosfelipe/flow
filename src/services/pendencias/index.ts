@@ -39,6 +39,7 @@ export async function listarPendencias(
     numeroParcela: m.numeroParcela,
     totalParcelas: m.totalParcelas,
     recorrente: m.recorrente,
+    transferenciaId: m.transferenciaId,
     categoria: m.categoria
       ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
       : null,

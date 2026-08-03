@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users } from "lucide-react";
+import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
@@ -61,6 +61,8 @@ export function DetalheMovimentacaoSheet({
 
   if (!movimentacao) return null;
 
+  const transferencia = movimentacao.transferenciaId !== null;
+
   return (
     <ResponsiveModal
       aberto={!!movimentacao}
@@ -94,6 +96,10 @@ export function DetalheMovimentacaoSheet({
               {salvandoEdicao ? "Salvando…" : "Salvar"}
             </Button>
           </>
+        ) : transferencia ? (
+          <Button variant="outline" className="flex-1" onClick={aoFechar}>
+            Fechar
+          </Button>
         ) : (
           <>
             <Button variant="outline" className="flex-1" onClick={aoFechar}>
@@ -135,7 +141,8 @@ function Detalhe({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
-  const Icone = movimentacao.categoria ? iconeDe(movimentacao.categoria.icone) : Tag;
+  const transferencia = movimentacao.transferenciaId !== null;
+  const Icone = transferencia ? ArrowLeftRight : movimentacao.categoria ? iconeDe(movimentacao.categoria.icone) : Tag;
   const receita = movimentacao.tipo === "RECEITA";
   const conciliada = movimentacao.status === "CONCILIADO";
 
@@ -160,9 +167,11 @@ function Detalhe({
         <span
           className="grid size-11 shrink-0 place-items-center rounded-xl"
           style={
-            movimentacao.categoria
-              ? { backgroundColor: `${movimentacao.categoria.cor}1a`, color: movimentacao.categoria.cor }
-              : { backgroundColor: "var(--attention-wash)", color: "var(--attention-text)" }
+            transferencia
+              ? { backgroundColor: "var(--brand-wash)", color: "var(--brand)" }
+              : movimentacao.categoria
+                ? { backgroundColor: `${movimentacao.categoria.cor}1a`, color: movimentacao.categoria.cor }
+                : { backgroundColor: "var(--attention-wash)", color: "var(--attention-text)" }
           }
         >
           <Icone className="size-5" aria-hidden="true" />
@@ -171,9 +180,12 @@ function Detalhe({
           <AmountText
             centavos={receita ? movimentacao.valorCentavos : -movimentacao.valorCentavos}
             tamanho="lg"
+            tom={transferencia ? "neutro" : "auto"}
           />
           <p className="text-micro text-ink-muted">
-            {movimentacao.categoria?.nome ?? "Sem categoria"}
+            {transferencia
+              ? "Transferência entre contas"
+              : (movimentacao.categoria?.nome ?? "Sem categoria")}
           </p>
         </div>
       </div>

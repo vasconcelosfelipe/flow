@@ -54,6 +54,8 @@ export type MovimentacaoResumo = {
   totalParcelas: number | null;
   /** Veio de uma regra de recorrência, não de lançamento avulso. */
   recorrente: boolean;
+  /** Não-nulo = uma perna de transferência entre contas — ver `transferenciaId`. */
+  transferenciaId: string | null;
 };
 
 export type MovimentacaoDetalhe = MovimentacaoResumo & {

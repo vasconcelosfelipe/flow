@@ -26,6 +26,12 @@ function realizadas(movs: MovimentacaoResumo[]) {
   );
 }
 
+/** Transferência entre contas não é receita, despesa, nem "sem categoria" —
+ * é o mesmo dinheiro mudando de bolso. Fora das métricas de resultado. */
+function semTransferencia(movs: MovimentacaoResumo[]) {
+  return movs.filter((m) => m.transferenciaId === null);
+}
+
 function somar(movs: MovimentacaoResumo[]): number {
   return movs.reduce((total, m) => total + m.valorCentavos, 0);
 }
@@ -143,6 +149,7 @@ export async function obterResumoDashboard(
     numeroParcela: m.numeroParcela,
     totalParcelas: m.totalParcelas,
     recorrente: m.recorrente,
+    transferenciaId: m.transferenciaId,
     categoria: m.categoria
       ? { id: m.categoria.id, nome: m.categoria.nome, icone: m.categoria.icone, cor: m.categoria.cor }
       : null,
@@ -150,14 +157,17 @@ export async function obterResumoDashboard(
     contato: m.contato ? { id: m.contato.id, nome: m.contato.nome } : null,
   }));
 
+  // Últimas movimentações mostram tudo (transferência inclusa — é atividade
+  // real da conta); resultado/série/histórico ficam de fora dela.
   const noPeriodo = realizadas(todas).filter(
     (m) => m.data !== null && isWithinInterval(m.data, { start: periodo.de, end: periodo.ate }),
   );
+  const noPeriodoSemTransferencia = semTransferencia(noPeriodo);
 
-  const receitas = somar(noPeriodo.filter((m) => m.tipo === "RECEITA"));
-  const despesas = somar(noPeriodo.filter((m) => m.tipo === "DESPESA"));
+  const receitas = somar(noPeriodoSemTransferencia.filter((m) => m.tipo === "RECEITA"));
+  const despesas = somar(noPeriodoSemTransferencia.filter((m) => m.tipo === "DESPESA"));
 
-  const historico = realizadas(todas);
+  const historico = semTransferencia(realizadas(todas));
   const saldoContas = contas.reduce((total, c) => {
     const saldo =
       c.saldoInicial +
@@ -199,6 +209,6 @@ export async function obterResumoDashboard(
       .slice()
       .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
       .slice(0, 6),
-    alertas: montarAlertas(todas, hoje),
+    alertas: montarAlertas(semTransferencia(todas), hoje),
   };
 }

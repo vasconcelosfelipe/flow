@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Clock, Repeat } from "lucide-react";
+import { AlertCircle, ArrowLeftRight, Clock, Repeat } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,10 +34,11 @@ export function TransactionRow({
   selecionada,
   aoAlternarSelecao,
 }: TransactionRowProps) {
-  const { categoria, contato, tipo, status } = movimentacao;
-  const Icone = categoria ? iconeDe(categoria.icone) : AlertCircle;
+  const { categoria, contato, tipo, status, transferenciaId } = movimentacao;
+  const transferencia = transferenciaId !== null;
+  const Icone = transferencia ? ArrowLeftRight : categoria ? iconeDe(categoria.icone) : AlertCircle;
   const receita = tipo === "RECEITA";
-  const semCategoria = categoria === null;
+  const semCategoria = categoria === null && !transferencia;
   const emSelecao = aoAlternarSelecao !== undefined;
   const previsto = status === "PREVISTO" || status === "PENDENTE";
 
@@ -65,8 +66,9 @@ export function TransactionRow({
         <span
           className={cn(
             "grid size-11 shrink-0 place-items-center rounded-xl",
+            transferencia && "bg-brand-wash text-brand",
             semCategoria && "bg-attention-wash text-attention",
-            previsto && !semCategoria && "border border-dashed",
+            previsto && !semCategoria && !transferencia && "border border-dashed",
           )}
           style={
             categoria && !previsto
@@ -90,14 +92,18 @@ export function TransactionRow({
           </span>
 
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-            {semCategoria ? (
+            {transferencia ? (
+              <span className="inline-flex items-center rounded-full bg-brand-wash px-2 py-0.5 text-nano font-medium text-brand">
+                Transferência entre contas
+              </span>
+            ) : semCategoria ? (
               <span className="text-nano font-medium text-attention-text">Sem categoria</span>
             ) : (
               <span
                 className="inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-nano font-medium"
-                style={{ backgroundColor: `${categoria.cor}1a`, color: categoria.cor }}
+                style={{ backgroundColor: `${categoria!.cor}1a`, color: categoria!.cor }}
               >
-                {categoria.nome}
+                {categoria!.nome}
               </span>
             )}
             {contato && (
@@ -119,6 +125,7 @@ export function TransactionRow({
 
         <AmountText
           centavos={receita ? movimentacao.valorCentavos : -movimentacao.valorCentavos}
+          tom={transferencia ? "neutro" : "auto"}
           className={cn("shrink-0", previsto && "opacity-60")}
         />
       </button>
