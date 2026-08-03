@@ -4,11 +4,19 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
 import { requireSessao } from "@/lib/sessao";
+import { listarMovimentacoes } from "@/services/movimentacoes";
+import type { FiltroMovimentacoes } from "@/services/movimentacoes/dto";
 
 async function obterEmpresa() {
   const sessao = await requireSessao();
   if (!sessao.empresaAtiva) throw new Error("Sem empresa ativa");
   return sessao.empresaAtiva.id;
+}
+
+/** Próxima página da lista de movimentações — mesma consulta da tela, só com cursor. */
+export async function buscarMaisMovimentacoes(filtro: FiltroMovimentacoes, cursor: string) {
+  const empresaId = await obterEmpresa();
+  return listarMovimentacoes(empresaId, filtro, cursor);
 }
 
 export type NovaMovimentacaoInput = {

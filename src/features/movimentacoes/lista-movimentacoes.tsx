@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Receipt, Tags, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
@@ -11,12 +11,31 @@ import { SearchableSelect } from "@/components/shared/searchable-select";
 import { TransactionRow } from "@/components/shared/transaction-row";
 import { Button } from "@/components/ui/button";
 import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet";
-import { atualizarCategoriaEmLote } from "@/services/movimentacoes/actions";
-import type { GrupoDiario } from "@/services/movimentacoes/dto";
+import { atualizarCategoriaEmLote, buscarMaisMovimentacoes } from "@/services/movimentacoes/actions";
+import type { FiltroMovimentacoes, GrupoDiario } from "@/services/movimentacoes/dto";
 
 type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
 type OpcaoContato = { id: string; nome: string };
+
+/** Junta a próxima página aos grupos já carregados — o único dia que pode se
+ * repetir entre páginas é a borda (último grupo da página anterior = primeiro
+ * da nova), já que a ordenação é sempre decrescente por data. */
+function mesclarGrupos(atuais: GrupoDiario[], novos: GrupoDiario[]): GrupoDiario[] {
+  if (atuais.length === 0) return novos;
+  if (novos.length === 0) return atuais;
+  const ultimo = atuais[atuais.length - 1];
+  const primeiro = novos[0];
+  if (ultimo.chave === primeiro.chave) {
+    const mesclado: GrupoDiario = {
+      ...ultimo,
+      itens: [...ultimo.itens, ...primeiro.itens],
+      totalCentavos: ultimo.totalCentavos + primeiro.totalCentavos,
+    };
+    return [...atuais.slice(0, -1), mesclado, ...novos.slice(1)];
+  }
+  return [...atuais, ...novos];
+}
 
 /**
  * Cabeçalho de grupo, linhas, e o modo de seleção múltipla — tudo num único
@@ -24,26 +43,51 @@ type OpcaoContato = { id: string; nome: string };
  * viver na URL nem no servidor.
  */
 export function ListaMovimentacoes({
-  grupos,
+  grupos: gruposIniciais,
+  proximoCursor: proximoCursorInicial = null,
+  filtro,
   contas = [],
   categorias = [],
   contatos = [],
 }: {
   grupos: GrupoDiario[];
+  proximoCursor?: string | null;
+  filtro: FiltroMovimentacoes;
   contas?: OpcaoConta[];
   categorias?: OpcaoCategoria[];
   contatos?: OpcaoContato[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [carregandoMais, setCarregandoMais] = useState(false);
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [categorizando, setCategorizando] = useState(false);
   const [categoriaEscolhida, setCategoriaEscolhida] = useState("nenhuma");
+  const [grupos, setGrupos] = useState(gruposIniciais);
+  const [proximoCursor, setProximoCursor] = useState(proximoCursorInicial);
+
+  // Troca de filtro/período dispara nova busca no servidor — sincroniza o
+  // estado local, senão a lista fica presa na página antiga carregada antes.
+  useEffect(() => {
+    setGrupos(gruposIniciais);
+    setProximoCursor(proximoCursorInicial);
+  }, [gruposIniciais, proximoCursorInicial]);
 
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
   const emSelecao = modoSelecao;
+
+  function carregarMais() {
+    if (!proximoCursor || carregandoMais) return;
+    setCarregandoMais(true);
+    startTransition(async () => {
+      const pagina = await buscarMaisMovimentacoes(filtro, proximoCursor);
+      setGrupos((atuais) => mesclarGrupos(atuais, pagina.grupos));
+      setProximoCursor(pagina.proximoCursor);
+      setCarregandoMais(false);
+    });
+  }
 
   function sairDoModoSelecao() {
     setModoSelecao(false);
@@ -114,6 +158,14 @@ export function ListaMovimentacoes({
           </section>
         ))}
       </div>
+
+      {proximoCursor && (
+        <div className="mt-4 flex justify-center">
+          <Button variant="outline" onClick={carregarMais} disabled={carregandoMais}>
+            {carregandoMais ? "Carregando…" : "Carregar mais"}
+          </Button>
+        </div>
+      )}
 
       {emSelecao && selecionados.size > 0 && (
         <div className="fixed inset-x-0 bottom-20 z-40 px-4 md:bottom-6 md:left-20">

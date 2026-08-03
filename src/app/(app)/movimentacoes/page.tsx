@@ -29,17 +29,19 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const periodo = resolverPeriodoDeParams(params);
 
+  const filtro = {
+    de: periodo.de,
+    ate: periodo.ate,
+    contaId: params.conta,
+    categoriaId: params.categoria,
+    tipo: params.tipo as TipoMovimentacao | undefined,
+    status: params.status as StatusMovimentacao | undefined,
+    busca: params.busca,
+    semCategoria: params.semCategoria === "1",
+  };
+
   const [pagina, contas, categorias, contatos] = await Promise.all([
-    listarMovimentacoes(empresaAtiva.id, {
-      de: periodo.de,
-      ate: periodo.ate,
-      contaId: params.conta,
-      categoriaId: params.categoria,
-      tipo: params.tipo as TipoMovimentacao | undefined,
-      status: params.status as StatusMovimentacao | undefined,
-      busca: params.busca,
-      semCategoria: params.semCategoria === "1",
-    }),
+    listarMovimentacoes(empresaAtiva.id, filtro),
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),
     listarContatos(empresaAtiva.id),
@@ -68,6 +70,8 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
 
       <ListaMovimentacoes
         grupos={pagina.grupos}
+        proximoCursor={pagina.proximoCursor}
+        filtro={filtro}
         contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
         contatos={contatos.map((c) => ({ id: c.id, nome: c.nome }))}
