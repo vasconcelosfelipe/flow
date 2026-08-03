@@ -19,7 +19,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 bg-brand md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 bg-night md:hidden"
       aria-label="Navegação principal"
     >
       <ul className="flex items-stretch justify-around px-1">
@@ -35,13 +35,13 @@ export function BottomNav() {
                 className={cn(
                   "relative flex min-h-14 flex-col items-center justify-center gap-1 px-1 pt-2 pb-1 text-[10px] font-medium transition-colors",
                   "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset focus-visible:outline-none",
-                  ativo ? "text-white" : "text-white/60",
+                  ativo ? "text-night-text" : "text-night-muted",
                 )}
               >
                 {ativo && (
                   <motion.span
                     layoutId="nav-ativo"
-                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-white"
+                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-night-text"
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                   />
                 )}
