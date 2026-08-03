@@ -37,6 +37,16 @@ export type LinhaImportacao = {
    */
   categoriaId: string | null;
   contatoId: string | null;
+  /**
+   * Um crédito ou débito do extrato às vezes é dinheiro migrando entre
+   * contas da própria empresa, não receita/despesa de verdade. Marcando,
+   * a linha vira as duas pernas de uma transferência (ver
+   * `Movimentacao.transferenciaId`) em vez de um lançamento comum — a
+   * conta escolhida aqui é sempre "o outro lado", nunca a conta do extrato
+   * que está sendo importado.
+   */
+  ehTransferencia: boolean;
+  contaTransferenciaId: string | null;
 };
 
 export type ResumoImportacao = {

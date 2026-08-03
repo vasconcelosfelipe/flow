@@ -8,6 +8,7 @@ import { LinhaImportacao } from "@/features/importar/linha-importacao";
 import type { LinhaImportacao as TipoLinha, StatusLinhaImportacao } from "@/services/importacao/dto";
 import { cn } from "@/lib/utils";
 
+type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
 type OpcaoContato = { id: string; nome: string };
 type Aba = "todas" | StatusLinhaImportacao;
@@ -26,7 +27,9 @@ const ABAS: { valor: Aba; rotulo: string }[] = [
  */
 export function PassoRevisao({
   arquivoNome,
+  contaAtualId,
   linhas,
+  contas,
   categorias,
   contatos,
   confirmando,
@@ -36,14 +39,23 @@ export function PassoRevisao({
   aoConfirmar,
 }: {
   arquivoNome: string;
+  /** Conta do extrato sendo importado — nunca aparece como opção de "outro lado" da transferência. */
+  contaAtualId: string;
   linhas: TipoLinha[];
+  contas: OpcaoConta[];
   categorias: OpcaoCategoria[];
   contatos: OpcaoContato[];
   confirmando: boolean;
   aoAlternarLinha: (id: string) => void;
   aoAtualizarLinha: (
     id: string,
-    ajuste: { categoriaId?: string | null; contatoId?: string | null; descricao?: string },
+    ajuste: {
+      categoriaId?: string | null;
+      contatoId?: string | null;
+      descricao?: string;
+      ehTransferencia?: boolean;
+      contaTransferenciaId?: string | null;
+    },
   ) => void;
   aoVoltar: () => void;
   aoConfirmar: () => void;
@@ -61,7 +73,13 @@ export function PassoRevisao({
   );
 
   const visiveis = aba === "todas" ? linhas : linhas.filter((l) => l.status === aba);
-  const selecionadas = linhas.filter((l) => l.incluir).length;
+  const incluidas = linhas.filter((l) => l.incluir);
+  const selecionadas = incluidas.length;
+  // Marcou como transferência mas não escolheu "o outro lado" ainda — não dá
+  // pra confirmar sem isso, a linha ficaria sem conta de destino/origem.
+  const transferenciaIncompleta = incluidas.some(
+    (l) => l.ehTransferencia && !l.contaTransferenciaId,
+  );
 
   return (
     <div className="space-y-4 pb-24">
@@ -88,6 +106,7 @@ export function PassoRevisao({
           <LinhaImportacao
             key={linha.id}
             linha={linha}
+            contas={contas.filter((c) => c.id !== contaAtualId)}
             categorias={categorias}
             contatos={contatos}
             aoAlternar={aoAlternarLinha}
@@ -103,12 +122,14 @@ export function PassoRevisao({
           </Button>
           <Button
             className="flex-1"
-            disabled={selecionadas === 0 || confirmando}
+            disabled={selecionadas === 0 || confirmando || transferenciaIncompleta}
             onClick={aoConfirmar}
           >
             {confirmando
               ? "Importando…"
-              : `Importar ${selecionadas} ${selecionadas === 1 ? "lançamento" : "lançamentos"}`}
+              : transferenciaIncompleta
+                ? "Escolha a conta da transferência"
+                : `Importar ${selecionadas} ${selecionadas === 1 ? "lançamento" : "lançamentos"}`}
           </Button>
         </div>
       </div>

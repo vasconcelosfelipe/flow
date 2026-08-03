@@ -56,6 +56,8 @@ export type MovimentacaoResumo = {
   recorrente: boolean;
   /** Não-nulo = uma perna de transferência entre contas — ver `transferenciaId`. */
   transferenciaId: string | null;
+  /** Não-nulo = veio de um extrato OFX importado, não digitado à mão. */
+  origemFitId: string | null;
 };
 
 export type MovimentacaoDetalhe = MovimentacaoResumo & {

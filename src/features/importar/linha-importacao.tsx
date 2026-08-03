@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, GitMerge, Link2 } from "lucide-react";
+import { AlertCircle, ArrowLeftRight, GitMerge, Link2 } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { SearchableSelect } from "@/components/shared/searchable-select";
@@ -11,11 +11,13 @@ import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { LinhaImportacao } from "@/services/importacao/dto";
 
+type OpcaoConta = { id: string; nome: string };
 type OpcaoCategoria = { id: string; nome: string; tipo: "RECEITA" | "DESPESA" };
 type OpcaoContato = { id: string; nome: string };
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
+const SEM_CONTA = "nenhuma";
 
 const ROTULO_STATUS = {
   NOVA: "Nova",
@@ -38,22 +40,34 @@ const ESTILO_STATUS = {
  */
 export function LinhaImportacao({
   linha,
+  contas,
   categorias,
   contatos,
   aoAlternar,
   aoAtualizar,
 }: {
   linha: LinhaImportacao;
+  contas: OpcaoConta[];
   categorias: OpcaoCategoria[];
   contatos: OpcaoContato[];
   aoAlternar: (id: string) => void;
   aoAtualizar: (
     id: string,
-    ajuste: { categoriaId?: string | null; contatoId?: string | null; descricao?: string },
+    ajuste: {
+      categoriaId?: string | null;
+      contatoId?: string | null;
+      descricao?: string;
+      ehTransferencia?: boolean;
+      contaTransferenciaId?: string | null;
+    },
   ) => void;
 }) {
   const receita = linha.tipo === "RECEITA";
-  const Icone = linha.categoriaSugerida ? iconeDe(linha.categoriaSugerida.icone) : AlertCircle;
+  const Icone = linha.ehTransferencia
+    ? ArrowLeftRight
+    : linha.categoriaSugerida
+      ? iconeDe(linha.categoriaSugerida.icone)
+      : AlertCircle;
   const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
 
   return (
@@ -73,12 +87,14 @@ export function LinhaImportacao({
       <span
         className={cn(
           "mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl",
-          linha.categoriaSugerida
-            ? undefined
-            : "bg-attention-wash text-attention",
+          linha.ehTransferencia
+            ? "bg-brand-wash text-brand"
+            : linha.categoriaSugerida
+              ? undefined
+              : "bg-attention-wash text-attention",
         )}
         style={
-          linha.categoriaSugerida
+          !linha.ehTransferencia && linha.categoriaSugerida
             ? { backgroundColor: `${linha.categoriaSugerida.cor}1a`, color: linha.categoriaSugerida.cor }
             : undefined
         }
@@ -129,37 +145,77 @@ export function LinhaImportacao({
         )}
 
         {linha.incluir && (
-          <div className="mt-2 grid grid-cols-2 gap-1.5">
-            <SearchableSelect
-              size="sm"
-              value={linha.categoriaId ?? SEM_CATEGORIA}
-              onValueChange={(v) =>
-                aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                aoAtualizar(linha.id, {
+                  ehTransferencia: !linha.ehTransferencia,
+                  contaTransferenciaId: null,
+                })
               }
-              placeholder="Categoria"
-              searchPlaceholder="Buscar categoria…"
-              emptyText="Nenhuma categoria encontrada."
-              options={[
-                { value: SEM_CATEGORIA, label: "Sem categoria" },
-                ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
-            />
+              className={cn(
+                "mt-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-nano font-medium transition-colors",
+                linha.ehTransferencia
+                  ? "bg-brand text-white"
+                  : "bg-muted text-ink-muted hover:bg-muted/70",
+              )}
+            >
+              <ArrowLeftRight className="size-3" aria-hidden="true" />
+              {linha.ehTransferencia ? "É uma transferência" : "Marcar como transferência"}
+            </button>
 
-            <SearchableSelect
-              size="sm"
-              value={linha.contatoId ?? SEM_FORNECEDOR}
-              onValueChange={(v) =>
-                aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })
-              }
-              placeholder="Fornecedor/cliente"
-              searchPlaceholder="Buscar fornecedor/cliente…"
-              emptyText="Nenhum fornecedor/cliente encontrado."
-              options={[
-                { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-                ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
-            />
-          </div>
+            {linha.ehTransferencia ? (
+              <div className="mt-1.5">
+                <SearchableSelect
+                  size="sm"
+                  value={linha.contaTransferenciaId ?? SEM_CONTA}
+                  onValueChange={(v) =>
+                    aoAtualizar(linha.id, { contaTransferenciaId: v === SEM_CONTA ? null : v })
+                  }
+                  placeholder={receita ? "De qual conta veio?" : "Para qual conta foi?"}
+                  searchPlaceholder="Buscar conta…"
+                  emptyText="Nenhuma outra conta cadastrada."
+                  options={[
+                    { value: SEM_CONTA, label: receita ? "De qual conta veio?" : "Para qual conta foi?" },
+                    ...contas.map((c) => ({ value: c.id, label: c.nome })),
+                  ]}
+                />
+              </div>
+            ) : (
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <SearchableSelect
+                  size="sm"
+                  value={linha.categoriaId ?? SEM_CATEGORIA}
+                  onValueChange={(v) =>
+                    aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })
+                  }
+                  placeholder="Categoria"
+                  searchPlaceholder="Buscar categoria…"
+                  emptyText="Nenhuma categoria encontrada."
+                  options={[
+                    { value: SEM_CATEGORIA, label: "Sem categoria" },
+                    ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+                  ]}
+                />
+
+                <SearchableSelect
+                  size="sm"
+                  value={linha.contatoId ?? SEM_FORNECEDOR}
+                  onValueChange={(v) =>
+                    aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })
+                  }
+                  placeholder="Fornecedor/cliente"
+                  searchPlaceholder="Buscar fornecedor/cliente…"
+                  emptyText="Nenhum fornecedor/cliente encontrado."
+                  options={[
+                    { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+                    ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+                  ]}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -87,6 +87,8 @@ export async function processarArquivoOfx(
       incluir: status !== "DUPLICADA",
       categoriaId: pendenciaCasada?.categoriaId ?? null,
       contatoId: pendenciaCasada?.contatoId ?? null,
+      ehTransferencia: false,
+      contaTransferenciaId: null,
     };
   });
 
@@ -124,7 +126,60 @@ export async function confirmarImportacao(input: {
 
   for (const linha of input.linhas) {
     try {
-      if (linha.status === "CONCILIAVEL" && linha.conciliaCom) {
+      if (linha.ehTransferencia && linha.contaTransferenciaId) {
+        // Um crédito/débito do extrato que na verdade é dinheiro migrando
+        // entre contas da própria empresa — vira as duas pernas de uma
+        // transferência em vez de um lançamento comum. DESPESA = saiu desta
+        // conta rumo à outra; RECEITA = entrou nesta vinda da outra.
+        const outraContaId = linha.contaTransferenciaId;
+        const contaOrigemId = linha.tipo === "DESPESA" ? input.contaId : outraContaId;
+        const contaDestinoId = linha.tipo === "DESPESA" ? outraContaId : input.contaId;
+
+        const [contaOrigem, contaDestino] = await Promise.all([
+          db.conta.findUniqueOrThrow({ where: { id: contaOrigemId } }),
+          db.conta.findUniqueOrThrow({ where: { id: contaDestinoId } }),
+        ]);
+
+        const transferenciaId = crypto.randomUUID();
+        const [movOrigem, movDestino] = await db.$transaction([
+          db.movimentacao.create({
+            data: {
+              empresaId,
+              contaId: contaOrigemId,
+              descricao: linha.descricao || `Transferência para ${contaDestino.nome}`,
+              tipo: "DESPESA",
+              valorCentavos: linha.valorCentavos,
+              status: "CONCILIADO",
+              data: linha.data,
+              dataCompetencia: linha.data,
+              transferenciaId,
+              // origemFitId só na perna da conta que está sendo importada —
+              // é a chave de dedup, a outra perna é sintética.
+              origemFitId: contaOrigemId === input.contaId ? linha.id : null,
+            },
+          }),
+          db.movimentacao.create({
+            data: {
+              empresaId,
+              contaId: contaDestinoId,
+              descricao: linha.descricao || `Transferência de ${contaOrigem.nome}`,
+              tipo: "RECEITA",
+              valorCentavos: linha.valorCentavos,
+              status: "CONCILIADO",
+              data: linha.data,
+              dataCompetencia: linha.data,
+              transferenciaId,
+              origemFitId: contaDestinoId === input.contaId ? linha.id : null,
+            },
+          }),
+        ]);
+
+        const movImportada = contaOrigemId === input.contaId ? movOrigem : movDestino;
+        await db.importacaoLinha.create({
+          data: { importacaoId: importacao.id, movimentacaoId: movImportada.id },
+        });
+        criadas++;
+      } else if (linha.status === "CONCILIAVEL" && linha.conciliaCom) {
         const mov = await db.movimentacao.update({
           where: { id: linha.conciliaCom.id },
           data: {

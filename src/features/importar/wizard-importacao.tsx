@@ -123,7 +123,13 @@ export function WizardImportacao({
 
   function atualizarLinha(
     id: string,
-    ajuste: { categoriaId?: string | null; contatoId?: string | null; descricao?: string },
+    ajuste: {
+      categoriaId?: string | null;
+      contatoId?: string | null;
+      descricao?: string;
+      ehTransferencia?: boolean;
+      contaTransferenciaId?: string | null;
+    },
   ) {
     setResumo((atual) =>
       atual
@@ -197,7 +203,9 @@ export function WizardImportacao({
       {passo === "revisao" && resumo && (
         <PassoRevisao
           arquivoNome={resumo.arquivoNome}
+          contaAtualId={resumo.conta.id}
           linhas={resumo.linhas}
+          contas={contas}
           categorias={categorias}
           contatos={contatos}
           confirmando={confirmando}
