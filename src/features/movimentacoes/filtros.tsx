@@ -4,7 +4,9 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
+import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -31,6 +33,7 @@ export function FiltrosMovimentacoes({
 
   const [busca, setBusca] = useState(params.get("busca") ?? "");
   const buscaAtrasada = useDebouncedValue(busca, 250);
+  const [modalAberto, setModalAberto] = useState(false);
 
   useEffect(() => {
     aplicar({ busca: buscaAtrasada || null });
@@ -51,6 +54,16 @@ export function FiltrosMovimentacoes({
   const filtrosAtivos = ["conta", "categoria", "tipo", "status", "semCategoria"].filter((c) =>
     params.get(c),
   ).length;
+
+  function limparFiltros() {
+    aplicar({
+      conta: null,
+      categoria: null,
+      tipo: null,
+      status: null,
+      semCategoria: null,
+    });
+  }
 
   return (
     <div className="space-y-2.5">
@@ -86,6 +99,7 @@ export function FiltrosMovimentacoes({
           size="icon"
           className="relative h-11 w-11 shrink-0 rounded-xl border-line"
           aria-label="Filtros"
+          onClick={() => setModalAberto(true)}
         >
           <SlidersHorizontal className="size-4" />
           {filtrosAtivos > 0 && (
@@ -96,71 +110,100 @@ export function FiltrosMovimentacoes({
         </Button>
       </div>
 
-      <div className="scrollbar-none flex gap-2 overflow-x-auto">
-        <Select
-          value={params.get("tipo") ?? "todos"}
-          onValueChange={(v) => aplicar({ tipo: v })}
-        >
-          <SelectTrigger className="h-9 w-auto shrink-0 rounded-lg border-line bg-surface text-micro">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os tipos</SelectItem>
-            <SelectItem value="RECEITA">Receitas</SelectItem>
-            <SelectItem value="DESPESA">Despesas</SelectItem>
-          </SelectContent>
-        </Select>
+      <ResponsiveModal
+        aberto={modalAberto}
+        aoMudarAberto={setModalAberto}
+        titulo="Filtros"
+        descricao="Filtre as movimentações por tipo, conta, categoria e status."
+        rodape={
+          <>
+            <Button variant="outline" className="flex-1" onClick={limparFiltros}>
+              Limpar filtros
+            </Button>
+            <Button className="flex-1" onClick={() => setModalAberto(false)}>
+              Concluído
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Tipo</Label>
+            <Select
+              value={params.get("tipo") ?? "todos"}
+              onValueChange={(v) => aplicar({ tipo: v })}
+            >
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os tipos</SelectItem>
+                <SelectItem value="RECEITA">Receitas</SelectItem>
+                <SelectItem value="DESPESA">Despesas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Select
-          value={params.get("conta") ?? "todos"}
-          onValueChange={(v) => aplicar({ conta: v })}
-        >
-          <SelectTrigger className="h-9 w-auto shrink-0 rounded-lg border-line bg-surface text-micro">
-            <SelectValue placeholder="Conta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as contas</SelectItem>
-            {contas.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <div className="space-y-1.5">
+            <Label>Conta</Label>
+            <Select
+              value={params.get("conta") ?? "todos"}
+              onValueChange={(v) => aplicar({ conta: v })}
+            >
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue placeholder="Conta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as contas</SelectItem>
+                {contas.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Select
-          value={params.get("categoria") ?? "todos"}
-          onValueChange={(v) => aplicar({ categoria: v })}
-        >
-          <SelectTrigger className="h-9 w-auto shrink-0 rounded-lg border-line bg-surface text-micro">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as categorias</SelectItem>
-            {categorias.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select
+              value={params.get("categoria") ?? "todos"}
+              onValueChange={(v) => aplicar({ categoria: v })}
+            >
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas as categorias</SelectItem>
+                {categorias.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Select
-          value={params.get("status") ?? "todos"}
-          onValueChange={(v) => aplicar({ status: v })}
-        >
-          <SelectTrigger className="h-9 w-auto shrink-0 rounded-lg border-line bg-surface text-micro">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="PAGO">Pago</SelectItem>
-            <SelectItem value="PENDENTE">Pendente</SelectItem>
-            <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-            <SelectItem value="CANCELADO">Excluído</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <div className="space-y-1.5">
+            <Label>Status</Label>
+            <Select
+              value={params.get("status") ?? "todos"}
+              onValueChange={(v) => aplicar({ status: v })}
+            >
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os status</SelectItem>
+                <SelectItem value="PAGO">Pago</SelectItem>
+                <SelectItem value="PENDENTE">Pendente</SelectItem>
+                <SelectItem value="CONCILIADO">Conciliado</SelectItem>
+                <SelectItem value="CANCELADO">Excluído</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </ResponsiveModal>
     </div>
   );
 }

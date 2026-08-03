@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { parseISO } from "date-fns";
 import { CalendarRange } from "lucide-react";
 import { motion } from "motion/react";
 
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { usePeriodParams } from "@/hooks/use-period-params";
 import { PRESETS_PERIODO, ROTULO_PRESET, formatarData } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import type { DateRange } from "react-day-picker";
 
 /**
  * Controle segmentado com os cinco recortes que cobrem o uso diário, mais um
@@ -30,7 +31,14 @@ export function PeriodPicker({
 }) {
   const { selecao, periodo, definirPreset, definirPersonalizado } = usePeriodParams();
   const [modalAberto, setModalAberto] = useState(false);
-  const [intervalo, setIntervalo] = useState<DateRange | undefined>();
+  const [de, setDe] = useState("");
+  const [ate, setAte] = useState("");
+
+  function fechar() {
+    setDe("");
+    setAte("");
+    setModalAberto(false);
+  }
 
   const personalizado = selecao.modo === "personalizado";
   const escuro = tema === "escuro";
@@ -106,22 +114,22 @@ export function PeriodPicker({
 
       <ResponsiveModal
         aberto={modalAberto}
-        aoMudarAberto={setModalAberto}
+        aoMudarAberto={(aberto) => !aberto && fechar()}
         titulo="Escolher período"
         descricao="Selecione a data inicial e a data final do intervalo."
         rodape={
           <>
-            <Button variant="outline" size="lg" className="flex-1" onClick={() => setModalAberto(false)}>
+            <Button variant="outline" size="lg" className="flex-1" onClick={fechar}>
               Cancelar
             </Button>
             <Button
               size="lg"
               className="flex-1"
-              disabled={!intervalo?.from || !intervalo?.to}
+              disabled={!de || !ate}
               onClick={() => {
-                if (!intervalo?.from || !intervalo?.to) return;
-                definirPersonalizado(intervalo.from, intervalo.to);
-                setModalAberto(false);
+                if (!de || !ate) return;
+                definirPersonalizado(parseISO(de), parseISO(ate));
+                fechar();
               }}
             >
               Aplicar período
@@ -129,14 +137,29 @@ export function PeriodPicker({
           </>
         }
       >
-        <div className="flex justify-center pb-2">
-          <Calendar
-            mode="range"
-            selected={intervalo}
-            onSelect={setIntervalo}
-            numberOfMonths={1}
-            autoFocus
-          />
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="periodo-de">De</Label>
+            <Input
+              id="periodo-de"
+              type="date"
+              className="h-11"
+              value={de}
+              max={ate || undefined}
+              onChange={(e) => setDe(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="periodo-ate">Até</Label>
+            <Input
+              id="periodo-ate"
+              type="date"
+              className="h-11"
+              value={ate}
+              min={de || undefined}
+              onChange={(e) => setAte(e.target.value)}
+            />
+          </div>
         </div>
       </ResponsiveModal>
     </>

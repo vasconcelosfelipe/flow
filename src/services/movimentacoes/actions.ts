@@ -188,6 +188,18 @@ export async function desfazerConciliacao(id: string) {
   revalidatePath("/");
 }
 
+/** Categoriza várias movimentações de uma vez — a lista pode misturar RECEITA e DESPESA. */
+export async function atualizarCategoriaEmLote(ids: string[], categoriaId: string | null) {
+  const empresaId = await obterEmpresa();
+  await db.movimentacao.updateMany({
+    where: { id: { in: ids }, empresaId },
+    data: { categoriaId },
+  });
+  revalidatePath("/movimentacoes");
+  revalidatePath("/a-pagar-receber");
+  revalidatePath("/");
+}
+
 export type NovaPendenciaInput = {
   descricao: string;
   tipo: "RECEITA" | "DESPESA";

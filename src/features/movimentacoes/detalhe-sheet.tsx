@@ -105,7 +105,17 @@ export function DetalheMovimentacaoSheet({
             <Button variant="outline" className="flex-1" onClick={aoFechar}>
               Fechar
             </Button>
-            <Button className="flex-1" onClick={() => setEditando(true)}>
+            <Button
+              className="flex-1"
+              onClick={() => {
+                // Adiar pro próximo tick: se o botão some da árvore no mesmo
+                // ciclo síncrono do clique (troca pra FormularioEdicao), o
+                // dismissable layer do Radix (Dialog/Drawer) às vezes lê o
+                // pointerup como clique fora do conteúdo e fecha a folha
+                // inteira em vez de entrar em edição.
+                setTimeout(() => setEditando(true), 0);
+              }}
+            >
               Editar
             </Button>
           </>
@@ -220,7 +230,7 @@ function Detalhe({
         <div className="rounded-xl border border-line p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-micro text-ink-muted">
-              Conciliada com o extrato — desfaça para poder editar ou excluir.
+              Conciliada com o extrato — desfaça para poder excluir.
             </p>
             <Button
               type="button"

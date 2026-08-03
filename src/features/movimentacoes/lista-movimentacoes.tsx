@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import { Receipt, Tags, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ResponsiveModal } from "@/components/shared/responsive-modal";
+import { SearchableSelect } from "@/components/shared/searchable-select";
 import { TransactionRow } from "@/components/shared/transaction-row";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet";
+import { atualizarCategoriaEmLote } from "@/services/movimentacoes/actions";
 import type { GrupoDiario } from "@/services/movimentacoes/dto";
 
 type OpcaoConta = { id: string; nome: string };
@@ -31,9 +34,13 @@ export function ListaMovimentacoes({
   categorias?: OpcaoCategoria[];
   contatos?: OpcaoContato[];
 }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [modoSelecao, setModoSelecao] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [categorizando, setCategorizando] = useState(false);
+  const [categoriaEscolhida, setCategoriaEscolhida] = useState("nenhuma");
 
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
   const emSelecao = modoSelecao;
@@ -41,6 +48,16 @@ export function ListaMovimentacoes({
   function sairDoModoSelecao() {
     setModoSelecao(false);
     setSelecionados(new Set());
+  }
+
+  function confirmarCategorizacao() {
+    if (categoriaEscolhida === "nenhuma") return;
+    startTransition(async () => {
+      await atualizarCategoriaEmLote([...selecionados], categoriaEscolhida);
+      setCategorizando(false);
+      sairDoModoSelecao();
+      router.refresh();
+    });
   }
 
   function alternarSelecao(id: string) {
@@ -114,7 +131,11 @@ export function ListaMovimentacoes({
               {selecionados.size} {selecionados.size === 1 ? "selecionada" : "selecionadas"}
             </p>
 
-            <Button size="sm" className="gap-1.5 bg-brand hover:bg-brand-hover">
+            <Button
+              size="sm"
+              className="gap-1.5 bg-brand hover:bg-brand-hover"
+              onClick={() => setCategorizando(true)}
+            >
               <Tags className="size-4" aria-hidden="true" />
               Categorizar
             </Button>
@@ -131,6 +152,44 @@ export function ListaMovimentacoes({
           aoFechar={() => setAbertoId(null)}
         />
       )}
+
+      <ResponsiveModal
+        aberto={categorizando}
+        aoMudarAberto={setCategorizando}
+        titulo="Categorizar em lote"
+        descricao={`Escolha a categoria para as ${selecionados.size} movimentações selecionadas.`}
+        rodape={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setCategorizando(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={categoriaEscolhida === "nenhuma" || pending}
+              onClick={confirmarCategorizacao}
+            >
+              Categorizar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-1.5 py-2">
+          <SearchableSelect
+            value={categoriaEscolhida}
+            onValueChange={setCategoriaEscolhida}
+            placeholder="Escolha uma categoria"
+            searchPlaceholder="Buscar categoria…"
+            emptyText="Nenhuma categoria encontrada."
+            options={categorias.map((c) => ({ value: c.id, label: c.nome }))}
+          />
+        </div>
+      </ResponsiveModal>
     </div>
   );
 }
