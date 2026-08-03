@@ -33,6 +33,14 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const puxando = useRef(false);
 
   function aoTocar(e: TouchEvent) {
+    // Um Drawer/Dialog aberto (`ResponsiveModal`) faz portal pro body, mas
+    // continua descendente desta árvore React — eventos sintéticos de toque
+    // nele ainda borbulham até aqui. Sem este filtro, arrastar o modal pra
+    // baixo pra fechar também arma o puxão da tela de trás.
+    if ((e.target as HTMLElement).closest('[role="dialog"]')) {
+      inicioY.current = null;
+      return;
+    }
     if (pending || window.scrollY > 0) {
       inicioY.current = null;
       return;
