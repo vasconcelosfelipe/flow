@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowLeftRight, Clock, Landmark, Repeat } from "lucide-react";
+import { AlertCircle, ArrowLeftRight, Clock, RefreshCw, Repeat } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,7 +90,7 @@ export function TransactionRow({
               <Repeat className="size-3 shrink-0 text-ink-muted" aria-label="Recorrente" />
             )}
             {movimentacao.origemFitId !== null && (
-              <Landmark
+              <RefreshCw
                 className="size-3 shrink-0 text-ink-muted"
                 aria-label="Importado do extrato bancário"
               />

@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { ROTULO_TIPO_CONTA, type TipoConta } from "@/types/dominio";
 import type { ContaCompleta, FormularioConta } from "@/services/contas/dto";
 
+export const FORM_ID_CONTA = "form-conta";
+
 const TIPOS_CONTA = Object.keys(ROTULO_TIPO_CONTA) as TipoConta[];
 
 const PALETA_CORES = [
@@ -45,12 +47,10 @@ export function FormularioConta({
   conta,
   aoSalvar,
   aoExcluir,
-  aoCancelar,
 }: {
   conta: ContaCompleta | null;
   aoSalvar: (dados: FormularioConta) => void;
   aoExcluir?: (id: string) => void;
-  aoCancelar: () => void;
 }) {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
@@ -87,7 +87,7 @@ export function FormularioConta({
   const emUso = (conta?.quantidadeMovimentacoes ?? 0) > 0;
 
   return (
-    <form onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
+    <form id={FORM_ID_CONTA} onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="flex items-center gap-3">
         <span
           className="grid size-12 shrink-0 place-items-center rounded-2xl"
@@ -195,15 +195,6 @@ export function FormularioConta({
           )}
         </div>
       )}
-
-      <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
-          Cancelar
-        </Button>
-        <Button type="submit" className="flex-1">
-          Salvar
-        </Button>
-      </div>
     </form>
   );
 }

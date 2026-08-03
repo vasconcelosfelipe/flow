@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FormularioCategoria } from "@/features/categorias/formulario-categoria";
+import { FORM_ID_CATEGORIA, FormularioCategoria } from "@/features/categorias/formulario-categoria";
 import { LinhaCategoria } from "@/features/categorias/linha-categoria";
 import { criarCategoria, editarCategoria, excluirCategoria } from "@/services/categorias/actions";
 import type { CategoriaCompleta, FormularioCategoria as DadosFormulario } from "@/services/categorias/dto";
@@ -111,6 +111,21 @@ export function GerenciadorCategorias({
         aoMudarAberto={(aberto) => !aberto && setEditando(null)}
         titulo={categoriaEmEdicao ? "Editar categoria" : "Nova categoria"}
         descricao="Nome, tipo, linha da DRE, categoria pai, cor e ícone da categoria."
+        rodape={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setEditando(null)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" form={FORM_ID_CATEGORIA} className="flex-1" disabled={pending}>
+              Salvar
+            </Button>
+          </>
+        }
       >
         <FormularioCategoria
           categoria={categoriaEmEdicao}
@@ -118,7 +133,6 @@ export function GerenciadorCategorias({
           linhas={linhas}
           aoSalvar={salvar}
           aoExcluir={categoriaEmEdicao ? excluir : undefined}
-          aoCancelar={() => setEditando(null)}
         />
       </ResponsiveModal>
     </div>

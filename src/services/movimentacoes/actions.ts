@@ -162,11 +162,29 @@ export async function criarTransferencia(dados: NovaTransferenciaInput) {
   revalidatePath("/");
 }
 
-/** Volta uma movimentação conciliada para "paga" — mesma data de caixa, só desfaz o casamento com o extrato. */
+/**
+ * Desfaz o casamento com o extrato importado. Sempre limpa `origemFitId` —
+ * sem isso a linha do OFX fica marcada como "já importada" pra sempre e uma
+ * reimportação do mesmo arquivo nunca mais consegue conciliar de novo.
+ *
+ * Se a movimentação nasceu como pendência (tem `dataVencimento`), volta
+ * inteira pro estado de pendência aberta — é o estado de antes de ter sido
+ * casada por um import. Se nasceu direto de uma linha "NOVA" do OFX (sem
+ * pendência original), não existe estado anterior pra restaurar: só solta o
+ * vínculo com o extrato e mantém "paga" — reimportar depois disso cria uma
+ * linha nova em vez de reconciliar.
+ */
 export async function desfazerConciliacao(id: string) {
   const empresaId = await obterEmpresa();
-  await db.movimentacao.update({ where: { id, empresaId }, data: { status: "PAGO" } });
+  const mov = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
+  await db.movimentacao.update({
+    where: { id, empresaId },
+    data: mov.dataVencimento
+      ? { status: "PENDENTE", data: null, origemFitId: null }
+      : { status: "PAGO", origemFitId: null },
+  });
   revalidatePath("/movimentacoes");
+  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
 

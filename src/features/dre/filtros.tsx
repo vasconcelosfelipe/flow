@@ -1,13 +1,12 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { addMonths, format, subMonths } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatarMesAno } from "@/lib/dates";
+import { chaveMes, deslocarMes, formatarMesAno } from "@/lib/dates";
 
 type Modo = "mensal" | "anual";
 
@@ -49,7 +48,7 @@ export function FiltrosDre({ modo, mes, ano }: { modo: Modo; mes: Date; ano: num
           aria-label={modo === "mensal" ? "Mês anterior" : "Ano anterior"}
           onClick={() =>
             modo === "mensal"
-              ? aplicar({ mes: format(subMonths(mes, 1), "yyyy-MM") })
+              ? aplicar({ mes: chaveMes(deslocarMes(mes, -1)) })
               : aplicar({ ano: String(ano - 1) })
           }
         >
@@ -65,7 +64,7 @@ export function FiltrosDre({ modo, mes, ano }: { modo: Modo; mes: Date; ano: num
           aria-label={modo === "mensal" ? "Próximo mês" : "Próximo ano"}
           onClick={() =>
             modo === "mensal"
-              ? aplicar({ mes: format(addMonths(mes, 1), "yyyy-MM") })
+              ? aplicar({ mes: chaveMes(deslocarMes(mes, 1)) })
               : aplicar({ ano: String(ano + 1) })
           }
         >

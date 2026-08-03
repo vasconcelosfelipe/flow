@@ -23,6 +23,8 @@ import type { CategoriaCompleta, FormularioCategoria } from "@/services/categori
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoMovimentacao } from "@/types/dominio";
 
+export const FORM_ID_CATEGORIA = "form-categoria";
+
 const SEM_LINHA = "nenhuma";
 const SEM_PAI = "nenhuma";
 
@@ -56,14 +58,12 @@ export function FormularioCategoria({
   linhas,
   aoSalvar,
   aoExcluir,
-  aoCancelar,
 }: {
   categoria: CategoriaCompleta | null;
   categorias: CategoriaCompleta[];
   linhas: LinhaDreOpcao[];
   aoSalvar: (dados: FormularioCategoria) => void;
   aoExcluir?: (id: string) => void;
-  aoCancelar: () => void;
 }) {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
 
@@ -146,7 +146,7 @@ export function FormularioCategoria({
   const emUso = (categoria?.quantidadeMovimentacoes ?? 0) > 0;
 
   return (
-    <form onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
+    <form id={FORM_ID_CATEGORIA} onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="flex items-center gap-3">
         <span
           className="grid size-12 shrink-0 place-items-center rounded-2xl"
@@ -266,7 +266,7 @@ export function FormularioCategoria({
             própria, pra família de categorias ficar visualmente óbvia na lista.
           </p>
         ) : (
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="scrollbar-none flex gap-1.5 overflow-x-auto pb-1">
             {(Object.keys(ICONES) as ChaveIcone[]).map((chave) => {
               const Icone = ICONES[chave];
               const selecionado = icone === chave;
@@ -278,7 +278,7 @@ export function FormularioCategoria({
                   aria-pressed={selecionado}
                   onClick={() => setValue("icone", chave)}
                   className={cn(
-                    "grid aspect-square place-items-center rounded-lg border transition-colors",
+                    "grid size-10 shrink-0 place-items-center rounded-lg border transition-colors",
                     selecionado
                       ? "border-brand bg-brand-wash text-brand"
                       : "border-line text-ink-muted hover:bg-muted",
@@ -334,15 +334,6 @@ export function FormularioCategoria({
           )}
         </div>
       )}
-
-      <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={aoCancelar}>
-          Cancelar
-        </Button>
-        <Button type="submit" className="flex-1">
-          Salvar
-        </Button>
-      </div>
     </form>
   );
 }

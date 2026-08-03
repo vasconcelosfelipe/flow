@@ -135,6 +135,23 @@ export function chaveDia(data: Date): string {
   return format(comoCalendario(data), "yyyy-MM-dd");
 }
 
+/**
+ * Desloca uma data-calendário (meia-noite UTC) N meses, devolvendo outra
+ * data-calendário (meia-noite UTC) — nunca lendo campos locais direto, que é
+ * o que fazia a navegação de mês da DRE "andar de banda" num fuso atrás de
+ * UTC.
+ */
+export function deslocarMes(data: Date, quantidade: number): Date {
+  const alvo = comoCalendario(data);
+  const proximo = addMonths(alvo, quantidade);
+  return new Date(Date.UTC(proximo.getFullYear(), proximo.getMonth(), 1));
+}
+
+/** `"yyyy-MM"` de uma data-calendário, sem sofrer o mesmo deslocamento de fuso. */
+export function chaveMes(data: Date): string {
+  return format(comoCalendario(data), "yyyy-MM");
+}
+
 /** Os doze meses de um ano, como início de cada mês. Colunas da DRE anual. */
 export function mesesDoAno(ano: number): Date[] {
   const janeiro = new Date(ano, 0, 1);
