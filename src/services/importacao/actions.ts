@@ -40,8 +40,13 @@ export async function processarArquivoOfx(
   const fitIds = transacoes.map((t) => t.fitId);
 
   const [existentes, pendencias] = await Promise.all([
+    // Só CONCILIADO conta como "já importada" — é o único status que deveria
+    // ter origemFitId de verdade. Uma movimentação que saiu de CONCILIADO (por
+    // desfazer, por exclusão, ou por edição direta do status) não deve travar
+    // a linha do extrato pra sempre, mesmo que o origemFitId antigo não tenha
+    // sido limpo em algum caminho de código passado.
     db.movimentacao.findMany({
-      where: { contaId, origemFitId: { in: fitIds } },
+      where: { contaId, origemFitId: { in: fitIds }, status: "CONCILIADO" },
       select: { origemFitId: true },
     }),
     db.movimentacao.findMany({

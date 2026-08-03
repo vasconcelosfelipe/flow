@@ -55,6 +55,7 @@ export async function criarMovimentacao(dados: NovaMovimentacaoInput) {
 export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInput) {
   const empresaId = await obterEmpresa();
   const data = new Date(dados.data);
+  const atual = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
   await db.movimentacao.update({
     where: { id, empresaId },
     data: {
@@ -68,6 +69,12 @@ export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInpu
       data: dados.status !== "PENDENTE" ? data : null,
       dataVencimento: dados.status === "PENDENTE" ? data : null,
       dataCompetencia: data,
+      // Tirar do status Conciliado por edição direta desliga o vínculo com o
+      // extrato — senão a linha do OFX fica "já importada" pra sempre, mesmo
+      // sem nenhuma movimentação conciliada de verdade pra ela.
+      ...(atual.status === "CONCILIADO" && dados.status !== "CONCILIADO"
+        ? { origemFitId: null }
+        : {}),
     },
   });
   revalidatePath("/movimentacoes");
@@ -97,10 +104,13 @@ export async function excluirMovimentacao(id: string) {
   if (mov.transferenciaId) {
     await db.movimentacao.updateMany({
       where: { empresaId, transferenciaId: mov.transferenciaId },
-      data: { status: "CANCELADO" },
+      data: { status: "CANCELADO", origemFitId: null },
     });
   } else {
-    await db.movimentacao.update({ where: { id, empresaId }, data: { status: "CANCELADO" } });
+    await db.movimentacao.update({
+      where: { id, empresaId },
+      data: { status: "CANCELADO", origemFitId: null },
+    });
   }
   revalidatePath("/movimentacoes");
   revalidatePath("/a-pagar-receber");
