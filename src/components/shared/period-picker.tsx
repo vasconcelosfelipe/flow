@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { endOfMonth, endOfYear, isSameDay, parseISO, startOfMonth, startOfYear } from "date-fns";
+import { endOfMonth, endOfYear, format, isSameDay, parseISO, startOfMonth, startOfYear, subDays } from "date-fns";
 import { CalendarRange, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
@@ -14,6 +14,8 @@ import { formatarData, formatarMesAno } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
 type Modo = "mes" | "ano";
+
+const ATALHOS_DIAS = [7, 30, 60, 90] as const;
 
 /**
  * Mesma visualização da DRE — alterna mês/ano e navega com setas — mais um
@@ -38,6 +40,12 @@ export function PeriodPicker({
     setDe("");
     setAte("");
     setModalAberto(false);
+  }
+
+  function preencherUltimosDias(quantidade: number) {
+    const hoje = new Date();
+    setDe(format(subDays(hoje, quantidade - 1), "yyyy-MM-dd"));
+    setAte(format(hoje, "yyyy-MM-dd"));
   }
 
   const escuro = tema === "escuro";
@@ -154,6 +162,19 @@ export function PeriodPicker({
         }
       >
         <div className="space-y-4 py-2">
+          <div className="flex flex-wrap gap-1.5">
+            {ATALHOS_DIAS.map((dias) => (
+              <button
+                key={dias}
+                type="button"
+                onClick={() => preencherUltimosDias(dias)}
+                className="rounded-full border border-line px-3 py-1 text-nano font-medium text-ink-muted transition-colors hover:border-brand hover:text-brand"
+              >
+                {dias} dias
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="periodo-de">De</Label>
             <Input
