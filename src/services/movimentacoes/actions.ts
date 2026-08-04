@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { addMonths } from "date-fns";
 
 import { db } from "@/lib/db";
 import { requireSessao } from "@/lib/sessao";
@@ -218,34 +219,92 @@ export async function atualizarCategoriaEmLote(ids: string[], categoriaId: strin
   revalidatePath("/");
 }
 
-export type NovaPendenciaInput = {
+type CamposComunsPendencia = {
   descricao: string;
   tipo: "RECEITA" | "DESPESA";
-  valorCentavos: number;
   contaId: string;
   categoriaId: string | null;
   contatoId: string | null;
-  dataVencimento: string; // YYYY-MM-DD
+  dataVencimento: string; // YYYY-MM-DD — vencimento da 1ª ocorrência/parcela
 };
+
+/**
+ * Três modalidades de ocorrência:
+ * - `UNICA`: um título, um vencimento, fim.
+ * - `PARCELADO`: N títulos, um por mês a partir do vencimento informado. O
+ *   valor de cada parcela vem editado do formulário — pode não bater com
+ *   nenhuma divisão igual do valor total, e isso é intencional (parcelas com
+ *   juros, arredondamento diferente etc.). A soma das parcelas nunca é
+ *   recalculada aqui, só persistida como veio.
+ * - `RECORRENTE`: N títulos idênticos, um por mês a partir do vencimento
+ *   informado — mesma conta a se repetir por N meses, sem parcelamento de
+ *   valor.
+ */
+export type NovaPendenciaInput =
+  | (CamposComunsPendencia & { modalidade: "UNICA"; valorCentavos: number })
+  | (CamposComunsPendencia & { modalidade: "PARCELADO"; parcelas: number[] })
+  | (CamposComunsPendencia & { modalidade: "RECORRENTE"; valorCentavos: number; quantidadeMeses: number });
 
 export async function criarPendencia(dados: NovaPendenciaInput) {
   const empresaId = await obterEmpresa();
-  const venc = new Date(dados.dataVencimento);
-  await db.movimentacao.create({
-    data: {
-      empresaId,
-      contaId: dados.contaId,
-      categoriaId: dados.categoriaId,
-      contatoId: dados.contatoId,
-      descricao: dados.descricao,
-      tipo: dados.tipo,
-      valorCentavos: dados.valorCentavos,
-      status: "PENDENTE",
-      data: null,
-      dataVencimento: venc,
-      dataCompetencia: venc,
-    },
-  });
+  const vencInicial = new Date(dados.dataVencimento);
+
+  const base = {
+    empresaId,
+    contaId: dados.contaId,
+    categoriaId: dados.categoriaId,
+    contatoId: dados.contatoId,
+    descricao: dados.descricao,
+    tipo: dados.tipo,
+    status: "PENDENTE" as const,
+    data: null,
+  };
+
+  if (dados.modalidade === "UNICA") {
+    await db.movimentacao.create({
+      data: {
+        ...base,
+        valorCentavos: dados.valorCentavos,
+        dataVencimento: vencInicial,
+        dataCompetencia: vencInicial,
+      },
+    });
+  } else if (dados.modalidade === "PARCELADO") {
+    const grupoParcelamento = crypto.randomUUID();
+    const totalParcelas = dados.parcelas.length;
+    await db.movimentacao.createMany({
+      data: dados.parcelas.map((valorCentavos, i) => {
+        const venc = addMonths(vencInicial, i);
+        return {
+          ...base,
+          valorCentavos,
+          dataVencimento: venc,
+          dataCompetencia: venc,
+          numeroParcela: i + 1,
+          totalParcelas,
+          grupoParcelamento,
+        };
+      }),
+    });
+  } else {
+    const grupoParcelamento = crypto.randomUUID();
+    await db.movimentacao.createMany({
+      data: Array.from({ length: dados.quantidadeMeses }, (_, i) => {
+        const venc = addMonths(vencInicial, i);
+        return {
+          ...base,
+          valorCentavos: dados.valorCentavos,
+          dataVencimento: venc,
+          dataCompetencia: venc,
+          numeroParcela: i + 1,
+          totalParcelas: dados.quantidadeMeses,
+          grupoParcelamento,
+          recorrente: true,
+        };
+      }),
+    });
+  }
+
   revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
