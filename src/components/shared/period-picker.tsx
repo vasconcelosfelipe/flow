@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { parseISO } from "date-fns";
-import { CalendarRange } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
@@ -29,7 +29,7 @@ export function PeriodPicker({
   /** `escuro` para uso dentro da zona de comando do Início. */
   tema?: "claro" | "escuro";
 }) {
-  const { selecao, periodo, definirPreset, definirPersonalizado } = usePeriodParams();
+  const { selecao, periodo, definirPreset, definirPersonalizado, navegarMes } = usePeriodParams();
   const [modalAberto, setModalAberto] = useState(false);
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
@@ -43,72 +43,99 @@ export function PeriodPicker({
   const personalizado = selecao.modo === "personalizado";
   const escuro = tema === "escuro";
 
+  const estiloSeta = cn(
+    "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+    "focus-visible:ring-2 focus-visible:outline-none",
+    escuro
+      ? "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
+      : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
+  );
+
   return (
     <>
-      <div
-        className={cn(
-          "scrollbar-none flex items-center gap-1 overflow-x-auto rounded-xl p-1",
-          escuro ? "bg-white/10" : "bg-muted",
-          className,
-        )}
-        role="group"
-        aria-label="Período"
-      >
-        {PRESETS_PERIODO.map((preset) => {
-          const ativo = !personalizado && selecao.preset === preset;
-          return (
-            <button
-              key={preset}
-              type="button"
-              onClick={() => definirPreset(preset)}
-              aria-pressed={ativo}
-              className={cn(
-                "relative shrink-0 rounded-lg px-3 py-1.5 text-micro font-medium whitespace-nowrap transition-colors",
-                "focus-visible:ring-2 focus-visible:outline-none",
-                escuro
-                  ? ativo
-                    ? "text-night focus-visible:ring-white/70"
-                    : "text-night-muted hover:text-night-text focus-visible:ring-white/70"
-                  : ativo
-                    ? "text-ink focus-visible:ring-brand"
-                    : "text-ink-muted hover:text-ink focus-visible:ring-brand",
-              )}
-            >
-              {ativo && (
-                <motion.span
-                  layoutId="periodo-ativo"
-                  className={cn(
-                    "absolute inset-0 rounded-lg",
-                    escuro ? "bg-white" : "bg-surface shadow-card",
-                  )}
-                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                />
-              )}
-              <span className="relative">{ROTULO_PRESET[preset]}</span>
-            </button>
-          );
-        })}
+      <div className={cn("flex items-center gap-1", className)}>
+        <button
+          type="button"
+          onClick={() => navegarMes(-1)}
+          aria-label="Mês anterior"
+          className={estiloSeta}
+        >
+          <ChevronLeft className="size-4" aria-hidden="true" />
+        </button>
+
+        <div
+          className={cn(
+            "scrollbar-none flex min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl p-1",
+            escuro ? "bg-white/10" : "bg-muted",
+          )}
+          role="group"
+          aria-label="Período"
+        >
+          {PRESETS_PERIODO.map((preset) => {
+            const ativo = !personalizado && selecao.preset === preset;
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => definirPreset(preset)}
+                aria-pressed={ativo}
+                className={cn(
+                  "relative shrink-0 rounded-lg px-3 py-1.5 text-micro font-medium whitespace-nowrap transition-colors",
+                  "focus-visible:ring-2 focus-visible:outline-none",
+                  escuro
+                    ? ativo
+                      ? "text-night focus-visible:ring-white/70"
+                      : "text-night-muted hover:text-night-text focus-visible:ring-white/70"
+                    : ativo
+                      ? "text-ink focus-visible:ring-brand"
+                      : "text-ink-muted hover:text-ink focus-visible:ring-brand",
+                )}
+              >
+                {ativo && (
+                  <motion.span
+                    layoutId="periodo-ativo"
+                    className={cn(
+                      "absolute inset-0 rounded-lg",
+                      escuro ? "bg-white" : "bg-surface shadow-card",
+                    )}
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className="relative">{ROTULO_PRESET[preset]}</span>
+              </button>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setModalAberto(true)}
+            aria-pressed={personalizado}
+            className={cn(
+              "relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-micro font-medium whitespace-nowrap transition-colors",
+              "focus-visible:ring-2 focus-visible:outline-none",
+              escuro
+                ? personalizado
+                  ? "bg-white text-night focus-visible:ring-white/70"
+                  : "text-night-muted hover:text-night-text focus-visible:ring-white/70"
+                : personalizado
+                  ? "bg-surface text-ink shadow-card focus-visible:ring-brand"
+                  : "text-ink-muted hover:text-ink focus-visible:ring-brand",
+            )}
+          >
+            <CalendarRange className="size-3.5" aria-hidden="true" />
+            {personalizado
+              ? `${formatarData(periodo.de)} – ${formatarData(periodo.ate)}`
+              : "Escolher"}
+          </button>
+        </div>
 
         <button
           type="button"
-          onClick={() => setModalAberto(true)}
-          aria-pressed={personalizado}
-          className={cn(
-            "relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-micro font-medium whitespace-nowrap transition-colors",
-            "focus-visible:ring-2 focus-visible:outline-none",
-            escuro
-              ? personalizado
-                ? "bg-white text-night focus-visible:ring-white/70"
-                : "text-night-muted hover:text-night-text focus-visible:ring-white/70"
-              : personalizado
-                ? "bg-surface text-ink shadow-card focus-visible:ring-brand"
-                : "text-ink-muted hover:text-ink focus-visible:ring-brand",
-          )}
+          onClick={() => navegarMes(1)}
+          aria-label="Próximo mês"
+          className={estiloSeta}
         >
-          <CalendarRange className="size-3.5" aria-hidden="true" />
-          {personalizado
-            ? `${formatarData(periodo.de)} – ${formatarData(periodo.ate)}`
-            : "Escolher"}
+          <ChevronRight className="size-4" aria-hidden="true" />
         </button>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useTransition } from "react";
-import { endOfDay, parseISO, startOfDay } from "date-fns";
+import { addMonths, endOfDay, endOfMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
 import { format } from "date-fns";
 
 import {
@@ -80,5 +80,18 @@ export function usePeriodParams(padrao: PresetPeriodo = "mes") {
     [aplicar],
   );
 
-  return { selecao, periodo, definirPreset, definirPersonalizado, pendente };
+  // Anda um mês inteiro pra trás/frente a partir do período atual — ponto de
+  // referência é o início do recorte vigente, então navegar a partir de um
+  // preset qualquer (não só "mês") também faz sentido: sempre cai no mês
+  // cheio anterior/seguinte ao que está sendo visto.
+  const navegarMes = useCallback(
+    (quantidade: number) => {
+      const base = de ? parseISO(de) : periodo.de;
+      const novoMes = addMonths(startOfMonth(base), quantidade);
+      definirPersonalizado(novoMes, endOfMonth(novoMes));
+    },
+    [de, periodo, definirPersonalizado],
+  );
+
+  return { selecao, periodo, definirPreset, definirPersonalizado, navegarMes, pendente };
 }

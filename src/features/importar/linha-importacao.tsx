@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2 } from "lucide-react";
+import { ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2 } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { SearchableSelect } from "@/components/shared/searchable-select";
@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { formatarData } from "@/lib/dates";
-import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
@@ -77,11 +76,6 @@ export function LinhaImportacao({
 }) {
   const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
   const receita = linha.tipo === "RECEITA";
-  const Icone = linha.ehTransferencia
-    ? ArrowLeftRight
-    : linha.categoriaSugerida
-      ? iconeDe(linha.categoriaSugerida.icone)
-      : AlertCircle;
   const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
   const categoriaSelecionada = categorias.find((c) => c.id === linha.categoriaId);
   const contatoSelecionado = contatos.find((c) => c.id === linha.contatoId);
@@ -102,24 +96,6 @@ export function LinhaImportacao({
         aria-label={`Incluir ${linha.descricao}`}
         className="mt-3.5 size-5"
       />
-
-      <span
-        className={cn(
-          "mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl",
-          linha.ehTransferencia
-            ? "bg-brand-wash text-brand"
-            : linha.categoriaSugerida
-              ? undefined
-              : "bg-attention-wash text-attention",
-        )}
-        style={
-          !linha.ehTransferencia && linha.categoriaSugerida
-            ? { backgroundColor: `${linha.categoriaSugerida.cor}1a`, color: linha.categoriaSugerida.cor }
-            : undefined
-        }
-      >
-        <Icone className="size-4.5" aria-hidden="true" />
-      </span>
 
       <div className={cn("min-w-0 flex-1", !linha.incluir && "opacity-60")}>
         <div className="flex items-start gap-2">
