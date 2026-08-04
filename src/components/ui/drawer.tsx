@@ -11,17 +11,20 @@ function Drawer({
   return (
     <DrawerPrimitive.Root
       data-slot="drawer"
-      // NÃO desligar `repositionInputs` (fica true, o padrão do vaul).
-      // Parece controlar só o reposicionamento "bonito" da gaveta, mas no
-      // código do vaul essa mesma flag também é a que ativa o hack de
-      // `preventScrollMobileSafari` — o mecanismo que impede o Safari
-      // mobile de fazer scroll nativo da página ao focar um campo (o
-      // comentário deles: "pode fazer até elementos position:fixed saírem
-      // rolando da tela"). Uma correção anterior desligou isto achando que
-      // resolvia um bug do rodapé subindo — na prática desligou também essa
-      // proteção, e o resultado foi pior: o cartão inteiro passou a subir
-      // de forma descontrolada ao digitar, exatamente o comportamento que o
-      // hack existe pra evitar.
+      // Desligado de propósito. Com `repositionInputs` ligado (o padrão do
+      // vaul), o próprio vaul escuta `visualViewport.resize` e reescreve
+      // `drawerRef.style.height` na mão (ver node_modules/vaul — função do
+      // `onVisualViewportChange`) — sem gate nenhum de plataforma, roda em
+      // qualquer navegador. Confirmado em vídeo num Android: ao abrir o
+      // teclado num formulário curto (Nova Conta), a gaveta encolhe pra
+      // caber só o campo focado, cabeçalho vai pro topo da tela e todo o
+      // resto (outros campos, botões) some atrás do teclado — muito pior
+      // que deixar o teclado só cobrir por baixo. Existe também um hack só
+      // pra Mobile Safari atrelado à mesma flag (`preventScrollMobileSafari`,
+      // que evita o iOS rolar elementos `position: fixed`), mas esse app é
+      // testado em Android — o hack do iOS não compensa o encolhimento que
+      // a flag causa em geral.
+      repositionInputs={false}
       {...props}
     />
   )
