@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <TooltipProvider delayDuration={300}>
       <DesktopRail />
 
-      <div className="flex min-h-dvh flex-col md:pl-16">
+      <div className="flex min-h-app-safe flex-col md:pl-16">
         <AppHeader sessao={sessao} />
         {/* A barra inferior é `fixed` (não faz parte do fluxo), então o
             conteúdo precisa reservar o próprio espaço embaixo — senão o
