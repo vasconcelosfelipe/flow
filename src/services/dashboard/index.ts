@@ -197,6 +197,15 @@ export async function obterResumoDashboard(
   const abertas = abertasRows.map(mapearParaResumo);
   const historico = historicoRows.map(mapearParaResumo);
 
+  // Os cartões "A pagar"/"A receber" seguem o período selecionado no topo —
+  // diferente do alerta de vencidas (sempre olha tudo, uma pendência antiga
+  // não deixa de ser vencida só porque o filtro mudou de mês).
+  const abertasNoPeriodo = abertas.filter(
+    (m) =>
+      m.dataVencimento !== null &&
+      isWithinInterval(m.dataVencimento, { start: periodo.de, end: periodo.ate }),
+  );
+
   // Últimas movimentações mostram tudo (transferência inclusa — é atividade
   // real da conta); resultado/série/histórico ficam de fora dela.
   const noPeriodo = historico.filter(
@@ -236,8 +245,8 @@ export async function obterResumoDashboard(
       resultadoAnterior === 0
         ? null
         : Math.round(((resultado - resultadoAnterior) / Math.abs(resultadoAnterior)) * 10_000),
-    aPagar: pendencias(abertas, "DESPESA", hoje),
-    aReceber: pendencias(abertas, "RECEITA", hoje),
+    aPagar: pendencias(abertasNoPeriodo, "DESPESA", hoje),
+    aReceber: pendencias(abertasNoPeriodo, "RECEITA", hoje),
     serie,
     serieAcumulada: montarAcumulado(serie),
     ultimasMovimentacoes: noPeriodo
