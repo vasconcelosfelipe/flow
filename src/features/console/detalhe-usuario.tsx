@@ -82,7 +82,7 @@ export function DetalheUsuarioConsole({
   }
 
   return (
-    <div className="space-y-5 py-2">
+    <div className="space-y-5 py-2 pb-6">
       {/* Cabeçalho do usuário */}
       <div className="flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-sm font-semibold text-brand">

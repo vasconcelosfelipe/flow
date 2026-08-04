@@ -69,6 +69,11 @@ export function GerenciadorUsuariosConsole({
         aoMudarAberto={(aberto) => !aberto && setVisualizando(null)}
         titulo="Usuário"
         descricao="Empresas e papéis deste usuário."
+        rodape={
+          <Button variant="outline" className="w-full" onClick={() => setVisualizando(null)}>
+            Fechar
+          </Button>
+        }
       >
         {visualizando && <DetalheUsuarioConsole usuario={visualizando} todasEmpresas={empresas} />}
       </ResponsiveModal>
