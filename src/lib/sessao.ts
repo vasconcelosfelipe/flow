@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { COOKIE_EMPRESA_ATIVA } from "@/services/empresas/actions";
+import { COOKIE_EMPRESA_ATIVA } from "@/lib/empresa-cookie";
 import type { SessaoAtual } from "@/services/empresas/dto";
 
 /**

@@ -4,8 +4,7 @@ import { cookies, headers } from "next/headers";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-
-export const COOKIE_EMPRESA_ATIVA = "empresa-ativa";
+import { COOKIE_EMPRESA_ATIVA } from "@/lib/empresa-cookie";
 
 /**
  * Grava qual empresa fica ativa nas próximas requisições — `requireSessao()`
