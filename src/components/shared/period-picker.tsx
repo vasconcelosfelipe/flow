@@ -66,67 +66,67 @@ export function PeriodPicker({
 
   return (
     <div className={cn("flex items-center justify-between gap-2", className)}>
+      <div className="flex items-center gap-1">
+        <Tabs value={modo ?? undefined} onValueChange={(v) => mudarModo(v as Modo)}>
+          <TabsList className="h-9">
+            <TabsTrigger value="mes">Mês</TabsTrigger>
+            <TabsTrigger value="ano">Ano</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <button
+          type="button"
+          onClick={() => setModalAberto(true)}
+          aria-label="Personalizar período"
+          aria-pressed={personalizado}
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-lg transition-colors",
+            "focus-visible:ring-2 focus-visible:outline-none",
+            escuro
+              ? personalizado
+                ? "bg-white text-night focus-visible:ring-white/70"
+                : "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
+              : personalizado
+                ? "bg-brand-wash text-brand focus-visible:ring-brand"
+                : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
+          )}
+        >
+          <CalendarRange className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+
       {personalizado ? (
         <span className={cn("text-micro font-medium", escuro ? "text-night-text" : "text-ink")}>
           {formatarData(periodo.de)} – {formatarData(periodo.ate)}
         </span>
       ) : (
-        <>
-          <Tabs value={modo ?? undefined} onValueChange={(v) => mudarModo(v as Modo)}>
-            <TabsList className="h-9">
-              <TabsTrigger value="mes">Mês</TabsTrigger>
-              <TabsTrigger value="ano">Ano</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => (modo === "ano" ? navegarAno(-1) : navegarMes(-1))}
-              aria-label={modo === "ano" ? "Ano anterior" : "Mês anterior"}
-              className={estiloSeta}
-            >
-              <ChevronLeft className="size-4" aria-hidden="true" />
-            </button>
-            <span
-              className={cn(
-                "min-w-24 text-center text-micro font-medium whitespace-nowrap",
-                escuro ? "text-night-text" : "text-ink",
-              )}
-            >
-              {modo === "ano" ? periodo.de.getFullYear() : formatarMesAno(periodo.de)}
-            </span>
-            <button
-              type="button"
-              onClick={() => (modo === "ano" ? navegarAno(1) : navegarMes(1))}
-              aria-label={modo === "ano" ? "Próximo ano" : "Próximo mês"}
-              className={estiloSeta}
-            >
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </button>
-          </div>
-        </>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => (modo === "ano" ? navegarAno(-1) : navegarMes(-1))}
+            aria-label={modo === "ano" ? "Ano anterior" : "Mês anterior"}
+            className={estiloSeta}
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </button>
+          <span
+            className={cn(
+              "min-w-24 text-center text-micro font-medium whitespace-nowrap",
+              escuro ? "text-night-text" : "text-ink",
+            )}
+          >
+            {modo === "ano" ? periodo.de.getFullYear() : formatarMesAno(periodo.de)}
+          </span>
+          <button
+            type="button"
+            onClick={() => (modo === "ano" ? navegarAno(1) : navegarMes(1))}
+            aria-label={modo === "ano" ? "Próximo ano" : "Próximo mês"}
+            className={estiloSeta}
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </button>
+        </div>
       )}
-
-      <button
-        type="button"
-        onClick={() => setModalAberto(true)}
-        aria-label="Personalizar período"
-        aria-pressed={personalizado}
-        className={cn(
-          "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
-          "focus-visible:ring-2 focus-visible:outline-none",
-          escuro
-            ? personalizado
-              ? "bg-white text-night focus-visible:ring-white/70"
-              : "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
-            : personalizado
-              ? "bg-brand-wash text-brand focus-visible:ring-brand"
-              : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
-        )}
-      >
-        <CalendarRange className="size-4" aria-hidden="true" />
-      </button>
 
       <ResponsiveModal
         aberto={modalAberto}
