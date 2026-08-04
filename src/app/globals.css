@@ -340,13 +340,31 @@
  * navegador (endereço/abas) nunca recolhe e fica permanentemente expandida,
  * "comendo" a faixa inferior da tela (o mesmo efeito aparecia em modo PWA
  * standalone, sem chrome do Safari, por conta do `dvh` aninhado dentro de
- * outro `dvh` nunca resolver para o mesmo valor). A barra inferior usa
- * `position: sticky` (ver BottomNav) em vez de `fixed`, o que já resolve o
- * "salto" ao redimensionar o viewport sem precisar bloquear o scroll nativo.
+ * outro `dvh` nunca resolver para o mesmo valor). A barra inferior é
+ * `position: fixed` (ver BottomNav) — pinada no viewport, imune a scroll de
+ * qualquer ancestral — em vez de `sticky`, que dependia de um contêiner
+ * flex/scroll específico e trocava uma categoria de bug por outra (ver
+ * commit 38f124c).
  */
 html,
 body {
   overscroll-behavior-y: none;
+}
+
+/*
+ * O Radix (por trás do Dialog e, indiretamente, do Drawer/vaul) usa
+ * `react-remove-scroll` pra travar o scroll do fundo enquanto um modal está
+ * aberto — marca `body[data-scroll-locked]` e injeta `margin-right`/`width`
+ * calculados a partir da largura da scrollbar removida. No desktop isso é
+ * inofensivo (compensa a barra de rolagem que sumiu), mas no Safari/iOS não
+ * existe barra de rolagem clássica pra compensar, e esse cálculo residual já
+ * foi observado deslocando o layout — inclusive elementos `fixed` como a
+ * BottomNav. Neutraliza sem desligar o travamento em si (que continua
+ * bloqueando toque/scroll do fundo normalmente).
+ */
+body[data-scroll-locked] {
+  margin-right: 0 !important;
+  width: 100% !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
