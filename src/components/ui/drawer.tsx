@@ -11,15 +11,17 @@ function Drawer({
   return (
     <DrawerPrimitive.Root
       data-slot="drawer"
-      // O viewport do app já usa `interactiveWidget: overlays-content` (ver
-      // src/app/layout.tsx) pra impedir o teclado de redimensionar o layout
-      // e empurrar a barra inferior fixa. O reposicionamento automático do
-      // vaul (que desloca a gaveta pra manter o campo focado visível) lê o
-      // tamanho do visualViewport de qualquer forma e entra em conflito com
-      // isso — o rodapé "sobe" com o teclado de um jeito descolado do
-      // conteúdo. Desligado, a gaveta fica parada e o teclado só cobre por
-      // cima, coerente com o resto do app.
-      repositionInputs={false}
+      // NÃO desligar `repositionInputs` (fica true, o padrão do vaul).
+      // Parece controlar só o reposicionamento "bonito" da gaveta, mas no
+      // código do vaul essa mesma flag também é a que ativa o hack de
+      // `preventScrollMobileSafari` — o mecanismo que impede o Safari
+      // mobile de fazer scroll nativo da página ao focar um campo (o
+      // comentário deles: "pode fazer até elementos position:fixed saírem
+      // rolando da tela"). Uma correção anterior desligou isto achando que
+      // resolvia um bug do rodapé subindo — na prática desligou também essa
+      // proteção, e o resultado foi pior: o cartão inteiro passou a subir
+      // de forma descontrolada ao digitar, exatamente o comportamento que o
+      // hack existe pra evitar.
       {...props}
     />
   )
