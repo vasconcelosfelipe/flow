@@ -21,24 +21,12 @@ function Drawer({
       // campos, botões) sumia atrás do teclado — muito pior que deixar o
       // teclado só cobrir por baixo.
       repositionInputs={false}
-      // Também desligado de propósito. O app roda em iPhone (Safari) — lá
-      // o vaul tem OUTRO mecanismo, independente do de cima: ao abrir uma
-      // gaveta, ele seta `document.body.style.position = 'fixed'` (com
-      // `top`/`left` negativos pra "travar" a rolagem do fundo) e restaura
-      // ao fechar (ver `usePositionFixed` no node_modules/vaul). Esse
-      // restore é um `let previousBodyPosition` a nível de módulo — um
-      // singleton só, não uma pilha — então abrir uma gaveta logo depois de
-      // fechar outra (editar uma conta, fechar, editar a próxima — o fluxo
-      // gravado em vídeo) tem uma corrida real entre o restore da primeira
-      // e o setup da segunda, documentada em vários issues do vaul
-      // (github.com/emilkowalski/vaul#318, #397): o body fica com `position:
-      // fixed`/`top` errado depois do fechamento, e a barra de navegação
-      // (que também é `fixed`) acompanha o descompasso. O Radix Dialog por
-      // baixo do vaul já bloqueia toque no fundo (`pointer-events: none`)
-      // enquanto o modal está aberto — confirmado inspecionando o DOM — então
-      // essa trava adicional do vaul é redundante aqui, e desligá-la remove
-      // o código que causa a corrida.
-      noBodyStyles={true}
+      // `noBodyStyles` fica no padrão (ligado) — cheguei a desligar pra
+      // evitar a corrida descrita em ResponsiveModal, mas sem essa trava do
+      // vaul o fundo passa a rolar livremente em QUALQUER gaveta no iOS
+      // (o pointer-events:none do Radix Dialog não bloqueia scroll/bounce,
+      // só clique) — piorou o sintoma em vez de resolver. A limpeza da
+      // corrida agora é feita manualmente em `ResponsiveModal`.
       {...props}
     />
   )

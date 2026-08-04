@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import {
   Dialog,
@@ -54,6 +54,33 @@ export function ResponsiveModal({
   className,
 }: ResponsiveModalProps) {
   const desktop = useDesktop();
+
+  // Rede de segurança pro bug documentado do vaul (github.com/emilkowalski/
+  // vaul issues #318 e #397): no iOS, ele trava a rolagem do fundo travando
+  // `document.body.style.position` em `fixed` (com `top`/`left` negativos)
+  // enquanto a gaveta está aberta, e restaura ao fechar — mas esse restore
+  // usa uma variável única no módulo, não uma pilha, então fechar uma
+  // gaveta e abrir outra em seguida (editar um registro, fechar, editar o
+  // próximo) pode perder a corrida e deixar o body preso em `position:
+  // fixed` com o `top` errado — a barra de navegação (também fixed) fica
+  // descolada do lugar até a página recarregar. Aqui a gente força a
+  // limpeza um pouco depois de qualquer fechamento — só quando não sobrou
+  // nenhuma gaveta aberta (outra pode ter sido reaberta nesse meio-tempo),
+  // e só se o vaul realmente deixou o body travado.
+  useEffect(() => {
+    if (aberto) return;
+    const id = window.setTimeout(() => {
+      if (document.querySelector("[data-vaul-drawer]")) return;
+      if (document.body.style.position === "fixed") {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.right = "";
+        document.body.style.height = "";
+      }
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [aberto]);
 
   if (desktop) {
     return (
