@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
-import { formatarPercentual } from "@/lib/money";
+import { calcularMargem, formatarPercentual } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { DreResultado } from "@/services/dre/dto";
 
@@ -21,19 +21,26 @@ import type { DreResultado } from "@/services/dre/dto";
  *   Operacionais, Outras Receitas/Despesas, Tributos) nascem discretas e
  *   fechadas; abrir uma revela as categorias reais por trás daquele
  *   número — nunca uma linha fictícia repetindo o nome da própria seção.
+ *
+ * Cada linha carrega também seu % sobre a receita líquida (análise
+ * vertical clássica de DRE) — só faz sentido na visão mensal, onde há um
+ * único valor por linha; na anual, doze colunas por linha já não cabem mais
+ * um percentual do lado sem virar poluição visual.
  */
 export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
   const linha = (id: string) => dre.linhas.find((l) => l.id === id);
+  const base = dre.receitaLiquida[0];
+  const percentualDe = (centavos: number) => calcularMargem(centavos, base);
   const margemContribuicaoPercentual = dre.margemContribuicaoPercentual[0];
   const resultadoLiquidoPositivo = dre.resultadoLiquido[0] >= 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-      <LinhaComponente linha={linha("RECEITA_BRUTA")} />
-      <LinhaComponente linha={linha("DEDUCOES")} />
-      <LinhaTotal rotulo="Receita líquida" centavos={dre.receitaLiquida[0]} />
+      <LinhaComponente linha={linha("RECEITA_BRUTA")} percentual={percentualDe(linha("RECEITA_BRUTA")?.totalCentavos ?? 0)} />
+      <LinhaComponente linha={linha("DEDUCOES")} percentual={percentualDe(linha("DEDUCOES")?.totalCentavos ?? 0)} />
+      <LinhaTotal rotulo="Receita líquida" centavos={dre.receitaLiquida[0]} percentual={percentualDe(dre.receitaLiquida[0])} />
 
-      <LinhaComponente linha={linha("CUSTOS")} />
+      <LinhaComponente linha={linha("CUSTOS")} percentual={percentualDe(linha("CUSTOS")?.totalCentavos ?? 0)} />
       <LinhaTotal rotulo="Margem de contribuição" centavos={dre.margemContribuicao[0]}>
         <span className="text-nano text-ink-muted">sobre a receita líquida</span>
         <span className="text-nano font-medium text-ink-muted">
@@ -41,11 +48,11 @@ export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
         </span>
       </LinhaTotal>
 
-      <LinhaComponente linha={linha("DESPESAS_OPERACIONAIS")} />
-      <LinhaTotal rotulo="Resultado operacional" centavos={dre.resultadoOperacional[0]} />
+      <LinhaComponente linha={linha("DESPESAS_OPERACIONAIS")} percentual={percentualDe(linha("DESPESAS_OPERACIONAIS")?.totalCentavos ?? 0)} />
+      <LinhaTotal rotulo="Resultado operacional" centavos={dre.resultadoOperacional[0]} percentual={percentualDe(dre.resultadoOperacional[0])} />
 
-      <LinhaComponente linha={linha("OUTRAS_RECEITAS_DESPESAS")} />
-      <LinhaComponente linha={linha("TRIBUTOS_LUCRO")} />
+      <LinhaComponente linha={linha("OUTRAS_RECEITAS_DESPESAS")} percentual={percentualDe(linha("OUTRAS_RECEITAS_DESPESAS")?.totalCentavos ?? 0)} />
+      <LinhaComponente linha={linha("TRIBUTOS_LUCRO")} percentual={percentualDe(linha("TRIBUTOS_LUCRO")?.totalCentavos ?? 0)} />
 
       <div
         className={cn(
@@ -54,14 +61,32 @@ export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
         )}
       >
         <span className="text-corpo font-semibold text-ink">Resultado líquido</span>
-        <AmountText centavos={dre.resultadoLiquido[0]} tamanho="lg" />
+        <span className="flex flex-col items-end gap-0.5">
+          <AmountText centavos={dre.resultadoLiquido[0]} tamanho="lg" />
+          <Percentual valor={dre.margem[0]} />
+        </span>
       </div>
     </div>
   );
 }
 
+/** `"—"` quando não há base (receita líquida zero) pra calcular sobre. */
+function Percentual({ valor }: { valor: number | null }) {
+  return (
+    <span className="text-nano font-medium text-ink-muted">
+      {valor === null ? "—" : formatarPercentual(valor)}
+    </span>
+  );
+}
+
 /** Uma linha da cascata — nasce fechada, some por trás de um toque. */
-function LinhaComponente({ linha }: { linha: DreResultado["linhas"][number] | undefined }) {
+function LinhaComponente({
+  linha,
+  percentual,
+}: {
+  linha: DreResultado["linhas"][number] | undefined;
+  percentual: number | null;
+}) {
   const [aberto, setAberto] = useState(false);
 
   if (!linha) return null;
@@ -84,8 +109,9 @@ function LinhaComponente({ linha }: { linha: DreResultado["linhas"][number] | un
           />
           <span className="text-micro text-ink-muted">{linha.nome}</span>
         </span>
-        <span className="text-micro font-medium text-ink-muted">
+        <span className="flex flex-col items-end gap-0.5 text-micro font-medium text-ink-muted">
           <AmountText centavos={linha.totalCentavos} tom="neutro" tamanho="sm" />
+          <Percentual valor={percentual} />
         </span>
       </button>
 
@@ -120,22 +146,29 @@ function LinhaComponente({ linha }: { linha: DreResultado["linhas"][number] | un
 /**
  * Um totalizador da cascata — sempre visível, sempre em destaque. Aceita uma
  * segunda linha opcional (a margem de contribuição em %, por exemplo): um
- * dado de apoio que pertence ao mesmo total, não um componente novo.
+ * dado de apoio que pertence ao mesmo total, não um componente novo. Ou um
+ * `percentual` simples (% sobre a receita líquida), quando não precisa do
+ * rótulo extra que `children` carrega.
  */
 function LinhaTotal({
   rotulo,
   centavos,
+  percentual,
   children,
 }: {
   rotulo: string;
   centavos: number;
+  percentual?: number | null;
   children?: ReactNode;
 }) {
   return (
     <div className="space-y-2 border-b border-line bg-canvas/50 px-4 py-3">
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold text-ink">{rotulo}</span>
-        <AmountText centavos={centavos} tamanho="md" />
+        <span className="flex flex-col items-end gap-0.5">
+          <AmountText centavos={centavos} tamanho="md" />
+          {percentual !== undefined && <Percentual valor={percentual} />}
+        </span>
       </div>
       {children && <div className="flex items-center justify-between gap-2">{children}</div>}
     </div>
