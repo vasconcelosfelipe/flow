@@ -111,15 +111,20 @@ export async function listarMovimentacoes(
     ...(filtro.contaId ? { contaId: filtro.contaId } : {}),
     ...(filtro.categoriaId ? { categoriaId: filtro.categoriaId } : {}),
     ...(filtro.tipo ? { tipo: filtro.tipo } : {}),
-    // Sem filtro de status, "excluída" (CANCELADO) some da lista — é o
-    // equivalente de exclusão das outras entidades (ativa: false).
-    status: filtro.status ?? { not: "CANCELADO" },
+    // Sem filtro de status, só mostra o que já aconteceu de fato (pago ou
+    // conciliado) — agendamento (PENDENTE/PREVISTO) é assunto da tela de A
+    // pagar/receber, e CANCELADO é o equivalente de exclusão das outras
+    // entidades (ativa: false), nunca aparece.
+    status: filtro.status ?? { in: REALIZADO },
     ...(filtro.busca
       ? { descricao: { contains: filtro.busca, mode: "insensitive" as const } }
       : {}),
     ...(filtro.semCategoria
       ? { categoriaId: null, data: { not: null }, transferenciaId: null }
       : {}),
+    // O lado `dataVencimento` deste OR só importa quando `filtro.status` for
+    // sobrescrito pra incluir PENDENTE/PREVISTO (via o Select de Status) —
+    // no padrão (só realizado), toda linha já tem `data` preenchida.
     ...(filtro.de || filtro.ate
       ? {
           OR: [

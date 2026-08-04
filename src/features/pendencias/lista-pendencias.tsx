@@ -1,41 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CircleCheck } from "lucide-react";
 
-import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DetalheMovimentacaoSheet } from "@/features/movimentacoes/detalhe-sheet";
 import { LinhaPendencia } from "@/features/pendencias/linha-pendencia";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
-import type { GrupoContato } from "@/services/pendencias/dto";
+import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 
 type OpcaoConta = { id: string; nome: string };
 
 /**
- * Agrupada por contato, não por dia: aqui a pergunta é "quem me deve" ou
- * "para quem eu devo", não "o que aconteceu hoje" — essa já é a resposta da
- * tela de Movimentações.
+ * Ordenada por vencimento, não agrupada por contato: aqui a pergunta é "o
+ * que vence primeiro", a mesma lógica de agenda que o resto do produto usa
+ * pra pendência — quem cobra ou é cobrado já aparece na própria linha.
  */
 export function ListaPendencias({
-  grupos,
+  itens,
   contas = [],
   categorias = [],
   contatos = [],
   linhas = [],
 }: {
-  grupos: GrupoContato[];
+  itens: MovimentacaoResumo[];
   contas?: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
 }) {
   const [abertoId, setAbertoId] = useState<string | null>(null);
-  const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
 
-  if (grupos.length === 0) {
+  if (itens.length === 0) {
     return (
       <EmptyState
         icone={CircleCheck}
@@ -47,25 +45,16 @@ export function ListaPendencias({
   }
 
   return (
-    <div className="space-y-5 pb-20">
-      {grupos.map((grupo) => (
-        <section key={grupo.chave}>
-          <div className="mb-1.5 flex items-baseline justify-between px-1">
-            <h2 className="text-micro font-medium text-ink-muted">{grupo.rotulo}</h2>
-            <AmountText centavos={grupo.totalCentavos} tamanho="sm" tom="neutro" />
-          </div>
-
-          <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-            {grupo.itens.map((mov) => (
-              <LinhaPendencia key={mov.id} movimentacao={mov} aoAbrir={setAbertoId} />
-            ))}
-          </div>
-        </section>
-      ))}
+    <div className="pb-20">
+      <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+        {itens.map((mov) => (
+          <LinhaPendencia key={mov.id} movimentacao={mov} aoAbrir={setAbertoId} />
+        ))}
+      </div>
 
       {abertoId && (
         <DetalheMovimentacaoSheet
-          movimentacao={todosOsItens.find((m) => m.id === abertoId) ?? null}
+          movimentacao={itens.find((m) => m.id === abertoId) ?? null}
           contas={contas}
           categorias={categorias}
           contatos={contatos}

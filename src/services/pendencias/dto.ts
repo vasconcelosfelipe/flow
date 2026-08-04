@@ -9,21 +9,28 @@ import type { TipoMovimentacao } from "@/types/dominio";
 
 export type FiltroPendencias = {
   tipo?: TipoMovimentacao;
-  /** Atalho vindo dos alertas do dashboard: só o que já venceu. */
+  /** Atalho vindo dos alertas do dashboard: só o que já venceu, sem limite
+   * de período — um boleto vencido há 2 meses não pode sumir por causa do
+   * filtro de mês. */
   situacao?: "vencidas";
-};
-
-/** Pendências de um contato, já somadas — a lista agrupa por quem cobra ou é cobrado. */
-export type GrupoContato = {
-  chave: string;
-  rotulo: string;
-  totalCentavos: Centavos;
-  itens: MovimentacaoResumo[];
+  de?: Date;
+  ate?: Date;
 };
 
 export type PaginaPendencias = {
-  grupos: GrupoContato[];
+  itens: MovimentacaoResumo[];
   quantidade: number;
   totalCentavos: Centavos;
   vencidoCentavos: Centavos;
+};
+
+export type TotalPendencia = {
+  totalCentavos: Centavos;
+  quantidade: number;
+  vencidoCentavos: Centavos;
+};
+
+export type TotaisPendencias = {
+  aPagar: TotalPendencia;
+  aReceber: TotalPendencia;
 };
