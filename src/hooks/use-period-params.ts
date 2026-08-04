@@ -2,7 +2,17 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useTransition } from "react";
-import { addMonths, endOfDay, endOfMonth, parseISO, startOfDay, startOfMonth } from "date-fns";
+import {
+  addMonths,
+  addYears,
+  endOfDay,
+  endOfMonth,
+  endOfYear,
+  parseISO,
+  startOfDay,
+  startOfMonth,
+  startOfYear,
+} from "date-fns";
 import { format } from "date-fns";
 
 import {
@@ -93,5 +103,23 @@ export function usePeriodParams(padrao: PresetPeriodo = "mes") {
     [de, periodo, definirPersonalizado],
   );
 
-  return { selecao, periodo, definirPreset, definirPersonalizado, navegarMes, pendente };
+  // Mesma lógica de `navegarMes`, um ano inteiro por vez.
+  const navegarAno = useCallback(
+    (quantidade: number) => {
+      const base = de ? parseISO(de) : periodo.de;
+      const novoAno = addYears(startOfYear(base), quantidade);
+      definirPersonalizado(novoAno, endOfYear(novoAno));
+    },
+    [de, periodo, definirPersonalizado],
+  );
+
+  return {
+    selecao,
+    periodo,
+    definirPreset,
+    definirPersonalizado,
+    navegarMes,
+    navegarAno,
+    pendente,
+  };
 }

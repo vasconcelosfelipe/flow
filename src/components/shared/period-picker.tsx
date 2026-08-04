@@ -1,25 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { endOfMonth, isSameDay, parseISO, startOfMonth } from "date-fns";
+import { endOfMonth, endOfYear, isSameDay, parseISO, startOfMonth, startOfYear } from "date-fns";
 import { CalendarRange, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion } from "motion/react";
 
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePeriodParams } from "@/hooks/use-period-params";
-import { PRESETS_PERIODO, ROTULO_PRESET, formatarData, formatarMesAno } from "@/lib/dates";
+import { formatarData, formatarMesAno } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
+type Modo = "mes" | "ano";
+
 /**
- * Controle segmentado com os cinco recortes que cobrem o uso diário, mais um
- * intervalo livre atrás de um toque.
- *
- * Os presets ficam sempre visíveis porque trocar de período é a interação mais
- * repetida do produto — escondê-la atrás de um menu custaria dois toques em
- * cada consulta.
+ * Mesma visualização da DRE — alterna mês/ano e navega com setas — mais um
+ * atalho pra período personalizado (ícone de calendário, abre modal). Ao
+ * aplicar um personalizado, o rótulo no topo passa a mostrar o intervalo
+ * escolhido no lugar do mês/ano.
  */
 export function PeriodPicker({
   className,
@@ -29,7 +29,7 @@ export function PeriodPicker({
   /** `escuro` para uso dentro da zona de comando do Início. */
   tema?: "claro" | "escuro";
 }) {
-  const { selecao, periodo, definirPreset, definirPersonalizado, navegarMes } = usePeriodParams();
+  const { periodo, definirPersonalizado, navegarMes, navegarAno } = usePeriodParams();
   const [modalAberto, setModalAberto] = useState(false);
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
@@ -40,121 +40,93 @@ export function PeriodPicker({
     setModalAberto(false);
   }
 
-  const personalizado = selecao.modo === "personalizado";
   const escuro = tema === "escuro";
 
-  // Só faz sentido oferecer "mês anterior/seguinte" quando o recorte atual É
-  // um mês cheio — nos outros presets (7 dias, ano...) a navegação apareceria
-  // sem relação nenhuma com o que está selecionado.
-  const mesCheio =
-    (!personalizado && selecao.preset === "mes") ||
-    (personalizado &&
-      isSameDay(periodo.de, startOfMonth(periodo.de)) &&
-      isSameDay(periodo.ate, endOfMonth(periodo.de)));
+  const ehMesCheio =
+    isSameDay(periodo.de, startOfMonth(periodo.de)) && isSameDay(periodo.ate, endOfMonth(periodo.de));
+  const ehAnoCheio =
+    isSameDay(periodo.de, startOfYear(periodo.de)) && isSameDay(periodo.ate, endOfYear(periodo.de));
+  // Fora dos dois formatos "cheios" só existe por escolha explícita no modal.
+  const personalizado = !ehMesCheio && !ehAnoCheio;
+  const modo: Modo | null = personalizado ? null : ehAnoCheio ? "ano" : "mes";
+
+  function mudarModo(novoModo: Modo) {
+    if (novoModo === modo) return;
+    if (novoModo === "mes") definirPersonalizado(startOfMonth(periodo.de), endOfMonth(periodo.de));
+    else definirPersonalizado(startOfYear(periodo.de), endOfYear(periodo.de));
+  }
+
+  const estiloSeta = cn(
+    "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+    "focus-visible:ring-2 focus-visible:outline-none",
+    escuro
+      ? "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
+      : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
+  );
 
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <div
-        className={cn(
-          "scrollbar-none flex items-center gap-1 overflow-x-auto rounded-xl p-1",
-          escuro ? "bg-white/10" : "bg-muted",
-        )}
-        role="group"
-        aria-label="Período"
-      >
-        {PRESETS_PERIODO.map((preset) => {
-          const ativo = !personalizado && selecao.preset === preset;
-          return (
+    <div className={cn("flex items-center justify-between gap-2", className)}>
+      {personalizado ? (
+        <span className={cn("text-micro font-medium", escuro ? "text-night-text" : "text-ink")}>
+          {formatarData(periodo.de)} – {formatarData(periodo.ate)}
+        </span>
+      ) : (
+        <>
+          <Tabs value={modo ?? undefined} onValueChange={(v) => mudarModo(v as Modo)}>
+            <TabsList className="h-9">
+              <TabsTrigger value="mes">Mês</TabsTrigger>
+              <TabsTrigger value="ano">Ano</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-1">
             <button
-              key={preset}
               type="button"
-              onClick={() => definirPreset(preset)}
-              aria-pressed={ativo}
+              onClick={() => (modo === "ano" ? navegarAno(-1) : navegarMes(-1))}
+              aria-label={modo === "ano" ? "Ano anterior" : "Mês anterior"}
+              className={estiloSeta}
+            >
+              <ChevronLeft className="size-4" aria-hidden="true" />
+            </button>
+            <span
               className={cn(
-                "relative shrink-0 rounded-lg px-3 py-1.5 text-micro font-medium whitespace-nowrap transition-colors",
-                "focus-visible:ring-2 focus-visible:outline-none",
-                escuro
-                  ? ativo
-                    ? "text-night focus-visible:ring-white/70"
-                    : "text-night-muted hover:text-night-text focus-visible:ring-white/70"
-                  : ativo
-                    ? "text-ink focus-visible:ring-brand"
-                    : "text-ink-muted hover:text-ink focus-visible:ring-brand",
+                "min-w-24 text-center text-micro font-medium whitespace-nowrap",
+                escuro ? "text-night-text" : "text-ink",
               )}
             >
-              {ativo && (
-                <motion.span
-                  layoutId="periodo-ativo"
-                  className={cn(
-                    "absolute inset-0 rounded-lg",
-                    escuro ? "bg-white" : "bg-surface shadow-card",
-                  )}
-                  transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                />
-              )}
-              <span className="relative">{ROTULO_PRESET[preset]}</span>
+              {modo === "ano" ? periodo.de.getFullYear() : formatarMesAno(periodo.de)}
+            </span>
+            <button
+              type="button"
+              onClick={() => (modo === "ano" ? navegarAno(1) : navegarMes(1))}
+              aria-label={modo === "ano" ? "Próximo ano" : "Próximo mês"}
+              className={estiloSeta}
+            >
+              <ChevronRight className="size-4" aria-hidden="true" />
             </button>
-          );
-        })}
-
-        <button
-          type="button"
-          onClick={() => setModalAberto(true)}
-          aria-pressed={personalizado}
-          className={cn(
-            "relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-micro font-medium whitespace-nowrap transition-colors",
-            "focus-visible:ring-2 focus-visible:outline-none",
-            escuro
-              ? personalizado
-                ? "bg-white text-night focus-visible:ring-white/70"
-                : "text-night-muted hover:text-night-text focus-visible:ring-white/70"
-              : personalizado
-                ? "bg-surface text-ink shadow-card focus-visible:ring-brand"
-                : "text-ink-muted hover:text-ink focus-visible:ring-brand",
-          )}
-        >
-          <CalendarRange className="size-3.5" aria-hidden="true" />
-          {personalizado
-            ? `${formatarData(periodo.de)} – ${formatarData(periodo.ate)}`
-            : "Escolher"}
-        </button>
-      </div>
-
-      {mesCheio && (
-        <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            onClick={() => navegarMes(-1)}
-            aria-label="Mês anterior"
-            className={cn(
-              "grid size-6 shrink-0 place-items-center rounded-md transition-colors",
-              "focus-visible:ring-2 focus-visible:outline-none",
-              escuro
-                ? "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
-                : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
-            )}
-          >
-            <ChevronLeft className="size-3.5" aria-hidden="true" />
-          </button>
-          <span className={cn("text-nano font-medium", escuro ? "text-night-muted" : "text-ink-muted")}>
-            {formatarMesAno(periodo.de)}
-          </span>
-          <button
-            type="button"
-            onClick={() => navegarMes(1)}
-            aria-label="Próximo mês"
-            className={cn(
-              "grid size-6 shrink-0 place-items-center rounded-md transition-colors",
-              "focus-visible:ring-2 focus-visible:outline-none",
-              escuro
-                ? "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
-                : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
-            )}
-          >
-            <ChevronRight className="size-3.5" aria-hidden="true" />
-          </button>
-        </div>
+          </div>
+        </>
       )}
+
+      <button
+        type="button"
+        onClick={() => setModalAberto(true)}
+        aria-label="Personalizar período"
+        aria-pressed={personalizado}
+        className={cn(
+          "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
+          "focus-visible:ring-2 focus-visible:outline-none",
+          escuro
+            ? personalizado
+              ? "bg-white text-night focus-visible:ring-white/70"
+              : "text-night-muted hover:bg-white/10 hover:text-night-text focus-visible:ring-white/70"
+            : personalizado
+              ? "bg-brand-wash text-brand focus-visible:ring-brand"
+              : "text-ink-muted hover:bg-muted focus-visible:ring-brand",
+        )}
+      >
+        <CalendarRange className="size-4" aria-hidden="true" />
+      </button>
 
       <ResponsiveModal
         aberto={modalAberto}
