@@ -22,14 +22,15 @@ import type { DreResultado } from "@/services/dre/dto";
  *   fechadas; abrir uma revela as categorias reais por trás daquele
  *   número — nunca uma linha fictícia repetindo o nome da própria seção.
  *
- * Cada linha carrega também seu % sobre a receita líquida (análise
- * vertical clássica de DRE) — só faz sentido na visão mensal, onde há um
- * único valor por linha; na anual, doze colunas por linha já não cabem mais
- * um percentual do lado sem virar poluição visual.
+ * Cada linha carrega também seu % sobre a receita bruta (análise vertical
+ * clássica de DRE, sempre 100% no topo da cascata — tudo abaixo dela é
+ * derivado) — só faz sentido na visão mensal, onde há um único valor por
+ * linha; na anual, doze colunas por linha já não cabem mais um percentual
+ * do lado sem virar poluição visual.
  */
 export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
   const linha = (id: string) => dre.linhas.find((l) => l.id === id);
-  const base = dre.receitaLiquida[0];
+  const base = dre.receitaBruta[0];
   const percentualDe = (centavos: number) => calcularMargem(centavos, base);
   const margemContribuicaoPercentual = dre.margemContribuicaoPercentual[0];
   const resultadoLiquidoPositivo = dre.resultadoLiquido[0] >= 0;
@@ -63,14 +64,14 @@ export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
         <span className="text-corpo font-semibold text-ink">Resultado líquido</span>
         <span className="flex flex-col items-end gap-0.5">
           <AmountText centavos={dre.resultadoLiquido[0]} tamanho="lg" />
-          <Percentual valor={dre.margem[0]} />
+          <Percentual valor={percentualDe(dre.resultadoLiquido[0])} />
         </span>
       </div>
     </div>
   );
 }
 
-/** `"—"` quando não há base (receita líquida zero) pra calcular sobre. */
+/** `"—"` quando não há base (receita bruta zero) pra calcular sobre. */
 function Percentual({ valor }: { valor: number | null }) {
   return (
     <span className="text-nano font-medium text-ink-muted">
