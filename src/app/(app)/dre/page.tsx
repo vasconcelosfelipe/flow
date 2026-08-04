@@ -3,8 +3,7 @@ import { parse } from "date-fns";
 import { Container } from "@/components/layout/container";
 import { FiltrosDre } from "@/features/dre/filtros";
 import { ResumoDre } from "@/features/dre/resumo";
-import { TabelaAnualDre } from "@/features/dre/tabela-anual";
-import { TabelaMensalDre } from "@/features/dre/tabela-mensal";
+import { TabelaDre } from "@/features/dre/tabela";
 import { mesesDoAno } from "@/lib/dates";
 import { requireSessao } from "@/lib/sessao";
 import { montarDre } from "@/services/dre";
@@ -39,7 +38,7 @@ export default async function DrePage({ searchParams }: Props) {
 
       <ResumoDre dre={dre} />
 
-      {modo === "mensal" ? <TabelaMensalDre dre={dre} /> : <TabelaAnualDre dre={dre} />}
+      <TabelaDre dre={dre} />
     </Container>
   );
 }

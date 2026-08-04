@@ -8,10 +8,23 @@ import { calcularMargem, formatarPercentual } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { DreResultado } from "@/services/dre/dto";
 
+function somar(valores: number[]): number {
+  return valores.reduce((a, b) => a + b, 0);
+}
+
 /**
  * A DRE é uma cascata: cada total nasce do anterior menos (ou mais) um
  * componente. A tela por isso é uma única faixa contínua, não cartões
  * soltos — o olho precisa descer a régua e sentir a subtração acontecendo.
+ *
+ * Mesma tabela pras duas visões (mês e ano) — só muda quantos meses
+ * `montarDre` somou antes de chegar aqui. Cada valor exibido soma o array
+ * inteiro (`somar`), então um único mês vira ele mesmo e doze meses viram o
+ * total do ano; a tabela nunca sabe qual dos dois casos está desenhando.
+ * Uma tabela de 12 colunas por linha (a versão antiga da visão anual) não
+ * cabe numa tela de celular sem virar ilegível — o total do ano já é a
+ * pergunta que a pessoa veio responder, o detalhe mês a mês está na visão
+ * mensal, a um toque de distância no seletor Mês/Ano.
  *
  * Dentro dela, dois pesos bem diferentes:
  * - Os totais (Receita Líquida, Margem de Contribuição, Resultado
@@ -24,25 +37,31 @@ import type { DreResultado } from "@/services/dre/dto";
  *
  * Cada linha carrega também seu % sobre a receita bruta (análise vertical
  * clássica de DRE, sempre 100% no topo da cascata — tudo abaixo dela é
- * derivado) — só faz sentido na visão mensal, onde há um único valor por
- * linha; na anual, doze colunas por linha já não cabem mais um percentual
- * do lado sem virar poluição visual.
+ * derivado).
  */
-export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
+export function TabelaDre({ dre }: { dre: DreResultado }) {
   const linha = (id: string) => dre.linhas.find((l) => l.id === id);
-  const base = dre.receitaBruta[0];
+  const base = somar(dre.receitaBruta);
   const percentualDe = (centavos: number) => calcularMargem(centavos, base);
-  const margemContribuicaoPercentual = dre.margemContribuicaoPercentual[0];
-  const resultadoLiquidoPositivo = dre.resultadoLiquido[0] >= 0;
+
+  const receitaLiquida = somar(dre.receitaLiquida);
+  const margemContribuicao = somar(dre.margemContribuicao);
+  const resultadoOperacional = somar(dre.resultadoOperacional);
+  const resultadoLiquido = somar(dre.resultadoLiquido);
+  // Razão dos totais, não média das razões mensais — a margem do ano é o
+  // total de margem de contribuição do ano sobre a receita líquida do ano,
+  // nunca a média de doze percentuais mensais.
+  const margemContribuicaoPercentual = calcularMargem(margemContribuicao, receitaLiquida);
+  const resultadoLiquidoPositivo = resultadoLiquido >= 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
       <LinhaComponente linha={linha("RECEITA_BRUTA")} percentual={percentualDe(linha("RECEITA_BRUTA")?.totalCentavos ?? 0)} />
       <LinhaComponente linha={linha("DEDUCOES")} percentual={percentualDe(linha("DEDUCOES")?.totalCentavos ?? 0)} />
-      <LinhaTotal rotulo="Receita líquida" centavos={dre.receitaLiquida[0]} percentual={percentualDe(dre.receitaLiquida[0])} />
+      <LinhaTotal rotulo="Receita líquida" centavos={receitaLiquida} percentual={percentualDe(receitaLiquida)} />
 
       <LinhaComponente linha={linha("CUSTOS")} percentual={percentualDe(linha("CUSTOS")?.totalCentavos ?? 0)} />
-      <LinhaTotal rotulo="Margem de contribuição" centavos={dre.margemContribuicao[0]}>
+      <LinhaTotal rotulo="Margem de contribuição" centavos={margemContribuicao}>
         <span className="text-nano text-ink-muted">sobre a receita líquida</span>
         <span className="text-nano font-medium text-ink-muted">
           {margemContribuicaoPercentual === null ? "—" : formatarPercentual(margemContribuicaoPercentual)}
@@ -50,7 +69,7 @@ export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
       </LinhaTotal>
 
       <LinhaComponente linha={linha("DESPESAS_OPERACIONAIS")} percentual={percentualDe(linha("DESPESAS_OPERACIONAIS")?.totalCentavos ?? 0)} />
-      <LinhaTotal rotulo="Resultado operacional" centavos={dre.resultadoOperacional[0]} percentual={percentualDe(dre.resultadoOperacional[0])} />
+      <LinhaTotal rotulo="Resultado operacional" centavos={resultadoOperacional} percentual={percentualDe(resultadoOperacional)} />
 
       <LinhaComponente linha={linha("OUTRAS_RECEITAS_DESPESAS")} percentual={percentualDe(linha("OUTRAS_RECEITAS_DESPESAS")?.totalCentavos ?? 0)} />
       <LinhaComponente linha={linha("TRIBUTOS_LUCRO")} percentual={percentualDe(linha("TRIBUTOS_LUCRO")?.totalCentavos ?? 0)} />
@@ -63,8 +82,8 @@ export function TabelaMensalDre({ dre }: { dre: DreResultado }) {
       >
         <span className="text-corpo font-semibold text-ink">Resultado líquido</span>
         <span className="flex flex-col items-end gap-0.5">
-          <AmountText centavos={dre.resultadoLiquido[0]} tamanho="lg" />
-          <Percentual valor={percentualDe(dre.resultadoLiquido[0])} />
+          <AmountText centavos={resultadoLiquido} tamanho="lg" />
+          <Percentual valor={percentualDe(resultadoLiquido)} />
         </span>
       </div>
     </div>
