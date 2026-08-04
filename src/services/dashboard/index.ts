@@ -174,6 +174,11 @@ export async function obterResumoDashboard(
         empresaId,
         status: { in: ["PAGO", "CONCILIADO"] },
         data: { gte: anterior.de, lte: periodo.ate },
+        // Cada transferência gera duas pernas (saída e entrada) — sem
+        // filtrar nenhuma conta específica aqui, mostrar as duas duplicaria
+        // o lançamento em "Últimas movimentações". Mesma regra de
+        // `listarMovimentacoes`: mantém só a perna DESPESA.
+        NOT: { transferenciaId: { not: null }, tipo: "RECEITA" },
       },
       include: { categoria: true, conta: true, contato: true },
     }),
