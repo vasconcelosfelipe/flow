@@ -164,7 +164,7 @@ export async function obterResumoDashboard(
   // mas o histórico realizado só precisa cobrir o período atual + o anterior
   // (pra comparação) — sem isso, esta consulta cresce pra sempre com o
   // histórico da empresa e fica mais lenta a cada mês que passa.
-  const [abertasRows, historicoRows, contas, semCategoriaCount] = await Promise.all([
+  const [abertasRows, historicoRows, ultimasRows, contas, semCategoriaCount] = await Promise.all([
     db.movimentacao.findMany({
       where: { empresaId, status: { in: ["PENDENTE", "PREVISTO"] } },
       include: { categoria: true, conta: true, contato: true },
@@ -182,6 +182,20 @@ export async function obterResumoDashboard(
       },
       include: { categoria: true, conta: true, contato: true },
     }),
+    // "Últimas movimentações" é sempre "o que aconteceu por último" de
+    // verdade — não some nem troca de conteúdo quando a pessoa navega o
+    // PeriodPicker pra outro mês, então é uma consulta própria, sem o
+    // limite de `periodo` que a série/resultado usam.
+    db.movimentacao.findMany({
+      where: {
+        empresaId,
+        status: { in: ["PAGO", "CONCILIADO"] },
+        NOT: { transferenciaId: { not: null }, tipo: "RECEITA" },
+      },
+      include: { categoria: true, conta: true, contato: true },
+      orderBy: { data: "desc" },
+      take: 6,
+    }),
     db.conta.findMany({
       where: { empresaId, ativa: true },
       include: {
@@ -196,6 +210,7 @@ export async function obterResumoDashboard(
 
   const abertas = abertasRows.map(mapearParaResumo);
   const historico = historicoRows.map(mapearParaResumo);
+  const ultimasMovimentacoes = ultimasRows.map(mapearParaResumo);
 
   // Os cartões "A pagar"/"A receber" seguem o período selecionado no topo —
   // diferente do alerta de vencidas (sempre olha tudo, uma pendência antiga
@@ -206,8 +221,6 @@ export async function obterResumoDashboard(
       isWithinInterval(m.dataVencimento, { start: periodo.de, end: periodo.ate }),
   );
 
-  // Últimas movimentações mostram tudo (transferência inclusa — é atividade
-  // real da conta); resultado/série/histórico ficam de fora dela.
   const noPeriodo = historico.filter(
     (m) => m.data !== null && isWithinInterval(m.data, { start: periodo.de, end: periodo.ate }),
   );
@@ -249,10 +262,7 @@ export async function obterResumoDashboard(
     aReceber: pendencias(abertasNoPeriodo, "RECEITA", hoje),
     serie,
     serieAcumulada: montarAcumulado(serie),
-    ultimasMovimentacoes: noPeriodo
-      .slice()
-      .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
-      .slice(0, 6),
+    ultimasMovimentacoes,
     alertas: montarAlertas(abertas, semCategoriaCount, hoje),
   };
 }
