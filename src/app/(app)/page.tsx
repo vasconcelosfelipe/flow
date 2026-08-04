@@ -6,7 +6,7 @@ import { CartoesPendencias } from "@/features/dashboard/cartoes-pendencias";
 import { ListaAlertas } from "@/features/dashboard/lista-alertas";
 import { ResumoPeriodo } from "@/features/dashboard/resumo-periodo";
 import { UltimasMovimentacoes } from "@/features/dashboard/ultimas-movimentacoes";
-import { formatarMesAno, resolverPeriodoDeParams } from "@/lib/dates";
+import { resolverPeriodoDeParams } from "@/lib/dates";
 import { requireSessao } from "@/lib/sessao";
 import { obterResumoDashboard } from "@/services/dashboard";
 
@@ -86,15 +86,8 @@ export default async function InicioPage({ searchParams }: Props) {
     <>
       {/* Escuro — saudação, período e saldo, nu sobre a marca. */}
       <section className={`textura-noite bg-night pb-12 text-night-text ${Z10}`}>
-        <Container className="space-y-5 pt-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <div>
-              <p className="text-micro text-night-muted">Olá, {usuario.nome} 👋</p>
-              <h1 className="mt-0.5 text-titulo font-semibold tracking-tight">
-                {formatarMesAno(periodo.de)}
-              </h1>
-            </div>
-          </div>
+        <Container className="space-y-4 pt-3">
+          <p className="text-micro text-night-muted">Olá, {usuario.nome} 👋</p>
 
           <PeriodPicker tema="escuro" />
 
