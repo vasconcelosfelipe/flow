@@ -15,16 +15,30 @@ function Drawer({
       // vaul), o próprio vaul escuta `visualViewport.resize` e reescreve
       // `drawerRef.style.height` na mão (ver node_modules/vaul — função do
       // `onVisualViewportChange`) — sem gate nenhum de plataforma, roda em
-      // qualquer navegador. Confirmado em vídeo num Android: ao abrir o
-      // teclado num formulário curto (Nova Conta), a gaveta encolhe pra
-      // caber só o campo focado, cabeçalho vai pro topo da tela e todo o
-      // resto (outros campos, botões) some atrás do teclado — muito pior
-      // que deixar o teclado só cobrir por baixo. Existe também um hack só
-      // pra Mobile Safari atrelado à mesma flag (`preventScrollMobileSafari`,
-      // que evita o iOS rolar elementos `position: fixed`), mas esse app é
-      // testado em Android — o hack do iOS não compensa o encolhimento que
-      // a flag causa em geral.
+      // qualquer navegador. Confirmado em vídeo: ao abrir o teclado num
+      // formulário curto (Nova Conta), a gaveta encolhia pra caber só o
+      // campo focado, cabeçalho ia pro topo da tela e todo o resto (outros
+      // campos, botões) sumia atrás do teclado — muito pior que deixar o
+      // teclado só cobrir por baixo.
       repositionInputs={false}
+      // Também desligado de propósito. O app roda em iPhone (Safari) — lá
+      // o vaul tem OUTRO mecanismo, independente do de cima: ao abrir uma
+      // gaveta, ele seta `document.body.style.position = 'fixed'` (com
+      // `top`/`left` negativos pra "travar" a rolagem do fundo) e restaura
+      // ao fechar (ver `usePositionFixed` no node_modules/vaul). Esse
+      // restore é um `let previousBodyPosition` a nível de módulo — um
+      // singleton só, não uma pilha — então abrir uma gaveta logo depois de
+      // fechar outra (editar uma conta, fechar, editar a próxima — o fluxo
+      // gravado em vídeo) tem uma corrida real entre o restore da primeira
+      // e o setup da segunda, documentada em vários issues do vaul
+      // (github.com/emilkowalski/vaul#318, #397): o body fica com `position:
+      // fixed`/`top` errado depois do fechamento, e a barra de navegação
+      // (que também é `fixed`) acompanha o descompasso. O Radix Dialog por
+      // baixo do vaul já bloqueia toque no fundo (`pointer-events: none`)
+      // enquanto o modal está aberto — confirmado inspecionando o DOM — então
+      // essa trava adicional do vaul é redundante aqui, e desligá-la remove
+      // o código que causa a corrida.
+      noBodyStyles={true}
       {...props}
     />
   )
