@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 // Em HTTPS, Better Auth usa o prefixo __Secure-
 const SESSION_COOKIE_HTTPS = "__Secure-better-auth.session_token";
 const SESSION_COOKIE_HTTP = "better-auth.session_token";
-const PUBLIC_PATHS = ["/login", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/aceitar-convite"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

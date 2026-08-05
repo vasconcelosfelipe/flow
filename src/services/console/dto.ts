@@ -39,8 +39,17 @@ export type UsuarioConsole = {
 };
 
 export type FormularioConviteUsuario = {
-  nome: string;
   email: string;
   empresaId: string;
   papel: PapelMembro;
+};
+
+/** Convite ainda não aceito — aparece na lista do Console separado dos
+ * usuários de verdade, já que a conta só existe depois de aceito. */
+export type ConvitePendente = {
+  id: string;
+  email: string;
+  empresaNome: string;
+  papel: PapelMembro;
+  expiraEm: Date;
 };

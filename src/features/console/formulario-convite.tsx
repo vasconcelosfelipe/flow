@@ -21,7 +21,6 @@ export const FORM_ID_CONVITE = "form-convite";
 const PAPEIS = Object.keys(ROTULO_PAPEL) as PapelMembro[];
 
 const schema = z.object({
-  nome: z.string().trim().min(2, "Digite ao menos 2 letras.").max(60),
   email: z.string().trim().email("Digite um e-mail válido."),
   empresaId: z.string().min(1, "Escolha uma empresa."),
   papel: z.enum(["DONO", "ADMIN", "MEMBRO", "LEITOR"]),
@@ -42,7 +41,7 @@ export function FormularioConvite({
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", email: "", empresaId: "", papel: "MEMBRO" },
+    defaultValues: { email: "", empresaId: "", papel: "MEMBRO" },
   });
 
   const empresaId = watch("empresaId");
@@ -50,12 +49,6 @@ export function FormularioConvite({
 
   return (
     <form id={FORM_ID_CONVITE} onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2 pb-6">
-      <div className="space-y-1.5">
-        <Label htmlFor="nome">Nome</Label>
-        <Input id="nome" {...register("nome")} placeholder="Ex.: Camila Rocha" className="h-11" />
-        {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
-      </div>
-
       <div className="space-y-1.5">
         <Label htmlFor="email">E-mail</Label>
         <Input id="email" type="email" {...register("email")} placeholder="nome@empresa.com.br" className="h-11" />

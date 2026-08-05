@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { EmpresaConsole, UsuarioConsole } from "@/services/console/dto";
+import type { ConvitePendente, EmpresaConsole, UsuarioConsole } from "@/services/console/dto";
 
 export async function listarEmpresasConsole(): Promise<EmpresaConsole[]> {
   const empresas = await db.empresa.findMany({
@@ -36,5 +36,24 @@ export async function listarUsuariosConsole(): Promise<UsuarioConsole[]> {
       empresaNome: m.empresa.nome,
       papel: m.papel as import("@/types/dominio").PapelMembro,
     })),
+  }));
+}
+
+/** Convites ainda não aceitos e ainda não expirados — os expirados somem
+ * da lista sozinhos (não precisam de limpeza manual), reenviar cria um
+ * novo convite por cima. */
+export async function listarConvitesPendentes(): Promise<ConvitePendente[]> {
+  const convites = await db.convite.findMany({
+    where: { aceitoEm: null, expiraEm: { gt: new Date() } },
+    include: { empresa: true },
+    orderBy: { criadoEm: "desc" },
+  });
+
+  return convites.map((c) => ({
+    id: c.id,
+    email: c.email,
+    empresaNome: c.empresa.nome,
+    papel: c.papel as import("@/types/dominio").PapelMembro,
+    expiraEm: c.expiraEm,
   }));
 }

@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
+import { enviarEmail } from "@/lib/email";
 import { requireSessao } from "@/lib/sessao";
-import type { PapelMembro } from "@/types/dominio";
+import { ROTULO_PAPEL, type PapelMembro } from "@/types/dominio";
+
+const VALIDADE_CONVITE_DIAS = 7;
 
 async function verificarAdmin() {
   const sessao = await requireSessao();
@@ -68,5 +71,64 @@ export async function atualizarPapel(
     data: { papel },
   });
 
+  revalidatePath("/console/usuarios");
+}
+
+/**
+ * Convida alguém pra uma empresa: cria (ou renova) um `Convite` com token e
+ * envia o link de aceite por e-mail. Nunca cria o `user` aqui — a conta só
+ * nasce quando a pessoa convidada aceita e define a própria senha, em
+ * `aceitarConvite` (services/convites/actions.ts).
+ */
+export async function convidarUsuario(dados: {
+  email: string;
+  empresaId: string;
+  papel: PapelMembro;
+}) {
+  const sessao = await verificarAdmin();
+
+  const jaTemConta = await db.user.findUnique({ where: { email: dados.email } });
+  if (jaTemConta) throw new Error("Já existe uma conta com este e-mail.");
+
+  const empresa = await db.empresa.findUniqueOrThrow({ where: { id: dados.empresaId } });
+
+  // Convite anterior pro mesmo e-mail/empresa vira obsoleto — o novo token
+  // é o único válido daqui pra frente.
+  await db.convite.deleteMany({
+    where: { email: dados.email, empresaId: dados.empresaId, aceitoEm: null },
+  });
+
+  const expiraEm = new Date(Date.now() + VALIDADE_CONVITE_DIAS * 24 * 60 * 60 * 1000);
+  const convite = await db.convite.create({
+    data: {
+      empresaId: dados.empresaId,
+      email: dados.email,
+      papel: dados.papel,
+      remetenteId: sessao.usuario.id,
+      expiraEm,
+    },
+  });
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const link = `${baseUrl}/aceitar-convite?token=${convite.token}`;
+
+  await enviarEmail({
+    para: dados.email,
+    assunto: `Convite para ${empresa.nome} no Flow`,
+    html: `
+      <p>Você foi convidado pra fazer parte de <strong>${empresa.nome}</strong> no Flow, como <strong>${ROTULO_PAPEL[dados.papel]}</strong>.</p>
+      <p><a href="${link}">Clique aqui para aceitar o convite</a> e criar sua conta.</p>
+      <p>Este link expira em ${VALIDADE_CONVITE_DIAS} dias.</p>
+    `,
+  });
+
+  revalidatePath("/console/usuarios");
+}
+
+/** Cancela um convite ainda não aceito — a pessoa que tentar abrir o link
+ * depois disso encontra "convite inválido". */
+export async function cancelarConvite(id: string) {
+  await verificarAdmin();
+  await db.convite.delete({ where: { id } });
   revalidatePath("/console/usuarios");
 }

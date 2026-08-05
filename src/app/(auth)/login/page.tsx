@@ -83,6 +83,7 @@ function FormularioLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/selecionar-empresa";
+  const contaCriada = searchParams.get("convidado") === "1";
   const [entrando, setEntrando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -111,6 +112,12 @@ function FormularioLogin() {
     <div className="rounded-2xl border border-line bg-surface p-6 shadow-night">
       <h1 className="text-titulo font-semibold text-ink">Entrar</h1>
       <p className="mt-1 text-micro text-ink-muted">Acesse sua conta para continuar.</p>
+
+      {contaCriada && (
+        <p className="mt-4 rounded-lg bg-positive/10 px-3 py-2 text-nano text-positive-text">
+          Conta criada! Entre com a senha que você acabou de definir.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit(enviar)} className="mt-6 space-y-4">
         <div className="space-y-1.5">
