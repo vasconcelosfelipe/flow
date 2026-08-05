@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileUp, Loader2, UploadCloud } from "lucide-react";
+import { FileUp, Sparkles, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -104,10 +104,18 @@ export function PassoUpload({
       >
         {processando ? (
           <>
-            <Loader2 className="size-8 animate-spin text-brand" aria-hidden="true" />
-            <p className="mt-4 font-medium text-ink">Lendo o arquivo…</p>
-            <p className="mt-1 text-micro text-ink-muted">
-              Separando lançamentos novos, duplicados e conciliáveis.
+            <div className="relative grid size-16 place-items-center">
+              <span className="absolute inset-0 rounded-full bg-brand/15 animate-ping [animation-duration:1.8s]" />
+              <span className="absolute inset-2 rounded-full bg-brand/20 animate-ping [animation-duration:1.8s] [animation-delay:0.35s]" />
+              <span className="absolute inset-4 rounded-full bg-brand/25 animate-ping [animation-duration:1.8s] [animation-delay:0.7s]" />
+              <span className="relative grid size-9 place-items-center rounded-full bg-brand text-white shadow-lg">
+                <Sparkles className="size-4.5 animate-pulse" aria-hidden="true" />
+              </span>
+            </div>
+            <p className="mt-4 font-medium text-ink">Analisando o extrato com IA…</p>
+            <p className="mt-1 max-w-xs text-micro text-ink-muted">
+              Separando lançamentos novos, duplicados e conciliáveis, e sugerindo categoria e
+              fornecedor pra cada um novo.
             </p>
           </>
         ) : (

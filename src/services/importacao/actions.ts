@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
+import { sugerirComIA } from "@/lib/ia-categorizacao";
 import { parseOfx } from "@/lib/ofx";
 import { requireEscrita } from "@/lib/permissoes";
 import { requireSessao } from "@/lib/sessao";
+import { listarCategorias } from "@/services/categorias";
+import { listarContatos } from "@/services/contatos";
 import { mapearMovimentacao } from "@/services/movimentacoes/index";
 import type {
   LinhaImportacao,
@@ -180,7 +183,7 @@ export async function processarArquivoOfx(
 
   const fitIds = transacoes.map((t) => t.fitId);
 
-  const [existentes, ignoradas, pendencias, historico] = await Promise.all([
+  const [existentes, ignoradas, pendencias, historico, categorias, contatos] = await Promise.all([
     // Só CONCILIADO conta como "já importada" — é o único status que deveria
     // ter origemFitId de verdade. Uma movimentação que saiu de CONCILIADO (por
     // desfazer, por exclusão, ou por edição direta do status) não deve travar
@@ -201,6 +204,8 @@ export async function processarArquivoOfx(
       include: { categoria: true, conta: true, contato: true },
     }),
     aprenderComHistorico(empresaId),
+    listarCategorias(empresaId),
+    listarContatos(empresaId),
   ]);
 
   const fitIdsExistentes = new Set(existentes.map((e) => e.origemFitId));
@@ -210,7 +215,9 @@ export async function processarArquivoOfx(
   // mesma pendência.
   const pendenciasDisponiveis = new Map(pendencias.map((p) => [p.id, p]));
 
-  const linhas: LinhaImportacao[] = transacoes.map((t) => {
+  // Primeiro passa só decide status/conciliação — precisa saber quais linhas
+  // são "NOVA" antes de perguntar pra IA, que só entra pra essas.
+  const preparadas = transacoes.map((t) => {
     const duplicada = fitIdsExistentes.has(t.fitId);
     const ignoradaAntes = !duplicada && fitIdsIgnorados.has(t.fitId);
 
@@ -230,9 +237,26 @@ export async function processarArquivoOfx(
           ? "CONCILIAVEL"
           : "NOVA";
 
+    return { t, status, pendenciaCasada };
+  });
+
+  const linhasNovas = preparadas.filter((p) => p.status === "NOVA");
+
+  // IA primeiro (entende a descrição de verdade), trigrama como retaguarda
+  // pra quando a chave não estiver configurada, a chamada falhar, der
+  // timeout, ou a resposta vier fora do formato esperado.
+  const sugestoesIA = await sugerirComIA({
+    linhas: linhasNovas.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
+    categorias: categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo })),
+    contatos: contatos.map((c) => ({ id: c.id, nome: c.nome })),
+  });
+  const sugestoesPorId = new Map((sugestoesIA ?? []).map((s) => [s.id, s]));
+
+  const linhas: LinhaImportacao[] = preparadas.map(({ t, status, pendenciaCasada }) => {
     // Linha conciliável já herda categoria/fornecedor da pendência que está
-    // fechando — só linha nova de fato precisa do aprendizado do histórico.
-    const aprendido = status === "NOVA"
+    // fechando — só linha nova de fato precisa de sugestão.
+    const daIA = status === "NOVA" ? sugestoesPorId.get(t.fitId) : undefined;
+    const doTrigrama = status === "NOVA" && !daIA
       ? encontrarAprendizado(t.descricao, t.tipo, historico)
       : null;
 
@@ -249,8 +273,8 @@ export async function processarArquivoOfx(
       conciliaCom: pendenciaCasada ? mapearMovimentacao(pendenciaCasada) : null,
       incluir: status !== "DUPLICADA" && status !== "IGNORADA",
       ignorarPermanentemente: false,
-      categoriaId: pendenciaCasada?.categoriaId ?? aprendido?.categoriaId ?? null,
-      contatoId: pendenciaCasada?.contatoId ?? aprendido?.contatoId ?? null,
+      categoriaId: pendenciaCasada?.categoriaId ?? daIA?.categoriaId ?? doTrigrama?.categoriaId ?? null,
+      contatoId: pendenciaCasada?.contatoId ?? daIA?.contatoId ?? doTrigrama?.contatoId ?? null,
       ehTransferencia: false,
       contaTransferenciaId: null,
     };
