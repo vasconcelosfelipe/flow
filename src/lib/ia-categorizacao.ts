@@ -1,7 +1,11 @@
 import type { TipoMovimentacao } from "@/types/dominio";
 
 const MODELO = "deepseek/deepseek-v4-flash";
-const TIMEOUT_MS = 20_000;
+// O OpenRouter roteia cada chamada pra um provedor diferente por trás do
+// modelo (já vimos Sail Research, DeepInfra, Alibaba) — a maioria responde
+// em menos de 2s, mas às vezes cai num provedor lento. 20s já se mostrou
+// curto demais na prática (abortou uma chamada real).
+const TIMEOUT_MS = 45_000;
 
 export type LinhaParaSugestao = { id: string; descricao: string; tipo: TipoMovimentacao };
 export type OpcaoCategoria = { id: string; nome: string; tipo: TipoMovimentacao };
@@ -48,6 +52,9 @@ export async function sugerirComIA(input: {
         model: MODELO,
         response_format: { type: "json_object" },
         temperature: 0,
+        // Prioriza os provedores mais rápidos por trás do modelo — reduz a
+        // chance de cair num provedor lento como o que estourou 20s antes.
+        provider: { sort: "latency" },
         messages: [
           {
             role: "system",
