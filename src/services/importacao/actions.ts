@@ -241,6 +241,9 @@ export async function processarArquivoOfx(
   });
 
   const linhasNovas = preparadas.filter((p) => p.status === "NOVA");
+  console.log(
+    `[importar] ${transacoes.length} transação(ões) no arquivo, ${linhasNovas.length} nova(s) — só essas vão pra IA.`,
+  );
 
   // IA primeiro (entende a descrição de verdade), trigrama como retaguarda
   // pra quando a chave não estiver configurada, a chamada falhar, der

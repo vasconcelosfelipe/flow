@@ -23,7 +23,11 @@ export async function sugerirComIA(input: {
   contatos: OpcaoContato[];
 }): Promise<SugestaoIA[] | null> {
   const apiKey = process.env.API_KEY_OPENROUTER;
-  if (!apiKey || input.linhas.length === 0) return null;
+  if (!apiKey) {
+    console.warn("[ia-categorizacao] API_KEY_OPENROUTER não configurada — pulando sugestão por IA.");
+    return null;
+  }
+  if (input.linhas.length === 0) return null;
 
   const categoriaIds = new Set(input.categorias.map((c) => c.id));
   const contatoIds = new Set(input.contatos.map((c) => c.id));
@@ -58,17 +62,29 @@ export async function sugerirComIA(input: {
       signal: controller.signal,
     });
 
-    if (!resposta.ok) return null;
+    if (!resposta.ok) {
+      console.error(
+        `[ia-categorizacao] OpenRouter respondeu ${resposta.status}:`,
+        await resposta.text().catch(() => "(sem corpo)"),
+      );
+      return null;
+    }
 
     const dados = await resposta.json();
     const conteudo: string | undefined = dados?.choices?.[0]?.message?.content;
-    if (!conteudo) return null;
+    if (!conteudo) {
+      console.error("[ia-categorizacao] Resposta sem conteúdo:", JSON.stringify(dados));
+      return null;
+    }
 
     const parsed: unknown = JSON.parse(conteudo);
     const sugestoes = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>).sugestoes : null;
-    if (!Array.isArray(sugestoes)) return null;
+    if (!Array.isArray(sugestoes)) {
+      console.error("[ia-categorizacao] JSON sem array \"sugestoes\":", conteudo);
+      return null;
+    }
 
-    return sugestoes
+    const resultado = sugestoes
       .filter((s: unknown): s is { id: unknown; categoriaId: unknown; contatoId: unknown } =>
         typeof s === "object" && s !== null && "id" in s,
       )
@@ -79,7 +95,14 @@ export async function sugerirComIA(input: {
         categoriaId: typeof s.categoriaId === "string" && categoriaIds.has(s.categoriaId) ? s.categoriaId : null,
         contatoId: typeof s.contatoId === "string" && contatoIds.has(s.contatoId) ? s.contatoId : null,
       }));
-  } catch {
+
+    const comSugestao = resultado.filter((r) => r.categoriaId || r.contatoId).length;
+    console.log(
+      `[ia-categorizacao] ${input.linhas.length} linha(s) enviada(s), ${resultado.length} resposta(s), ${comSugestao} com categoria/fornecedor.`,
+    );
+    return resultado;
+  } catch (e) {
+    console.error("[ia-categorizacao] Falha ao chamar a IA:", e);
     return null;
   } finally {
     clearTimeout(timeout);
