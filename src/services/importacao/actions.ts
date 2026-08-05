@@ -22,6 +22,53 @@ async function obterEmpresa() {
 }
 
 /**
+ * Reduz a descrição ao "núcleo" que se repete entre ocorrências do mesmo
+ * lançamento — extratos bancários variam a descrição de uma recorrência pra
+ * outra só por causa de números (data, ID da transação, parcela). Maiúsculas
+ * + sem dígitos + espaços colapsados já é o bastante pra casar "PIX RECEBIDO
+ * — JOAO 04/03" com "PIX RECEBIDO — JOAO 11/04".
+ */
+function normalizarDescricao(descricao: string): string {
+  return descricao
+    .toUpperCase()
+    .replace(/\d+/g, "")
+    .replace(/[^\p{L}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Aprendizado da conciliação: uma linha nova sem categoria/fornecedor ainda
+ * herda o que a pessoa escolheu da última vez que uma descrição parecida
+ * apareceu (mesma descrição normalizada + mesmo tipo). Só olha pro histórico
+ * já conciliado — é a única fonte que representa uma decisão confirmada de
+ * verdade, não um rascunho de importação anterior.
+ */
+async function aprenderComHistorico(
+  empresaId: string,
+): Promise<Map<string, { categoriaId: string | null; contatoId: string | null }>> {
+  const historico = await db.movimentacao.findMany({
+    where: { empresaId, status: "CONCILIADO", data: { not: null } },
+    select: { descricao: true, tipo: true, categoriaId: true, contatoId: true },
+    orderBy: { data: "desc" },
+    take: 3000,
+  });
+
+  const mapa = new Map<string, { categoriaId: string | null; contatoId: string | null }>();
+  for (const mov of historico) {
+    if (mov.categoriaId === null && mov.contatoId === null) continue;
+    const nucleo = normalizarDescricao(mov.descricao);
+    if (!nucleo) continue;
+    const chave = `${mov.tipo}::${nucleo}`;
+    // Primeira ocorrência de cada chave vence — a lista já vem da mais
+    // recente pra mais antiga, então isso é sempre a categorização mais
+    // recente pra aquele "tipo" de lançamento.
+    if (!mapa.has(chave)) mapa.set(chave, { categoriaId: mov.categoriaId, contatoId: mov.contatoId });
+  }
+  return mapa;
+}
+
+/**
  * Lê o extrato, separa o que é novo do que já existe, e casa o que fecha uma
  * pendência em aberto (mesma conta, mesmo tipo, mesmo valor). Não grava nada
  * ainda — é a base pra tela de revisão decidir o que entra.
@@ -41,7 +88,7 @@ export async function processarArquivoOfx(
 
   const fitIds = transacoes.map((t) => t.fitId);
 
-  const [existentes, ignoradas, pendencias] = await Promise.all([
+  const [existentes, ignoradas, pendencias, historico] = await Promise.all([
     // Só CONCILIADO conta como "já importada" — é o único status que deveria
     // ter origemFitId de verdade. Uma movimentação que saiu de CONCILIADO (por
     // desfazer, por exclusão, ou por edição direta do status) não deve travar
@@ -61,6 +108,7 @@ export async function processarArquivoOfx(
       where: { empresaId, contaId, status: "PENDENTE", data: null },
       include: { categoria: true, conta: true, contato: true },
     }),
+    aprenderComHistorico(empresaId),
   ]);
 
   const fitIdsExistentes = new Set(existentes.map((e) => e.origemFitId));
@@ -90,6 +138,12 @@ export async function processarArquivoOfx(
           ? "CONCILIAVEL"
           : "NOVA";
 
+    // Linha conciliável já herda categoria/fornecedor da pendência que está
+    // fechando — só linha nova de fato precisa do aprendizado do histórico.
+    const aprendido = status === "NOVA"
+      ? historico.get(`${t.tipo}::${normalizarDescricao(t.descricao)}`)
+      : undefined;
+
     return {
       id: t.fitId,
       descricao: t.descricao,
@@ -103,8 +157,8 @@ export async function processarArquivoOfx(
       conciliaCom: pendenciaCasada ? mapearMovimentacao(pendenciaCasada) : null,
       incluir: status !== "DUPLICADA" && status !== "IGNORADA",
       ignorarPermanentemente: false,
-      categoriaId: pendenciaCasada?.categoriaId ?? null,
-      contatoId: pendenciaCasada?.contatoId ?? null,
+      categoriaId: pendenciaCasada?.categoriaId ?? aprendido?.categoriaId ?? null,
+      contatoId: pendenciaCasada?.contatoId ?? aprendido?.contatoId ?? null,
       ehTransferencia: false,
       contaTransferenciaId: null,
     };
