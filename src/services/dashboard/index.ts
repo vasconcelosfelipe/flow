@@ -131,7 +131,7 @@ function montarAlertas(abertas: MovimentacaoResumo[], semCategoriaCount: number,
       severidade: "critico",
       titulo: `${vencidas.length} conta${vencidas.length > 1 ? "s" : ""} vencida${vencidas.length > 1 ? "s" : ""}`,
       descricao: "Passaram do vencimento e continuam em aberto.",
-      acao: { rotulo: "Ver pendências", href: "/a-pagar-receber?situacao=vencidas" },
+      acao: { rotulo: "Ver pendências", href: "/a-pagar-receber" },
     });
   }
 

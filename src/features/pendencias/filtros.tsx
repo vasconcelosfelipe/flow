@@ -11,10 +11,7 @@ const ABAS = [
   { valor: "RECEITA", rotulo: "A receber" },
 ] as const;
 
-/**
- * Só o tipo mora aqui — `situacao=vencidas` é um atalho de entrada vindo dos
- * alertas do dashboard, não um controle que a pessoa alterna nesta tela.
- */
+/** Só o tipo mora aqui — o período tem seu próprio controle (`PeriodPicker`). */
 export function FiltrosPendencias() {
   const router = useRouter();
   const pathname = usePathname();

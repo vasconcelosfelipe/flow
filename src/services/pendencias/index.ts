@@ -62,11 +62,7 @@ export async function listarPendencias(
       empresaId,
       status: { in: ["PENDENTE", "PREVISTO"] },
       ...(filtro.tipo ? { tipo: filtro.tipo } : {}),
-      ...(filtro.situacao === "vencidas"
-        ? { dataVencimento: { lt: hoje } }
-        : filtro.de && filtro.ate
-          ? { dataVencimento: { gte: filtro.de, lte: filtro.ate } }
-          : {}),
+      ...(filtro.de && filtro.ate ? { dataVencimento: { gte: filtro.de, lte: filtro.ate } } : {}),
     },
     include: {
       categoria: true,
@@ -93,20 +89,18 @@ export async function listarPendencias(
 /**
  * Totais dos cards "A pagar"/"A receber" — sempre os dois juntos, nunca
  * filtrados pela aba de tipo selecionada na lista, senão o card "A pagar"
- * zeraria quando a pessoa estivesse olhando a aba "A receber". `periodo:
- * null` (atalho de vencidas do dashboard) devolve o total sem limite de
- * data, pelo mesmo motivo do bypass em `listarPendencias`.
+ * zeraria quando a pessoa estivesse olhando a aba "A receber".
  */
 export async function obterTotaisPendencias(
   empresaId: string,
-  periodo: Periodo | null,
+  periodo: Periodo,
   hoje = new Date(),
 ): Promise<TotaisPendencias> {
   const rows = await db.movimentacao.findMany({
     where: {
       empresaId,
       status: { in: ["PENDENTE", "PREVISTO"] },
-      ...(periodo ? { dataVencimento: { gte: periodo.de, lte: periodo.ate } } : {}),
+      dataVencimento: { gte: periodo.de, lte: periodo.ate },
     },
     select: { tipo: true, valorCentavos: true, dataVencimento: true },
   });

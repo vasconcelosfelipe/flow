@@ -9,10 +9,6 @@ import type { TipoMovimentacao } from "@/types/dominio";
 
 export type FiltroPendencias = {
   tipo?: TipoMovimentacao;
-  /** Atalho vindo dos alertas do dashboard: só o que já venceu, sem limite
-   * de período — um boleto vencido há 2 meses não pode sumir por causa do
-   * filtro de mês. */
-  situacao?: "vencidas";
   de?: Date;
   ate?: Date;
 };

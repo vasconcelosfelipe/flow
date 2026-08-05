@@ -60,8 +60,15 @@ export function PeriodPicker({
 
   function mudarModo(novoModo: Modo) {
     if (novoModo === modo) return;
-    if (novoModo === "mes") definirPersonalizado(startOfMonth(periodo.de), endOfMonth(periodo.de));
-    else definirPersonalizado(startOfYear(periodo.de), endOfYear(periodo.de));
+    if (novoModo === "mes") {
+      // Nunca deriva do `periodo.de` vigente: vindo do modo Ano, ele é
+      // sempre 1º de janeiro, o que travava o mês em janeiro toda vez que
+      // se voltava pra Mês. O ponto de referência aqui é sempre hoje.
+      const hoje = new Date();
+      definirPersonalizado(startOfMonth(hoje), endOfMonth(hoje));
+    } else {
+      definirPersonalizado(startOfYear(periodo.de), endOfYear(periodo.de));
+    }
   }
 
   const estiloSeta = cn(

@@ -18,7 +18,6 @@ import type { TipoMovimentacao } from "@/types/dominio";
 type Props = {
   searchParams: Promise<{
     tipo?: string;
-    situacao?: string;
     periodo?: string;
     de?: string;
     ate?: string;
@@ -28,17 +27,16 @@ type Props = {
 export default async function APagarReceberPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const tipo = params.tipo === "DESPESA" || params.tipo === "RECEITA" ? params.tipo : undefined;
-  const vencidas = params.situacao === "vencidas";
   const periodo = resolverPeriodoDeParams(params);
   const somenteLeitura = empresaAtiva.papel === "LEITOR";
 
   const [pagina, totais, contas, categorias, contatos, linhas] = await Promise.all([
     listarPendencias(empresaAtiva.id, {
       tipo: tipo as TipoMovimentacao | undefined,
-      situacao: vencidas ? "vencidas" : undefined,
-      ...(vencidas ? {} : { de: periodo.de, ate: periodo.ate }),
+      de: periodo.de,
+      ate: periodo.ate,
     }),
-    obterTotaisPendencias(empresaAtiva.id, vencidas ? null : periodo),
+    obterTotaisPendencias(empresaAtiva.id, periodo),
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),
     listarContatos(empresaAtiva.id),
