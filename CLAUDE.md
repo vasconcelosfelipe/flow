@@ -101,6 +101,42 @@ largura. Regra vive documentada no comentário do arquivo — releia antes de
 mexer, é a origem de toda uma família de bugs já resolvida (rolagem
 infinita, botão sumindo, modal maior que a tela).
 
+## PWA no iOS — armadilhas já resolvidas
+
+O app só é instalável ("Adicionar à Tela de Início") pelo Safari — é
+restrição da Apple, nenhum outro navegador no iOS expõe essa opção, mesmo
+todos rodando WebKit por baixo. **O usuário testa via app instalado
+(standalone), não numa aba do Safari** — isso importa porque várias APIs se
+comportam diferente nos dois modos (ver abaixo).
+
+- **Layout raiz usa `min-h-app-safe`, nunca `min-h-dvh` puro.** `100dvh` já
+  se mostrou pouco confiável no PWA standalone do iOS quando o conteúdo não
+  tem scroll próprio para "assentar" o cálculo dinâmico do viewport — o
+  sintoma foi a barra de navegação inferior (`fixed`) descolando de lugar
+  depois de abrir/fechar um modal, e só acontecia em telas com conteúdo
+  curto. `.min-h-app-safe` (`globals.css`) já resolve isso com
+  `min-height: 100vh` + `100lvh`; os três layouts (`(app)`, `(auth)`,
+  `(console)`) usam essa classe, nunca `min-h-dvh` cru.
+- **`Drawer` (`components/ui/drawer.tsx`) sempre com `repositionInputs={false}`.**
+  Ligado (o padrão do `vaul`), a lib escuta `visualViewport.resize` e
+  reescreve a altura da gaveta na mão ao abrir o teclado — em formulário
+  curto isso encolhe a gaveta pra caber só o campo focado, escondendo o
+  resto atrás do teclado. Sem gate de plataforma, roda em qualquer
+  navegador — não é fix condicional.
+- **`noBodyStyles` do `Drawer` fica no padrão (não desligar).** Essa flag
+  liga o travamento de scroll do fundo específico pra Mobile Safari
+  (`document.body.style.position = 'fixed'` enquanto o modal está aberto).
+  Já tentamos desligar pra evitar uma corrida de restauração entre
+  fechar/abrir modais em sequência — piorou: sem ela, o fundo passa a rolar
+  livre durante qualquer modal no iOS. Esse mecanismo também **só roda fora
+  do modo standalone** (`!isStandalone`) — ao investigar bug de teclado/
+  scroll específico de iOS, checar sempre se o app estava rodando instalado
+  ou numa aba antes de descartar (ou culpar) esse código.
+- **`body[data-scroll-locked]` (react-remove-scroll, por trás do Radix
+  Dialog/vaul) já é neutralizado em `globals.css`** — a lib injeta
+  `margin-right`/`width` calculados pra compensar a scrollbar clássica que
+  não existe no mobile; a regra CSS zera isso sem desligar o lock em si.
+
 ## Padrões de UI recorrentes
 
 - Card de lista (`TransactionRow` é a referência): ícone da categoria à
@@ -119,11 +155,24 @@ Este projeto não é testado por unit test — mudanças de UI são verificadas
 ao vivo, contra a produção (`https://flow.soduscore.com`), pelo Browser
 tool: login, exercitar o fluxo, medir DOM quando o bug é de layout (rect,
 scrollHeight), e sempre limpar dado de teste criado (via `psql` na VPS)
-depois. Rodar `npm run typecheck` antes de deploy é obrigatório; `npm run
-lint` pode acusar erros pré-existentes (`react-hooks/static-components` em
-componentes que criam `Icone = iconeDe(...)` no corpo do componente,
+depois. Rodar `npm run typecheck` antes de deploy é obrigatório (e um
+`npm run build` completo sempre que mexer em arquivo `"use server"` — o
+typecheck sozinho não pega toda quebra, ver "Deploy"); `npm run lint` pode
+acusar erros pré-existentes (`react-hooks/static-components` em componentes
+que criam `Icone = iconeDe(...)` no corpo do componente,
 `react-hooks/set-state-in-effect` nalguns `useEffect`) — não são regressão
 sua a menos que a linha apontada seja código que você escreveu.
+
+Bug de layout/viewport no iOS **não reproduz igual em toda parte**: o
+usuário testa o PWA instalado (standalone), não uma aba do Safari — e
+várias APIs (`display-mode`, altura de viewport, o próprio `vaul`) se
+comportam diferente entre os dois modos. Sem acesso a um iPhone real, dá
+pra reproduzir localmente sem login criando uma rota de teste temporária
+fora do grupo `(app)` — ela ainda cai no redirect do `middleware.ts` (ver
+`PUBLIC_PATHS`), mas plantar um cookie `better-auth.session_token` fake no
+navegador (só localhost, nunca produção) já basta pra passar pelo gate,
+já que a validação de verdade é em `requireSessao()`, não no middleware.
+Apagar a rota depois — nunca faz parte do produto.
 
 ## Deploy
 
