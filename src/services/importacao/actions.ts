@@ -50,18 +50,33 @@ function trigramas(s: string): Set<string> {
 }
 
 /** Coeficiente de Dice: 2×interseção / soma dos tamanhos — 1 quando os dois
- * conjuntos são idênticos, 0 quando não compartilham nenhum trigrama. */
-function similaridade(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0;
+ * conjuntos são idênticos, 0 quando não compartilham nenhum trigrama.
+ * Devolve a contagem bruta junto porque o score sozinho engana em conjuntos
+ * pequenos (2 de 3 trigramas em comum já é 0,8). */
+function similaridade(a: Set<string>, b: Set<string>): { score: number; comuns: number } {
+  if (a.size === 0 || b.size === 0) return { score: 0, comuns: 0 };
   let comuns = 0;
   for (const t of a) if (b.has(t)) comuns++;
-  return (2 * comuns) / (a.size + b.size);
+  return { score: (2 * comuns) / (a.size + b.size), comuns };
 }
 
 /** Abaixo disso, duas descrições são consideradas coincidência, não a mesma
  * origem — calibrado pra pegar abreviação/variação de grafia sem misturar
- * fornecedores diferentes que só por acaso compartilham uma palavra. */
-const LIMIAR_SIMILARIDADE = 0.45;
+ * fornecedores diferentes que só por acaso compartilham uma palavra. Ficou
+ * mais alto do que o normal pra esse tipo de comparação (0,45 já causou
+ * PIX virando "Cartão de crédito" na prática) — prefere não sugerir nada a
+ * sugerir errado. */
+const LIMIAR_SIMILARIDADE = 0.72;
+
+/** Descrição curta (ex.: "PIX", "TED") não tem trigramas suficientes pra um
+ * score de similaridade significar algo — só entra no match por igualdade
+ * exata, nunca por parecença. */
+const NUCLEO_MINIMO_PARA_SIMILARIDADE = 10;
+
+/** Mesmo passando no limiar percentual, dois conjuntos pequenos podem bater
+ * essa fração só com 1-2 trigramas em comum — exige um mínimo absoluto pra
+ * o score não ser inflado por coincidência. */
+const TRIGRAMAS_COMUNS_MINIMOS = 4;
 
 type HistoricoEntrada = {
   nucleo: string;
@@ -127,12 +142,17 @@ function encontrarAprendizado(
   const exato = doTipo.find((h) => h.nucleo === nucleo);
   if (exato) return { categoriaId: exato.categoriaId, contatoId: exato.contatoId };
 
+  // Descrição curta demais — só o match exato acima vale, comparar por
+  // trigrama aqui é ruído (foi assim que um PIX virou "Cartão de crédito").
+  if (nucleo.length < NUCLEO_MINIMO_PARA_SIMILARIDADE) return null;
+
   const trigramasDaLinha = trigramas(nucleo);
   let melhor: HistoricoEntrada | null = null;
   let melhorScore = LIMIAR_SIMILARIDADE;
   for (const h of doTipo) {
-    const score = similaridade(trigramasDaLinha, h.trigramas);
-    if (score > melhorScore) {
+    if (h.nucleo.length < NUCLEO_MINIMO_PARA_SIMILARIDADE) continue;
+    const { score, comuns } = similaridade(trigramasDaLinha, h.trigramas);
+    if (comuns >= TRIGRAMAS_COMUNS_MINIMOS && score > melhorScore) {
       melhorScore = score;
       melhor = h;
     }
