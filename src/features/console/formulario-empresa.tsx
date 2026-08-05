@@ -1,14 +1,16 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { PowerOff } from "lucide-react";
+import { PowerOff, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatarCnpj, validarCnpj } from "@/lib/documentos";
+import { excluirEmpresa } from "@/services/console/actions";
 import type { EmpresaConsole, FormularioEmpresaConsole } from "@/services/console/dto";
 
 export const FORM_ID_EMPRESA = "form-empresa";
@@ -38,10 +40,13 @@ export function FormularioEmpresa({
   empresa,
   aoSalvar,
   aoAlternarAtiva,
+  aoExcluir,
 }: {
   empresa: EmpresaConsole | null;
   aoSalvar: (dados: FormularioEmpresaConsole) => void;
   aoAlternarAtiva?: (id: string) => void;
+  /** Chamado depois que a empresa é apagada de verdade — fecha o modal. */
+  aoExcluir?: () => void;
 }) {
   const {
     register,
@@ -57,10 +62,28 @@ export function FormularioEmpresa({
     },
   });
 
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [nomeDigitado, setNomeDigitado] = useState("");
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null);
+  const [excluindo, startExclusao] = useTransition();
+
   function enviar(dados: z.infer<typeof schema>) {
     // Guarda só dígitos — a máscara é responsabilidade da exibição, não do dado.
     const cnpj = dados.cnpj ? dados.cnpj.replace(/\D/g, "") : null;
     aoSalvar({ id: empresa?.id, nome: dados.nome, slug: dados.slug, cnpj });
+  }
+
+  function excluir() {
+    if (!empresa || !aoExcluir) return;
+    setErroExclusao(null);
+    startExclusao(async () => {
+      try {
+        await excluirEmpresa(empresa.id, nomeDigitado);
+        aoExcluir();
+      } catch (e) {
+        setErroExclusao(e instanceof Error ? e.message : "Não deu pra excluir.");
+      }
+    });
   }
 
   return (
@@ -118,6 +141,75 @@ export function FormularioEmpresa({
               {empresa.ativa ? "Desativar" : "Reativar"}
             </Button>
           </div>
+        </div>
+      )}
+
+      {empresa && aoExcluir && (
+        <div className="rounded-xl border border-negative/30 bg-negative/5 p-3">
+          {confirmandoExclusao ? (
+            <div className="space-y-3">
+              <p className="text-micro text-ink">
+                Isso vai apagar <strong>{empresa.nome}</strong> e tudo dela: movimentações,
+                contas, categorias, contatos e o acesso de todos os usuários vinculados. Não
+                pode ser desfeito.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmacao-nome">
+                  Digite <strong>{empresa.nome}</strong> para confirmar
+                </Label>
+                <Input
+                  id="confirmacao-nome"
+                  value={nomeDigitado}
+                  onChange={(e) => setNomeDigitado(e.target.value)}
+                  className="h-11"
+                  autoComplete="off"
+                />
+              </div>
+              {erroExclusao && <p className="text-nano text-negative-text">{erroExclusao}</p>}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setConfirmandoExclusao(false);
+                    setNomeDigitado("");
+                    setErroExclusao(null);
+                  }}
+                  disabled={excluindo}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="flex-1 border-transparent bg-negative text-white hover:bg-negative/90"
+                  onClick={excluir}
+                  disabled={excluindo || nomeDigitado.trim() !== empresa.nome}
+                >
+                  {excluindo ? "Excluindo…" : "Excluir definitivamente"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-micro font-medium text-ink">Excluir empresa</p>
+                <p className="text-nano text-ink-muted">Apaga tudo. Não pode ser desfeito.</p>
+              </div>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="shrink-0 gap-1.5"
+                onClick={() => setConfirmandoExclusao(true)}
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+                Excluir
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </form>

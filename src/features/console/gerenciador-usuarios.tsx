@@ -138,7 +138,16 @@ export function GerenciadorUsuariosConsole({
           </Button>
         }
       >
-        {visualizando && <DetalheUsuarioConsole usuario={visualizando} todasEmpresas={empresas} />}
+        {visualizando && (
+          <DetalheUsuarioConsole
+            usuario={visualizando}
+            todasEmpresas={empresas}
+            aoExcluir={() => {
+              setVisualizando(null);
+              router.refresh();
+            }}
+          />
+        )}
       </ResponsiveModal>
 
       <ResponsiveModal

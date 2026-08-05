@@ -36,6 +36,24 @@ export async function alternarEmpresaAtiva(id: string) {
   revalidatePath("/console/empresas");
 }
 
+/**
+ * Apaga a empresa e tudo que pende dela (movimentações, contas, categorias,
+ * contatos, vínculos de usuário, convites, importações — todo relaciona-
+ * mento com `Empresa` no schema é `onDelete: Cascade`). Irreversível, por
+ * isso exige digitar o nome exato da empresa — validado aqui, não só na UI,
+ * porque confiar só no cliente deixaria a confirmação furável.
+ */
+export async function excluirEmpresa(id: string, confirmacaoNome: string) {
+  await verificarAdmin();
+  const empresa = await db.empresa.findUniqueOrThrow({ where: { id }, select: { nome: true } });
+  if (confirmacaoNome.trim() !== empresa.nome) {
+    throw new Error("O nome digitado não confere com o nome da empresa.");
+  }
+  await db.empresa.delete({ where: { id } });
+  revalidatePath("/console/empresas");
+  revalidatePath("/console/usuarios");
+}
+
 export async function atribuirEmpresa(
   userId: string,
   empresaId: string,
@@ -56,6 +74,22 @@ export async function removerEmpresa(userId: string, empresaId: string) {
   await verificarAdmin();
 
   await db.membroEmpresa.deleteMany({ where: { userId, empresaId } });
+  revalidatePath("/console/usuarios");
+}
+
+/**
+ * Apaga a conta do usuário de vez (login + vínculos com empresas — Session
+ * e MembroEmpresa cascateiam do `user` no schema). Não mexe nos dados das
+ * empresas em si, só no acesso desta pessoa. Convites que ela mesma enviou
+ * e ainda estão pendentes são apagados junto — são só links, não histórico.
+ */
+export async function excluirUsuario(id: string) {
+  const sessao = await verificarAdmin();
+  if (sessao.usuario.id === id) {
+    throw new Error("Você não pode excluir a própria conta.");
+  }
+  await db.convite.deleteMany({ where: { remetenteId: id } });
+  await db.user.delete({ where: { id } });
   revalidatePath("/console/usuarios");
 }
 

@@ -15,6 +15,7 @@ import {
 import {
   atribuirEmpresa,
   atualizarPapel,
+  excluirUsuario,
   removerEmpresa,
 } from "@/services/console/actions";
 import { ROTULO_PAPEL, type PapelMembro } from "@/types/dominio";
@@ -25,16 +26,34 @@ const PAPEIS: PapelMembro[] = ["DONO", "ADMIN", "MEMBRO", "LEITOR"];
 export function DetalheUsuarioConsole({
   usuario,
   todasEmpresas,
+  aoExcluir,
 }: {
   usuario: UsuarioConsole;
   todasEmpresas: EmpresaConsole[];
+  /** Chamado depois que a conta é apagada de verdade — fecha o sheet. */
+  aoExcluir: () => void;
 }) {
   const [membros, setMembros] = useState(usuario.empresas);
   const [busca, setBusca] = useState("");
   const [papelNovo, setPapelNovo] = useState<PapelMembro>("MEMBRO");
   const [empresaSelecionada, setEmpresaSelecionada] =
     useState<EmpresaConsole | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function excluir() {
+    setErroExclusao(null);
+    startTransition(async () => {
+      try {
+        await excluirUsuario(usuario.id);
+        aoExcluir();
+      } catch (e) {
+        setErroExclusao(e instanceof Error ? e.message : "Não deu pra excluir.");
+        setConfirmandoExclusao(false);
+      }
+    });
+  }
 
   const idsVinculados = new Set(membros.map((m) => m.empresaId));
 
@@ -236,6 +255,51 @@ export function DetalheUsuarioConsole({
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Excluir conta */}
+      <div className="space-y-2 border-t border-line pt-4">
+        {confirmandoExclusao ? (
+          <div className="space-y-2 rounded-xl border border-negative/30 bg-negative/5 p-3">
+            <p className="text-micro text-ink">
+              Excluir a conta de {usuario.nome}? Ela perde acesso a todas as empresas listadas
+              acima. Não apaga movimentações nem dados das empresas.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setConfirmandoExclusao(false)}
+                disabled={pending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="flex-1 border-transparent bg-negative text-white hover:bg-negative/90"
+                onClick={excluir}
+                disabled={pending}
+              >
+                {pending ? "Excluindo…" : "Confirmar exclusão"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setConfirmandoExclusao(true)}
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            Excluir usuário
+          </Button>
+        )}
+        {erroExclusao && <p className="text-nano text-negative-text">{erroExclusao}</p>}
       </div>
     </div>
   );

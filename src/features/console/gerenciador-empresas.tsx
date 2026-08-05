@@ -90,6 +90,14 @@ export function GerenciadorEmpresasConsole({ inicial }: { inicial: EmpresaConsol
           empresa={empresaEmEdicao}
           aoSalvar={salvar}
           aoAlternarAtiva={empresaEmEdicao ? alternarAtiva : undefined}
+          aoExcluir={
+            empresaEmEdicao
+              ? () => {
+                  setEditando(null);
+                  router.refresh();
+                }
+              : undefined
+          }
         />
       </ResponsiveModal>
     </div>
