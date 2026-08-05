@@ -92,11 +92,18 @@ export async function alternarUsuarioAtivo(id: string) {
  * e MembroEmpresa cascateiam do `user` no schema). Não mexe nos dados das
  * empresas em si, só no acesso desta pessoa. Convites que ela mesma enviou
  * e ainda estão pendentes são apagados junto — são só links, não histórico.
+ * Mesmo padrão de confirmação de `excluirEmpresa`: exige digitar um dado
+ * exato da conta (aqui o e-mail, único e mais confiável que o nome) antes
+ * de liberar — validado aqui, não só na UI.
  */
-export async function excluirUsuario(id: string) {
+export async function excluirUsuario(id: string, confirmacaoEmail: string) {
   const sessao = await verificarAdmin();
   if (sessao.usuario.id === id) {
     throw new Error("Você não pode excluir a própria conta.");
+  }
+  const usuario = await db.user.findUniqueOrThrow({ where: { id }, select: { email: true } });
+  if (confirmacaoEmail.trim() !== usuario.email) {
+    throw new Error("O e-mail digitado não confere com o da conta.");
   }
   await db.convite.deleteMany({ where: { remetenteId: id } });
   await db.user.delete({ where: { id } });

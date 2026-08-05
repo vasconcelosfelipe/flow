@@ -6,6 +6,7 @@ import { Building2, Plus, PowerOff, Search, Trash2, ShieldCheck } from "lucide-r
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,7 @@ export function DetalheUsuarioConsole({
   const [empresaSelecionada, setEmpresaSelecionada] =
     useState<EmpresaConsole | null>(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [emailDigitado, setEmailDigitado] = useState("");
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -58,11 +60,10 @@ export function DetalheUsuarioConsole({
     setErroExclusao(null);
     startTransition(async () => {
       try {
-        await excluirUsuario(usuario.id);
+        await excluirUsuario(usuario.id, emailDigitado);
         aoExcluir();
       } catch (e) {
         setErroExclusao(e instanceof Error ? e.message : "Não deu pra excluir.");
-        setConfirmandoExclusao(false);
       }
     });
   }
@@ -297,20 +298,38 @@ export function DetalheUsuarioConsole({
       </div>
 
       {/* Excluir conta */}
-      <div className="space-y-2 border-t border-line pt-4">
+      <div className="rounded-xl border border-negative/30 bg-negative/5 p-3">
         {confirmandoExclusao ? (
-          <div className="space-y-2 rounded-xl border border-negative/30 bg-negative/5 p-3">
+          <div className="space-y-3">
             <p className="text-micro text-ink">
-              Excluir a conta de {usuario.nome}? Ela perde acesso a todas as empresas listadas
-              acima. Não apaga movimentações nem dados das empresas.
+              Isso vai apagar a conta de <strong>{usuario.nome}</strong> de vez: login e acesso a
+              todas as empresas vinculadas. Não apaga movimentações nem dados das empresas. Não
+              pode ser desfeito.
             </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmacao-email">
+                Digite <strong>{usuario.email}</strong> para confirmar
+              </Label>
+              <Input
+                id="confirmacao-email"
+                value={emailDigitado}
+                onChange={(e) => setEmailDigitado(e.target.value)}
+                className="h-11"
+                autoComplete="off"
+              />
+            </div>
+            {erroExclusao && <p className="text-nano text-negative-text">{erroExclusao}</p>}
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => setConfirmandoExclusao(false)}
+                onClick={() => {
+                  setConfirmandoExclusao(false);
+                  setEmailDigitado("");
+                  setErroExclusao(null);
+                }}
                 disabled={pending}
               >
                 Cancelar
@@ -320,25 +339,30 @@ export function DetalheUsuarioConsole({
                 size="sm"
                 className="flex-1 border-transparent bg-negative text-white hover:bg-negative/90"
                 onClick={excluir}
-                disabled={pending}
+                disabled={pending || emailDigitado.trim() !== usuario.email}
               >
-                {pending ? "Excluindo…" : "Confirmar exclusão"}
+                {pending ? "Excluindo…" : "Excluir definitivamente"}
               </Button>
             </div>
           </div>
         ) : (
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setConfirmandoExclusao(true)}
-          >
-            <Trash2 className="size-3.5" aria-hidden="true" />
-            Excluir usuário
-          </Button>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-micro font-medium text-ink">Excluir usuário</p>
+              <p className="text-nano text-ink-muted">Apaga a conta. Não pode ser desfeito.</p>
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => setConfirmandoExclusao(true)}
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+              Excluir
+            </Button>
+          </div>
         )}
-        {erroExclusao && <p className="text-nano text-negative-text">{erroExclusao}</p>}
       </div>
     </div>
   );
