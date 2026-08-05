@@ -37,16 +37,49 @@ function normalizarDescricao(descricao: string): string {
     .trim();
 }
 
+/** Conjunto de trigramas (janelas de 3 caracteres) de uma string já
+ * normalizada — a mesma técnica por trás do `pg_trgm` do Postgres, só que
+ * calculada em memória: não precisa de extensão nenhuma no banco. Descrição
+ * curta demais pra ter trigrama (ex.: "PIX") vira ela mesma um único item,
+ * senão nunca teria como comparar. */
+function trigramas(s: string): Set<string> {
+  if (s.length < 3) return new Set(s ? [s] : []);
+  const conjunto = new Set<string>();
+  for (let i = 0; i <= s.length - 3; i++) conjunto.add(s.slice(i, i + 3));
+  return conjunto;
+}
+
+/** Coeficiente de Dice: 2×interseção / soma dos tamanhos — 1 quando os dois
+ * conjuntos são idênticos, 0 quando não compartilham nenhum trigrama. */
+function similaridade(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let comuns = 0;
+  for (const t of a) if (b.has(t)) comuns++;
+  return (2 * comuns) / (a.size + b.size);
+}
+
+/** Abaixo disso, duas descrições são consideradas coincidência, não a mesma
+ * origem — calibrado pra pegar abreviação/variação de grafia sem misturar
+ * fornecedores diferentes que só por acaso compartilham uma palavra. */
+const LIMIAR_SIMILARIDADE = 0.45;
+
+type HistoricoEntrada = {
+  nucleo: string;
+  trigramas: Set<string>;
+  tipo: string;
+  categoriaId: string | null;
+  contatoId: string | null;
+};
+
 /**
  * Aprendizado da conciliação: uma linha nova sem categoria/fornecedor ainda
  * herda o que a pessoa escolheu da última vez que uma descrição parecida
- * apareceu (mesma descrição normalizada + mesmo tipo). Só olha pro histórico
- * já conciliado — é a única fonte que representa uma decisão confirmada de
- * verdade, não um rascunho de importação anterior.
+ * apareceu — igual (mesmo núcleo) ou só parecida (trigramas em comum acima
+ * do limiar), sempre restrito ao mesmo tipo (RECEITA/DESPESA). Só olha pro
+ * histórico já conciliado — é a única fonte que representa uma decisão
+ * confirmada de verdade, não um rascunho de importação anterior.
  */
-async function aprenderComHistorico(
-  empresaId: string,
-): Promise<Map<string, { categoriaId: string | null; contatoId: string | null }>> {
+async function aprenderComHistorico(empresaId: string): Promise<HistoricoEntrada[]> {
   const historico = await db.movimentacao.findMany({
     where: { empresaId, status: "CONCILIADO", data: { not: null } },
     select: { descricao: true, tipo: true, categoriaId: true, contatoId: true },
@@ -54,18 +87,57 @@ async function aprenderComHistorico(
     take: 3000,
   });
 
-  const mapa = new Map<string, { categoriaId: string | null; contatoId: string | null }>();
+  const vistos = new Set<string>();
+  const entradas: HistoricoEntrada[] = [];
   for (const mov of historico) {
     if (mov.categoriaId === null && mov.contatoId === null) continue;
     const nucleo = normalizarDescricao(mov.descricao);
     if (!nucleo) continue;
     const chave = `${mov.tipo}::${nucleo}`;
-    // Primeira ocorrência de cada chave vence — a lista já vem da mais
-    // recente pra mais antiga, então isso é sempre a categorização mais
-    // recente pra aquele "tipo" de lançamento.
-    if (!mapa.has(chave)) mapa.set(chave, { categoriaId: mov.categoriaId, contatoId: mov.contatoId });
+    // Descrição repetida (mesmo núcleo) só entra uma vez — a lista já vem da
+    // mais recente pra mais antiga, então a primeira é sempre a
+    // categorização mais recente pra aquele "tipo" de lançamento.
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    entradas.push({
+      nucleo,
+      trigramas: trigramas(nucleo),
+      tipo: mov.tipo,
+      categoriaId: mov.categoriaId,
+      contatoId: mov.contatoId,
+    });
   }
-  return mapa;
+  return entradas;
+}
+
+/** Acha a melhor pista pro histórico pra uma descrição nova: primeiro tenta
+ * bater exato (núcleo idêntico), senão pega a entrada mais parecida acima do
+ * limiar. Restrito ao mesmo tipo — RECEITA nunca sugere categoria/fornecedor
+ * de uma DESPESA parecida por coincidência de texto. */
+function encontrarAprendizado(
+  descricao: string,
+  tipo: string,
+  historico: HistoricoEntrada[],
+): { categoriaId: string | null; contatoId: string | null } | null {
+  const nucleo = normalizarDescricao(descricao);
+  if (!nucleo) return null;
+
+  const doTipo = historico.filter((h) => h.tipo === tipo);
+
+  const exato = doTipo.find((h) => h.nucleo === nucleo);
+  if (exato) return { categoriaId: exato.categoriaId, contatoId: exato.contatoId };
+
+  const trigramasDaLinha = trigramas(nucleo);
+  let melhor: HistoricoEntrada | null = null;
+  let melhorScore = LIMIAR_SIMILARIDADE;
+  for (const h of doTipo) {
+    const score = similaridade(trigramasDaLinha, h.trigramas);
+    if (score > melhorScore) {
+      melhorScore = score;
+      melhor = h;
+    }
+  }
+  return melhor ? { categoriaId: melhor.categoriaId, contatoId: melhor.contatoId } : null;
 }
 
 /**
@@ -141,8 +213,8 @@ export async function processarArquivoOfx(
     // Linha conciliável já herda categoria/fornecedor da pendência que está
     // fechando — só linha nova de fato precisa do aprendizado do histórico.
     const aprendido = status === "NOVA"
-      ? historico.get(`${t.tipo}::${normalizarDescricao(t.descricao)}`)
-      : undefined;
+      ? encontrarAprendizado(t.descricao, t.tipo, historico)
+      : null;
 
     return {
       id: t.fitId,
