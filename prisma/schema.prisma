@@ -32,7 +32,6 @@ model user {
   sessions         session[]
   accounts         account[]
   membros          MembroEmpresa[]
-  convites         Convite[]        @relation("ConviteConvidado")
   convitesEnviados Convite[]        @relation("ConviteRemetente")
 }
 
@@ -129,6 +128,9 @@ model MembroEmpresa {
 model Convite {
   id          String      @id @default(cuid())
   empresaId   String
+  // E-mail de quem ainda NÃO tem conta — de propósito sem FK pra `user.email`
+  // (já existiu uma, e quebrava exatamente o caso de uso do convite: criar
+  // convite pra alguém que ainda não existe como usuário).
   email       String
   papel       PapelMembro
   token       String      @unique @default(cuid())
@@ -139,7 +141,6 @@ model Convite {
 
   empresa     Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   remetente   user        @relation("ConviteRemetente", fields: [remetenteId], references: [id])
-  convidado   user?       @relation("ConviteConvidado", fields: [email], references: [email])
 
   @@index([empresaId])
   @@map("convites")
