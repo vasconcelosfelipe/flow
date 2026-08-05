@@ -76,15 +76,19 @@ export async function atualizarPapel(
 
 /**
  * Convida alguém pra uma empresa: cria (ou renova) um `Convite` com token e
- * envia o link de aceite por e-mail. Nunca cria o `user` aqui — a conta só
- * nasce quando a pessoa convidada aceita e define a própria senha, em
- * `aceitarConvite` (services/convites/actions.ts).
+ * devolve o link de aceite — sem infra de e-mail confiável ainda, quem
+ * convida copia o link na tela e manda pra pessoa por onde for (WhatsApp,
+ * e-mail pessoal etc.). Também tenta `enviarEmail` (hoje só loga, não
+ * entrega de verdade — ver src/lib/email.ts) como bônus, não como único
+ * canal. Nunca cria o `user` aqui — a conta só nasce quando a pessoa
+ * convidada aceita e define a própria senha, em `aceitarConvite`
+ * (services/convites/actions.ts).
  */
 export async function convidarUsuario(dados: {
   email: string;
   empresaId: string;
   papel: PapelMembro;
-}) {
+}): Promise<{ link: string }> {
   const sessao = await verificarAdmin();
 
   const jaTemConta = await db.user.findUnique({ where: { email: dados.email } });
@@ -123,6 +127,7 @@ export async function convidarUsuario(dados: {
   });
 
   revalidatePath("/console/usuarios");
+  return { link };
 }
 
 /** Cancela um convite ainda não aceito — a pessoa que tentar abrir o link

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Mail, Plus, Users, X } from "lucide-react";
+import { Check, Copy, Mail, Plus, Users, X } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
@@ -33,18 +33,36 @@ export function GerenciadorUsuariosConsole({
   const [visualizando, setVisualizando] = useState<UsuarioConsole | null>(null);
   const [convidando, setConvidando] = useState(false);
   const [erroConvite, setErroConvite] = useState<string | null>(null);
+  // Preenchido depois que o convite é criado — a tela troca do formulário
+  // pro link pronto pra copiar, sem infra de e-mail confiável ainda.
+  const [linkGerado, setLinkGerado] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
 
   function convidar(dados: FormularioConviteUsuario) {
     setErroConvite(null);
     startTransition(async () => {
       try {
-        await convidarUsuario(dados);
-        setConvidando(false);
+        const { link } = await convidarUsuario(dados);
+        setLinkGerado(link);
         router.refresh();
       } catch (e) {
-        setErroConvite(e instanceof Error ? e.message : "Não deu pra enviar o convite.");
+        setErroConvite(e instanceof Error ? e.message : "Não deu pra criar o convite.");
       }
     });
+  }
+
+  function fecharConvite() {
+    setConvidando(false);
+    setLinkGerado(null);
+    setErroConvite(null);
+    setCopiado(false);
+  }
+
+  async function copiarLink() {
+    if (!linkGerado) return;
+    await navigator.clipboard.writeText(linkGerado);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
   }
 
   function cancelar(id: string) {
@@ -125,30 +143,61 @@ export function GerenciadorUsuariosConsole({
 
       <ResponsiveModal
         aberto={convidando}
-        aoMudarAberto={(v) => { setConvidando(v); if (!v) setErroConvite(null); }}
-        titulo="Convidar usuário"
-        descricao="E-mail, empresa e papel do convite."
+        aoMudarAberto={(v) => !v && fecharConvite()}
+        titulo={linkGerado ? "Convite criado" : "Convidar usuário"}
+        descricao={
+          linkGerado
+            ? "Copie o link e mande pra pessoa convidada."
+            : "E-mail, empresa e papel do convite."
+        }
         rodape={
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => setConvidando(false)}
-            >
-              Cancelar
+          linkGerado ? (
+            <Button className="w-full" onClick={fecharConvite}>
+              Concluir
             </Button>
-            <Button type="submit" form={FORM_ID_CONVITE} className="flex-1" disabled={pending}>
-              {pending ? "Enviando…" : "Convidar"}
-            </Button>
-          </>
+          ) : (
+            <>
+              <Button type="button" variant="outline" className="flex-1" onClick={fecharConvite}>
+                Cancelar
+              </Button>
+              <Button type="submit" form={FORM_ID_CONVITE} className="flex-1" disabled={pending}>
+                {pending ? "Criando…" : "Convidar"}
+              </Button>
+            </>
+          )
         }
       >
-        <FormularioConvite empresas={empresas} aoConvidar={convidar} />
-        {erroConvite && (
-          <p className="mt-2 rounded-lg bg-negative/10 px-3 py-2 text-nano text-negative-text">
-            {erroConvite}
-          </p>
+        {linkGerado ? (
+          <div className="space-y-3 py-2">
+            <p className="text-micro text-ink-muted">
+              Ainda não temos envio automático de e-mail — copie o link abaixo e mande pra pessoa
+              por onde preferir (WhatsApp, e-mail…). Ele expira em 7 dias.
+            </p>
+            <div className="flex items-center gap-2 rounded-xl border border-line bg-muted/40 p-3">
+              <span className="min-w-0 flex-1 truncate text-micro text-ink">{linkGerado}</span>
+              <button
+                type="button"
+                onClick={copiarLink}
+                className="grid size-9 shrink-0 place-items-center rounded-lg bg-surface text-ink-muted shadow-card transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                aria-label="Copiar link do convite"
+              >
+                {copiado ? (
+                  <Check className="size-4 text-positive-text" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <FormularioConvite empresas={empresas} aoConvidar={convidar} />
+            {erroConvite && (
+              <p className="mt-2 rounded-lg bg-negative/10 px-3 py-2 text-nano text-negative-text">
+                {erroConvite}
+              </p>
+            )}
+          </>
         )}
       </ResponsiveModal>
     </div>
