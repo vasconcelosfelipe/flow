@@ -15,7 +15,11 @@ export default async function CategoriasPage() {
   return (
     <Container className="space-y-4 pt-5">
       <h1 className="text-titulo font-semibold text-ink">Categorias</h1>
-      <GerenciadorCategorias inicial={categorias} linhas={linhas} />
+      <GerenciadorCategorias
+        inicial={categorias}
+        linhas={linhas}
+        somenteLeitura={empresaAtiva.papel === "LEITOR"}
+      />
     </Container>
   );
 }

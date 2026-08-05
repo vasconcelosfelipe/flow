@@ -13,7 +13,13 @@ import { LinhaConta } from "@/features/contas/linha-conta";
 import { criarConta, editarConta, excluirConta } from "@/services/contas/actions";
 import type { ContaCompleta, FormularioConta as DadosFormulario } from "@/services/contas/dto";
 
-export function GerenciadorContas({ inicial }: { inicial: ContaCompleta[] }) {
+export function GerenciadorContas({
+  inicial,
+  somenteLeitura = false,
+}: {
+  inicial: ContaCompleta[];
+  somenteLeitura?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editando, setEditando] = useState<ContaCompleta | null | "nova">(null);
@@ -52,12 +58,14 @@ export function GerenciadorContas({ inicial }: { inicial: ContaCompleta[] }) {
         </p>
       </div>
 
-      <div className="flex justify-end">
-        <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")} disabled={pending}>
-          <Plus className="size-4" aria-hidden="true" />
-          Nova
-        </Button>
-      </div>
+      {!somenteLeitura && (
+        <div className="flex justify-end">
+          <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")} disabled={pending}>
+            <Plus className="size-4" aria-hidden="true" />
+            Nova
+          </Button>
+        </div>
+      )}
 
       {inicial.length === 0 ? (
         <EmptyState
@@ -71,7 +79,7 @@ export function GerenciadorContas({ inicial }: { inicial: ContaCompleta[] }) {
             <LinhaConta
               key={conta.id}
               conta={conta}
-              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+              aoAbrir={somenteLeitura ? () => {} : (id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
             />
           ))}
         </div>

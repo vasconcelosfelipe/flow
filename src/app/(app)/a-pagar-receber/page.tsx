@@ -30,6 +30,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
   const tipo = params.tipo === "DESPESA" || params.tipo === "RECEITA" ? params.tipo : undefined;
   const vencidas = params.situacao === "vencidas";
   const periodo = resolverPeriodoDeParams(params);
+  const somenteLeitura = empresaAtiva.papel === "LEITOR";
 
   const [pagina, totais, contas, categorias, contatos, linhas] = await Promise.all([
     listarPendencias(empresaAtiva.id, {
@@ -53,6 +54,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          somenteLeitura={somenteLeitura}
         />
       </div>
 
@@ -86,6 +88,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}
+        somenteLeitura={somenteLeitura}
       />
     </Container>
   );

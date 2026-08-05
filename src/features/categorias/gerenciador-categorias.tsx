@@ -18,9 +18,11 @@ import type { TipoMovimentacao } from "@/types/dominio";
 export function GerenciadorCategorias({
   inicial,
   linhas,
+  somenteLeitura = false,
 }: {
   inicial: CategoriaCompleta[];
   linhas: LinhaDreOpcao[];
+  somenteLeitura?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -73,10 +75,12 @@ export function GerenciadorCategorias({
           </TabsList>
         </Tabs>
 
-        <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")} disabled={pending}>
-          <Plus className="size-4" aria-hidden="true" />
-          Nova
-        </Button>
+        {!somenteLeitura && (
+          <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")} disabled={pending}>
+            <Plus className="size-4" aria-hidden="true" />
+            Nova
+          </Button>
+        )}
       </div>
 
       {visiveis.length === 0 ? (
@@ -91,14 +95,14 @@ export function GerenciadorCategorias({
             <div key={raiz.id} className="divide-y divide-line">
               <LinhaCategoria
                 categoria={raiz}
-                aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+                aoAbrir={somenteLeitura ? () => {} : (id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
               />
               {filhas.map((filha) => (
                 <LinhaCategoria
                   key={filha.id}
                   categoria={filha}
                   subcategoria
-                  aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+                  aoAbrir={somenteLeitura ? () => {} : (id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
                 />
               ))}
             </div>

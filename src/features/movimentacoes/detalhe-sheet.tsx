@@ -53,6 +53,7 @@ export function DetalheMovimentacaoSheet({
   contatos: contatosIniciais = [],
   linhas = [],
   aoFechar,
+  somenteLeitura = false,
 }: {
   movimentacao: MovimentacaoResumo | null;
   contas?: OpcaoConta[];
@@ -60,6 +61,7 @@ export function DetalheMovimentacaoSheet({
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
   aoFechar: () => void;
+  somenteLeitura?: boolean;
 }) {
   const [editando, setEditando] = useState(false);
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
@@ -105,7 +107,7 @@ export function DetalheMovimentacaoSheet({
               {salvandoEdicao ? "Salvando…" : "Salvar"}
             </Button>
           </>
-        ) : transferencia ? (
+        ) : transferencia || somenteLeitura ? (
           <Button variant="outline" className="flex-1" onClick={aoFechar}>
             Fechar
           </Button>
@@ -147,7 +149,7 @@ export function DetalheMovimentacaoSheet({
           }}
         />
       ) : (
-        <Detalhe movimentacao={movimentacao} aoRemover={aoFechar} />
+        <Detalhe movimentacao={movimentacao} aoRemover={aoFechar} somenteLeitura={somenteLeitura} />
       )}
     </ResponsiveModal>
   );
@@ -156,9 +158,11 @@ export function DetalheMovimentacaoSheet({
 function Detalhe({
   movimentacao,
   aoRemover,
+  somenteLeitura = false,
 }: {
   movimentacao: MovimentacaoResumo;
   aoRemover: () => void;
+  somenteLeitura?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -250,7 +254,7 @@ function Detalhe({
         )}
       </dl>
 
-      {conciliada ? (
+      {somenteLeitura ? null : conciliada ? (
         <div className="rounded-xl border border-line p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-micro text-ink-muted">

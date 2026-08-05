@@ -29,6 +29,7 @@ type Props = {
 export default async function MovimentacoesPage({ searchParams }: Props) {
   const [params, { empresaAtiva }] = await Promise.all([searchParams, requireSessao()]);
   const periodo = resolverPeriodoDeParams(params);
+  const somenteLeitura = empresaAtiva.papel === "LEITOR";
 
   const filtro = {
     de: periodo.de,
@@ -59,6 +60,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          somenteLeitura={somenteLeitura}
         />
       </div>
 
@@ -83,6 +85,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}
+        somenteLeitura={somenteLeitura}
       />
     </Container>
   );

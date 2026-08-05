@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
 import { Container } from "@/components/layout/container";
@@ -11,6 +12,10 @@ import { listarLinhasDre } from "@/services/linhas-dre";
 
 export default async function ImportarPage() {
   const { empresaAtiva } = await requireSessao();
+  // Importar é 100% fluxo de escrita — sem uso de leitura possível, então
+  // LEITOR nem entra, em vez de ver um wizard que só vai falhar no passo final.
+  if (empresaAtiva.papel === "LEITOR") redirect("/sem-permissao");
+
   const [contas, categorias, contatos, linhas] = await Promise.all([
     listarContas(empresaAtiva.id),
     listarCategorias(empresaAtiva.id),

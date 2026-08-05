@@ -43,11 +43,13 @@ export function BotoesMovimentacoes({
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
+  somenteLeitura = false,
 }: {
   contas: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  somenteLeitura?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -80,6 +82,8 @@ export function BotoesMovimentacoes({
     if (!categoriasDoTipo.some((c) => c.id === categoriaId)) setCategoriaId(SEM_CATEGORIA);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo]);
+
+  if (somenteLeitura) return null;
 
   function resetar() {
     setDescricao("");

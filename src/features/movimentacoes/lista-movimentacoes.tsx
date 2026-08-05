@@ -49,6 +49,7 @@ export function ListaMovimentacoes({
   categorias = [],
   contatos = [],
   linhas = [],
+  somenteLeitura = false,
 }: {
   grupos: GrupoDiario[];
   proximoCursor?: string | null;
@@ -60,6 +61,7 @@ export function ListaMovimentacoes({
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  somenteLeitura?: boolean;
 }) {
   const [, startTransition] = useTransition();
   const [carregandoMais, setCarregandoMais] = useState(false);
@@ -154,6 +156,7 @@ export function ListaMovimentacoes({
           contatos={contatos}
           linhas={linhas}
           aoFechar={() => setAbertoId(null)}
+          somenteLeitura={somenteLeitura}
         />
       )}
     </div>

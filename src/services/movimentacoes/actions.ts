@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { addMonths } from "date-fns";
 
 import { db } from "@/lib/db";
+import { requireEscrita } from "@/lib/permissoes";
 import { requireSessao } from "@/lib/sessao";
 import { listarMovimentacoes } from "@/services/movimentacoes";
 import type { FiltroMovimentacoes } from "@/services/movimentacoes/dto";
@@ -11,6 +12,16 @@ import type { FiltroMovimentacoes } from "@/services/movimentacoes/dto";
 async function obterEmpresa() {
   const sessao = await requireSessao();
   if (!sessao.empresaAtiva) throw new Error("Sem empresa ativa");
+  return sessao.empresaAtiva.id;
+}
+
+// `obterEmpresa()` também serve leitura (`buscarMaisMovimentacoes`, usada por
+// LEITOR) — por isso o gate de escrita vive num helper à parte, chamado só
+// pelas mutações abaixo.
+async function obterEmpresaEscrita() {
+  const sessao = await requireSessao();
+  if (!sessao.empresaAtiva) throw new Error("Sem empresa ativa");
+  requireEscrita(sessao);
   return sessao.empresaAtiva.id;
 }
 
@@ -32,7 +43,7 @@ export type NovaMovimentacaoInput = {
 };
 
 export async function criarMovimentacao(dados: NovaMovimentacaoInput) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   const data = new Date(dados.data);
   await db.movimentacao.create({
     data: {
@@ -54,7 +65,7 @@ export async function criarMovimentacao(dados: NovaMovimentacaoInput) {
 }
 
 export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInput) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   const data = new Date(dados.data);
   const atual = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
   await db.movimentacao.update({
@@ -97,7 +108,7 @@ export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInpu
  * senão o dinheiro "some" de uma conta sem nunca ter "chegado" na outra.
  */
 export async function excluirMovimentacao(id: string) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   const mov = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
   if (mov.status === "CONCILIADO") {
     throw new Error("Desfaça a conciliação antes de excluir esta movimentação.");
@@ -133,7 +144,7 @@ export type NovaTransferenciaInput = {
  * mudando de bolso, e fica fora da DRE por não apontar pra nenhuma linha.
  */
 export async function criarTransferencia(dados: NovaTransferenciaInput) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   if (dados.contaOrigemId === dados.contaDestinoId) {
     throw new Error("Escolha duas contas diferentes para a transferência.");
   }
@@ -194,7 +205,7 @@ export async function criarTransferencia(dados: NovaTransferenciaInput) {
  * linha nova em vez de reconciliar.
  */
 export async function desfazerConciliacao(id: string) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   const mov = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
   await db.movimentacao.update({
     where: { id, empresaId },
@@ -209,7 +220,7 @@ export async function desfazerConciliacao(id: string) {
 
 /** Categoriza várias movimentações de uma vez — a lista pode misturar RECEITA e DESPESA. */
 export async function atualizarCategoriaEmLote(ids: string[], categoriaId: string | null) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   await db.movimentacao.updateMany({
     where: { id: { in: ids }, empresaId },
     data: { categoriaId },
@@ -246,7 +257,7 @@ export type NovaPendenciaInput =
   | (CamposComunsPendencia & { modalidade: "RECORRENTE"; valorCentavos: number; quantidadeMeses: number });
 
 export async function criarPendencia(dados: NovaPendenciaInput) {
-  const empresaId = await obterEmpresa();
+  const empresaId = await obterEmpresaEscrita();
   const vencInicial = new Date(dados.dataVencimento);
 
   const base = {

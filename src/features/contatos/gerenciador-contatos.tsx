@@ -13,7 +13,13 @@ import { LinhaContato } from "@/features/contatos/linha-contato";
 import { criarContato, editarContato, excluirContato } from "@/services/contatos/actions";
 import type { ContatoCompleto, FormularioContato as DadosFormulario } from "@/services/contatos/dto";
 
-export function GerenciadorContatos({ inicial }: { inicial: ContatoCompleto[] }) {
+export function GerenciadorContatos({
+  inicial,
+  somenteLeitura = false,
+}: {
+  inicial: ContatoCompleto[];
+  somenteLeitura?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busca, setBusca] = useState("");
@@ -56,10 +62,12 @@ export function GerenciadorContatos({ inicial }: { inicial: ContatoCompleto[] })
           placeholder="Buscar fornecedor/cliente…"
           className="h-10 flex-1 rounded-xl border-line bg-surface px-3"
         />
-        <Button size="sm" className="h-10 gap-1.5 px-3" onClick={() => setEditando("novo")} disabled={pending}>
-          <Plus className="size-4" aria-hidden="true" />
-          Novo
-        </Button>
+        {!somenteLeitura && (
+          <Button size="sm" className="h-10 gap-1.5 px-3" onClick={() => setEditando("novo")} disabled={pending}>
+            <Plus className="size-4" aria-hidden="true" />
+            Novo
+          </Button>
+        )}
       </div>
 
       {visiveis.length === 0 ? (
@@ -74,7 +82,7 @@ export function GerenciadorContatos({ inicial }: { inicial: ContatoCompleto[] })
             <LinhaContato
               key={contato.id}
               contato={contato}
-              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+              aoAbrir={somenteLeitura ? () => {} : (id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
             />
           ))}
         </div>

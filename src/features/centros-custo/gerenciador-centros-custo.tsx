@@ -15,7 +15,13 @@ import type {
   FormularioCentroCusto as DadosFormulario,
 } from "@/services/centros-custo/dto";
 
-export function GerenciadorCentrosCusto({ inicial }: { inicial: CentroCustoCompleto[] }) {
+export function GerenciadorCentrosCusto({
+  inicial,
+  somenteLeitura = false,
+}: {
+  inicial: CentroCustoCompleto[];
+  somenteLeitura?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [editando, setEditando] = useState<CentroCustoCompleto | null | "novo">(null);
@@ -44,12 +50,14 @@ export function GerenciadorCentrosCusto({ inicial }: { inicial: CentroCustoCompl
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" className="gap-1.5" onClick={() => setEditando("novo")} disabled={pending}>
-          <Plus className="size-4" aria-hidden="true" />
-          Novo
-        </Button>
-      </div>
+      {!somenteLeitura && (
+        <div className="flex justify-end">
+          <Button size="sm" className="gap-1.5" onClick={() => setEditando("novo")} disabled={pending}>
+            <Plus className="size-4" aria-hidden="true" />
+            Novo
+          </Button>
+        </div>
+      )}
 
       {inicial.length === 0 ? (
         <EmptyState
@@ -63,7 +71,7 @@ export function GerenciadorCentrosCusto({ inicial }: { inicial: CentroCustoCompl
             <LinhaCentroCusto
               key={centro.id}
               centro={centro}
-              aoAbrir={(id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
+              aoAbrir={somenteLeitura ? () => {} : (id) => setEditando(inicial.find((c) => c.id === id) ?? null)}
             />
           ))}
         </div>

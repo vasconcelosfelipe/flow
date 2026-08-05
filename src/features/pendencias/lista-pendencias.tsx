@@ -24,12 +24,14 @@ export function ListaPendencias({
   categorias = [],
   contatos = [],
   linhas = [],
+  somenteLeitura = false,
 }: {
   itens: MovimentacaoResumo[];
   contas?: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  somenteLeitura?: boolean;
 }) {
   const [abertoId, setAbertoId] = useState<string | null>(null);
 
@@ -60,6 +62,7 @@ export function ListaPendencias({
           contatos={contatos}
           linhas={linhas}
           aoFechar={() => setAbertoId(null)}
+          somenteLeitura={somenteLeitura}
         />
       )}
     </div>
