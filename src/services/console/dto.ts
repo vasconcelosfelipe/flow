@@ -35,6 +35,7 @@ export type UsuarioConsole = {
   nome: string;
   email: string;
   adminPlataforma: boolean;
+  ativo: boolean;
   empresas: MembroEmpresa[];
 };
 

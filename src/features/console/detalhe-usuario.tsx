@@ -1,7 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition, useMemo } from "react";
-import { Building2, Plus, Search, Trash2, ShieldCheck } from "lucide-react";
+import { Building2, Plus, PowerOff, Search, Trash2, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  alternarUsuarioAtivo,
   atribuirEmpresa,
   atualizarPapel,
   excluirUsuario,
@@ -33,7 +35,9 @@ export function DetalheUsuarioConsole({
   /** Chamado depois que a conta é apagada de verdade — fecha o sheet. */
   aoExcluir: () => void;
 }) {
+  const router = useRouter();
   const [membros, setMembros] = useState(usuario.empresas);
+  const [ativo, setAtivo] = useState(usuario.ativo);
   const [busca, setBusca] = useState("");
   const [papelNovo, setPapelNovo] = useState<PapelMembro>("MEMBRO");
   const [empresaSelecionada, setEmpresaSelecionada] =
@@ -41,6 +45,14 @@ export function DetalheUsuarioConsole({
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function alternarAtiva() {
+    startTransition(async () => {
+      await alternarUsuarioAtivo(usuario.id);
+      setAtivo((a) => !a);
+      router.refresh();
+    });
+  }
 
   function excluir() {
     setErroExclusao(null);
@@ -255,6 +267,33 @@ export function DetalheUsuarioConsole({
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Ativo/Inativo */}
+      <div className="rounded-xl border border-line p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-micro font-medium text-ink">
+              {ativo ? "Usuário ativo" : "Usuário inativo"}
+            </p>
+            <p className="text-nano text-ink-muted">
+              {ativo
+                ? "Inativar impede novos acessos sem apagar a conta."
+                : "Reative para liberar o acesso novamente."}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant={ativo ? "destructive" : "outline"}
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={alternarAtiva}
+            disabled={pending}
+          >
+            <PowerOff className="size-3.5" aria-hidden="true" />
+            {ativo ? "Inativar" : "Reativar"}
+          </Button>
+        </div>
       </div>
 
       {/* Excluir conta */}

@@ -26,6 +26,7 @@ model user {
   image            String?
   // campos extras do domínio Flow
   adminPlataforma  Boolean  @default(false)
+  ativo            Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

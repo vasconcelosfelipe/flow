@@ -28,6 +28,12 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,  // não exposto na API pública
       },
+      ativo: {
+        type: "boolean",
+        required: false,
+        defaultValue: true,
+        input: false,
+      },
     },
   },
 

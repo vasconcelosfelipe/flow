@@ -77,6 +77,16 @@ export async function removerEmpresa(userId: string, empresaId: string) {
   revalidatePath("/console/usuarios");
 }
 
+export async function alternarUsuarioAtivo(id: string) {
+  const sessao = await verificarAdmin();
+  if (sessao.usuario.id === id) {
+    throw new Error("Você não pode inativar a própria conta.");
+  }
+  const usuario = await db.user.findUniqueOrThrow({ where: { id }, select: { ativo: true } });
+  await db.user.update({ where: { id }, data: { ativo: !usuario.ativo } });
+  revalidatePath("/console/usuarios");
+}
+
 /**
  * Apaga a conta do usuário de vez (login + vínculos com empresas — Session
  * e MembroEmpresa cascateiam do `user` no schema). Não mexe nos dados das

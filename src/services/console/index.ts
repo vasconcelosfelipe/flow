@@ -12,7 +12,7 @@ export async function listarEmpresasConsole(): Promise<EmpresaConsole[]> {
     nome: e.nome,
     slug: e.slug,
     cnpj: e.cnpj,
-    ativa: true,
+    ativa: e.ativa,
     quantidadeUsuarios: e._count.membros,
     criadaEm: e.criadoEm,
   }));
@@ -31,6 +31,7 @@ export async function listarUsuariosConsole(): Promise<UsuarioConsole[]> {
     nome: u.name,
     email: u.email,
     adminPlataforma: u.adminPlataforma,
+    ativo: u.ativo,
     empresas: u.membros.map((m) => ({
       empresaId: m.empresaId,
       empresaNome: m.empresa.nome,
