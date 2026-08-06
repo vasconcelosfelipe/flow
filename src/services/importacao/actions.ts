@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-import { sugerirComIA } from "@/lib/ia-categorizacao";
+import { sugerirComIA, type SugestaoIA } from "@/lib/ia-categorizacao";
 import { parseOfx } from "@/lib/ofx";
 import { requireEscrita } from "@/lib/permissoes";
 import { requireSessao } from "@/lib/sessao";
@@ -261,15 +261,25 @@ export async function processarArquivoOfx(
   const opcoesCategorias = categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }));
   const opcoesContatos = contatos.map((c) => ({ id: c.id, nome: c.nome }));
 
-  const resultadosPorLote = await Promise.all(
-    lotes.map((lote) =>
-      sugerirComIA({
-        linhas: lote.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
-        categorias: opcoesCategorias,
-        contatos: opcoesContatos,
-      }),
-    ),
-  );
+  // Disparar todos os lotes de uma vez só (visto na prática): metade trava
+  // e estoura o timeout, mesmo cada um sendo rápido isolado — cheira a
+  // limite de conexões simultâneas do provedor por trás do OpenRouter.
+  // Processa no máximo 3 lotes ao mesmo tempo em vez de todos de uma vez.
+  const CONCORRENCIA_MAX_IA = 3;
+  const resultadosPorLote: (SugestaoIA[] | null)[] = [];
+  for (let i = 0; i < lotes.length; i += CONCORRENCIA_MAX_IA) {
+    const grupo = lotes.slice(i, i + CONCORRENCIA_MAX_IA);
+    const resultadosGrupo = await Promise.all(
+      grupo.map((lote) =>
+        sugerirComIA({
+          linhas: lote.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
+          categorias: opcoesCategorias,
+          contatos: opcoesContatos,
+        }),
+      ),
+    );
+    resultadosPorLote.push(...resultadosGrupo);
+  }
 
   const sugestoesPorId = new Map(
     resultadosPorLote.flatMap((sugestoes) => sugestoes ?? []).map((s) => [s.id, s]),
