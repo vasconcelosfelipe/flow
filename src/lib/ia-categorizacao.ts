@@ -55,6 +55,9 @@ export async function sugerirComIA(input: {
         // Prioriza os provedores mais rápidos por trás do modelo — reduz a
         // chance de cair num provedor lento como o que estourou 20s antes.
         provider: { sort: "latency" },
+        // Tarefa de classificação simples não precisa de "pensar" — token de
+        // raciocínio só some tempo sem ganho de qualidade nesse caso.
+        reasoning: { enabled: false },
         messages: [
           {
             role: "system",
