@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-import { sugerirComIA, type SugestaoIA } from "@/lib/ia-categorizacao";
+import { sugerirComIA } from "@/lib/ia-categorizacao";
 import { parseOfx } from "@/lib/ofx";
 import { requireEscrita } from "@/lib/permissoes";
 import { requireSessao } from "@/lib/sessao";
@@ -261,26 +261,15 @@ export async function processarArquivoOfx(
   const opcoesCategorias = categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }));
   const opcoesContatos = contatos.map((c) => ({ id: c.id, nome: c.nome }));
 
-  // Disparar vários lotes ao mesmo tempo trava uma fração deles até o
-  // timeout, mesmo cada um sendo rápido isolado — mesmo com só 3 em
-  // paralelo, um ainda travava às vezes. Um lote por vez elimina isso: cada
-  // chamada isolada volta em ~1-2s, então 6 lotes sequenciais ainda ficam
-  // bem abaixo da chamada única original de 149 linhas.
-  const CONCORRENCIA_MAX_IA = 1;
-  const resultadosPorLote: (SugestaoIA[] | null)[] = [];
-  for (let i = 0; i < lotes.length; i += CONCORRENCIA_MAX_IA) {
-    const grupo = lotes.slice(i, i + CONCORRENCIA_MAX_IA);
-    const resultadosGrupo = await Promise.all(
-      grupo.map((lote) =>
-        sugerirComIA({
-          linhas: lote.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
-          categorias: opcoesCategorias,
-          contatos: opcoesContatos,
-        }),
-      ),
-    );
-    resultadosPorLote.push(...resultadosGrupo);
-  }
+  const resultadosPorLote = await Promise.all(
+    lotes.map((lote) =>
+      sugerirComIA({
+        linhas: lote.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
+        categorias: opcoesCategorias,
+        contatos: opcoesContatos,
+      }),
+    ),
+  );
 
   const sugestoesPorId = new Map(
     resultadosPorLote.flatMap((sugestoes) => sugestoes ?? []).map((s) => [s.id, s]),

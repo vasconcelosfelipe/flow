@@ -1,14 +1,11 @@
 import type { TipoMovimentacao } from "@/types/dominio";
 
 const MODELO = "deepseek/deepseek-v4-flash";
-// O OpenRouter liga "reasoning" por padrão pra modelo que suporta — pra
-// classificação simples (escolher de uma lista curta) isso só soma tempo de
-// pensar sem melhorar a resposta, sem ganho de qualidade aqui. Mas mesmo
-// desligado, disparar muitos lotes ao mesmo tempo (ver `processarArquivoOfx`)
-// trava metade deles até o timeout — parece limite de conexões simultâneas
-// do provedor por trás do OpenRouter, não latência de resposta em si. Com a
-// concorrência agora limitada lá, 20s de folga cobre bem o que sobrar.
-const TIMEOUT_MS = 20_000;
+// O OpenRouter roteia cada chamada pra um provedor diferente por trás do
+// modelo (já vimos Sail Research, DeepInfra, Alibaba) — a maioria responde
+// em menos de 2s, mas às vezes cai num provedor lento. 20s já se mostrou
+// curto demais na prática (abortou uma chamada real).
+const TIMEOUT_MS = 45_000;
 
 export type LinhaParaSugestao = { id: string; descricao: string; tipo: TipoMovimentacao };
 export type OpcaoCategoria = { id: string; nome: string; tipo: TipoMovimentacao };
@@ -58,9 +55,6 @@ export async function sugerirComIA(input: {
         // Prioriza os provedores mais rápidos por trás do modelo — reduz a
         // chance de cair num provedor lento como o que estourou 20s antes.
         provider: { sort: "latency" },
-        // Tarefa de classificação simples não precisa de "pensar" — isso só
-        // adiciona tokens de raciocínio (tempo) sem ganho de qualidade aqui.
-        reasoning: { enabled: false },
         messages: [
           {
             role: "system",
