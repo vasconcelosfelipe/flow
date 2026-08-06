@@ -35,6 +35,16 @@ const ESTILO_STATUS = {
   IGNORADA: "bg-muted text-ink-muted",
 } as const;
 
+/** Borda dos seletores de categoria/fornecedor denuncia de onde veio o
+ * preenchimento automático — roxo pra IA, verde pro fallback de trigrama.
+ * Some assim que a pessoa mexe manualmente (ver `origemSugestao: null` nos
+ * `onValueChange` abaixo). */
+const ESTILO_BORDA_SUGESTAO = {
+  ia: "border-[#8b5cf6] ring-1 ring-[#8b5cf6]/30",
+  trigrama: "border-positive ring-1 ring-positive/30",
+  manual: "border-line",
+} as const;
+
 /**
  * Uma linha do extrato importado, ainda não confirmada.
  *
@@ -65,6 +75,7 @@ export function LinhaImportacao({
     ajuste: {
       categoriaId?: string | null;
       contatoId?: string | null;
+      origemSugestao?: "ia" | "trigrama" | null;
       descricao?: string;
       ehTransferencia?: boolean;
       contaTransferenciaId?: string | null;
@@ -198,7 +209,10 @@ export function LinhaImportacao({
                 <button
                   type="button"
                   onClick={() => setModalAberto("categoria")}
-                  className="flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-line bg-surface px-2 text-left text-nano outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className={cn(
+                    "flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border bg-surface px-2 text-left text-nano outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                    ESTILO_BORDA_SUGESTAO[linha.origemSugestao ?? "manual"],
+                  )}
                 >
                   <span className={cn("truncate", !categoriaSelecionada && "text-ink-muted")}>
                     {categoriaSelecionada?.nome ?? "Sem categoria"}
@@ -209,7 +223,10 @@ export function LinhaImportacao({
                 <button
                   type="button"
                   onClick={() => setModalAberto("contato")}
-                  className="flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border border-line bg-surface px-2 text-left text-nano outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className={cn(
+                    "flex h-8 w-full items-center justify-between gap-1.5 rounded-lg border bg-surface px-2 text-left text-nano outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                    ESTILO_BORDA_SUGESTAO[linha.origemSugestao ?? "manual"],
+                  )}
                 >
                   <span className={cn("truncate", !contatoSelecionado && "text-ink-muted")}>
                     {contatoSelecionado?.nome ?? "Sem fornecedor/cliente"}
@@ -217,6 +234,19 @@ export function LinhaImportacao({
                   <ChevronsUpDown className="size-3.5 shrink-0 opacity-50" aria-hidden="true" />
                 </button>
               </div>
+            )}
+
+            {linha.origemSugestao && (
+              <p
+                className={cn(
+                  "mt-1.5 text-nano",
+                  linha.origemSugestao === "ia" ? "text-[#7c3aed]" : "text-positive-text",
+                )}
+              >
+                {linha.origemSugestao === "ia"
+                  ? "Categoria e fornecedor sugeridos pela IA"
+                  : "Categoria e fornecedor repetidos de um lançamento parecido"}
+              </p>
             )}
           </>
         )}
@@ -228,7 +258,9 @@ export function LinhaImportacao({
           aberto
           aoMudarAberto={(a) => !a && setModalAberto(null)}
           value={linha.categoriaId ?? SEM_CATEGORIA}
-          onValueChange={(v) => aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v })}
+          onValueChange={(v) =>
+            aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v, origemSugestao: null })
+          }
           opcoes={[
             { value: SEM_CATEGORIA, label: "Sem categoria" },
             ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
@@ -245,7 +277,9 @@ export function LinhaImportacao({
           aberto
           aoMudarAberto={(a) => !a && setModalAberto(null)}
           value={linha.contatoId ?? SEM_FORNECEDOR}
-          onValueChange={(v) => aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v })}
+          onValueChange={(v) =>
+            aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v, origemSugestao: null })
+          }
           opcoes={[
             { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),

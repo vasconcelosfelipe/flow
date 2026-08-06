@@ -283,6 +283,15 @@ export async function processarArquivoOfx(
       ? encontrarAprendizado(t.descricao, t.tipo, historico)
       : null;
 
+    // IA "respondeu" pra essa linha mas não achou nada (categoriaId e
+    // contatoId ambos null) não conta como sugestão — não preencheu nada.
+    const origemSugestao: LinhaImportacao["origemSugestao"] =
+      daIA && (daIA.categoriaId !== null || daIA.contatoId !== null)
+        ? "ia"
+        : doTrigrama && (doTrigrama.categoriaId !== null || doTrigrama.contatoId !== null)
+          ? "trigrama"
+          : null;
+
     return {
       id: t.fitId,
       descricao: t.descricao,
@@ -298,6 +307,7 @@ export async function processarArquivoOfx(
       ignorarPermanentemente: false,
       categoriaId: pendenciaCasada?.categoriaId ?? daIA?.categoriaId ?? doTrigrama?.categoriaId ?? null,
       contatoId: pendenciaCasada?.contatoId ?? daIA?.contatoId ?? doTrigrama?.contatoId ?? null,
+      origemSugestao,
       ehTransferencia: false,
       contaTransferenciaId: null,
     };

@@ -44,6 +44,13 @@ export type LinhaImportacao = {
   categoriaId: string | null;
   contatoId: string | null;
   /**
+   * De onde veio o preenchimento automático de categoria/fornecedor — só
+   * enquanto a pessoa não mexer neles na revisão (editar manualmente limpa
+   * isso). `null` em linha `CONCILIAVEL` (vem da pendência, não é uma
+   * "sugestão") e em linha que ninguém conseguiu sugerir nada.
+   */
+  origemSugestao: "ia" | "trigrama" | null;
+  /**
    * Um crédito ou débito do extrato às vezes é dinheiro migrando entre
    * contas da própria empresa, não receita/despesa de verdade. Marcando,
    * a linha vira as duas pernas de uma transferência (ver

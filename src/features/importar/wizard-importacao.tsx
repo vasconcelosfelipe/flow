@@ -138,6 +138,7 @@ export function WizardImportacao({
     ajuste: {
       categoriaId?: string | null;
       contatoId?: string | null;
+      origemSugestao?: "ia" | "trigrama" | null;
       descricao?: string;
       ehTransferencia?: boolean;
       contaTransferenciaId?: string | null;
