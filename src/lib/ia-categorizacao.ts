@@ -84,7 +84,11 @@ export async function sugerirComIA(input: {
       return null;
     }
 
-    const parsed: unknown = JSON.parse(conteudo);
+    // Alguns modelos (visto com o Haiku) ignoram "sem texto ao redor" e
+    // embrulham a resposta em ```json ... ``` mesmo com response_format
+    // json_object — tira a cerca antes de tentar interpretar como JSON.
+    const semCerca = conteudo.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+    const parsed: unknown = JSON.parse(semCerca);
     const sugestoes = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>).sugestoes : null;
     if (!Array.isArray(sugestoes)) {
       console.error("[ia-categorizacao] JSON sem array \"sugestoes\":", conteudo);
