@@ -111,6 +111,12 @@ export async function sugerirComIA(input: {
     console.log(
       `[ia-categorizacao] ${input.linhas.length} linha(s) enviada(s), ${resultado.length} resposta(s), ${comSugestao} com categoria/fornecedor.`,
     );
+    // Zero sugestão pode ser o modelo genuinamente sem confiança, ou os ids
+    // que ele devolveu não baterem com os reais (aí a validação acima zera
+    // tudo em silêncio) — loga a resposta crua pra distinguir os dois casos.
+    if (comSugestao === 0) {
+      console.log("[ia-categorizacao] Resposta crua (0 sugestões):", conteudo.slice(0, 2000));
+    }
     return resultado;
   } catch (e) {
     console.error("[ia-categorizacao] Falha ao chamar a IA:", e);
