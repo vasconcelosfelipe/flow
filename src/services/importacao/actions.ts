@@ -261,11 +261,12 @@ export async function processarArquivoOfx(
   const opcoesCategorias = categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }));
   const opcoesContatos = contatos.map((c) => ({ id: c.id, nome: c.nome }));
 
-  // Disparar todos os lotes de uma vez só (visto na prática): metade trava
-  // e estoura o timeout, mesmo cada um sendo rápido isolado — cheira a
-  // limite de conexões simultâneas do provedor por trás do OpenRouter.
-  // Processa no máximo 3 lotes ao mesmo tempo em vez de todos de uma vez.
-  const CONCORRENCIA_MAX_IA = 3;
+  // Disparar vários lotes ao mesmo tempo trava uma fração deles até o
+  // timeout, mesmo cada um sendo rápido isolado — mesmo com só 3 em
+  // paralelo, um ainda travava às vezes. Um lote por vez elimina isso: cada
+  // chamada isolada volta em ~1-2s, então 6 lotes sequenciais ainda ficam
+  // bem abaixo da chamada única original de 149 linhas.
+  const CONCORRENCIA_MAX_IA = 1;
   const resultadosPorLote: (SugestaoIA[] | null)[] = [];
   for (let i = 0; i < lotes.length; i += CONCORRENCIA_MAX_IA) {
     const grupo = lotes.slice(i, i + CONCORRENCIA_MAX_IA);
