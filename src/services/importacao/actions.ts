@@ -241,21 +241,27 @@ export async function processarArquivoOfx(
   });
 
   const linhasNovas = preparadas.filter((p) => p.status === "NOVA");
-  console.log(
-    `[importar] ${transacoes.length} transação(ões) no arquivo, ${linhasNovas.length} nova(s) — só essas vão pra IA.`,
+
+  // Trigrama primeiro — é local, instantâneo, sem custo de rede. Só quem
+  // sobra sem match vai pra IA: reduz o tanto de linha por chamada (menos
+  // tempo de resposta) e o número de lotes, sem perder cobertura, já que a
+  // IA continua sendo a segunda tentativa pra tudo que o trigrama não pegou.
+  const doTrigramaPorId = new Map(
+    linhasNovas
+      .map((p) => [p.t.fitId, encontrarAprendizado(p.t.descricao, p.t.tipo, historico)] as const)
+      .filter(([, r]) => r && (r.categoriaId !== null || r.contatoId !== null)),
   );
 
-  // IA primeiro (entende a descrição de verdade), trigrama como retaguarda
-  // pra quando a chave não estiver configurada, a chamada falhar, der
-  // timeout, ou a resposta vier fora do formato esperado. Em lotes de no
-  // máximo 25 linhas, em paralelo: um extrato de 149 lançamentos numa
-  // chamada só demora demais pra gerar resposta e estourava até o timeout
-  // alto — em lotes menores cada chamada volta rápido, e se um lote falhar
-  // só as linhas dele caem pro trigrama, não o arquivo inteiro.
+  const linhasParaIA = linhasNovas.filter((p) => !doTrigramaPorId.has(p.t.fitId));
+  console.log(
+    `[importar] ${transacoes.length} transação(ões), ${linhasNovas.length} nova(s), ` +
+      `${doTrigramaPorId.size} resolvida(s) por trigrama, ${linhasParaIA.length} vão pra IA.`,
+  );
+
   const TAMANHO_LOTE_IA = 25;
-  const lotes: (typeof linhasNovas)[] = [];
-  for (let i = 0; i < linhasNovas.length; i += TAMANHO_LOTE_IA) {
-    lotes.push(linhasNovas.slice(i, i + TAMANHO_LOTE_IA));
+  const lotes: (typeof linhasParaIA)[] = [];
+  for (let i = 0; i < linhasParaIA.length; i += TAMANHO_LOTE_IA) {
+    lotes.push(linhasParaIA.slice(i, i + TAMANHO_LOTE_IA));
   }
 
   const opcoesCategorias = categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }));
@@ -278,19 +284,16 @@ export async function processarArquivoOfx(
   const linhas: LinhaImportacao[] = preparadas.map(({ t, status, pendenciaCasada }) => {
     // Linha conciliável já herda categoria/fornecedor da pendência que está
     // fechando — só linha nova de fato precisa de sugestão.
-    const daIA = status === "NOVA" ? sugestoesPorId.get(t.fitId) : undefined;
-    const doTrigrama = status === "NOVA" && !daIA
-      ? encontrarAprendizado(t.descricao, t.tipo, historico)
-      : null;
+    const doTrigrama = status === "NOVA" ? doTrigramaPorId.get(t.fitId) : undefined;
+    const daIA = status === "NOVA" && !doTrigrama ? sugestoesPorId.get(t.fitId) : undefined;
 
     // IA "respondeu" pra essa linha mas não achou nada (categoriaId e
     // contatoId ambos null) não conta como sugestão — não preencheu nada.
-    const origemSugestao: LinhaImportacao["origemSugestao"] =
-      daIA && (daIA.categoriaId !== null || daIA.contatoId !== null)
+    const origemSugestao: LinhaImportacao["origemSugestao"] = doTrigrama
+      ? "trigrama"
+      : daIA && (daIA.categoriaId !== null || daIA.contatoId !== null)
         ? "ia"
-        : doTrigrama && (doTrigrama.categoriaId !== null || doTrigrama.contatoId !== null)
-          ? "trigrama"
-          : null;
+        : null;
 
     return {
       id: t.fitId,
