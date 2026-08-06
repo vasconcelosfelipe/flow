@@ -247,13 +247,33 @@ export async function processarArquivoOfx(
 
   // IA primeiro (entende a descrição de verdade), trigrama como retaguarda
   // pra quando a chave não estiver configurada, a chamada falhar, der
-  // timeout, ou a resposta vier fora do formato esperado.
-  const sugestoesIA = await sugerirComIA({
-    linhas: linhasNovas.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
-    categorias: categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo })),
-    contatos: contatos.map((c) => ({ id: c.id, nome: c.nome })),
-  });
-  const sugestoesPorId = new Map((sugestoesIA ?? []).map((s) => [s.id, s]));
+  // timeout, ou a resposta vier fora do formato esperado. Em lotes de no
+  // máximo 25 linhas, em paralelo: um extrato de 149 lançamentos numa
+  // chamada só demora demais pra gerar resposta e estourava até o timeout
+  // alto — em lotes menores cada chamada volta rápido, e se um lote falhar
+  // só as linhas dele caem pro trigrama, não o arquivo inteiro.
+  const TAMANHO_LOTE_IA = 25;
+  const lotes: (typeof linhasNovas)[] = [];
+  for (let i = 0; i < linhasNovas.length; i += TAMANHO_LOTE_IA) {
+    lotes.push(linhasNovas.slice(i, i + TAMANHO_LOTE_IA));
+  }
+
+  const opcoesCategorias = categorias.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }));
+  const opcoesContatos = contatos.map((c) => ({ id: c.id, nome: c.nome }));
+
+  const resultadosPorLote = await Promise.all(
+    lotes.map((lote) =>
+      sugerirComIA({
+        linhas: lote.map((p) => ({ id: p.t.fitId, descricao: p.t.descricao, tipo: p.t.tipo })),
+        categorias: opcoesCategorias,
+        contatos: opcoesContatos,
+      }),
+    ),
+  );
+
+  const sugestoesPorId = new Map(
+    resultadosPorLote.flatMap((sugestoes) => sugestoes ?? []).map((s) => [s.id, s]),
+  );
 
   const linhas: LinhaImportacao[] = preparadas.map(({ t, status, pendenciaCasada }) => {
     // Linha conciliável já herda categoria/fornecedor da pendência que está
