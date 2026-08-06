@@ -1,6 +1,6 @@
 import type { TipoMovimentacao } from "@/types/dominio";
 
-const MODELO = "deepseek/deepseek-v4-flash";
+const MODELO = "anthropic/claude-haiku-4.5";
 // O OpenRouter roteia cada chamada pra um provedor diferente por trás do
 // modelo (já vimos Sail Research, DeepInfra, Alibaba) — a maioria responde
 // em menos de 2s, mas às vezes cai num provedor lento. 20s já se mostrou
