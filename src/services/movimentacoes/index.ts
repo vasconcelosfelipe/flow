@@ -108,6 +108,9 @@ export async function listarMovimentacoes(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     empresaId,
+    // Cartão não é dinheiro se movendo de verdade — some da lista geral,
+    // vive só na tela própria (`/contas/[id]/fatura`).
+    conta: { tipo: { not: "CARTAO" } },
     ...(filtro.contaId ? { contaId: filtro.contaId } : {}),
     ...(filtro.categoriaId ? { categoriaId: filtro.categoriaId } : {}),
     ...(filtro.tipo ? { tipo: filtro.tipo } : {}),
@@ -195,8 +198,35 @@ export async function contarSemCategoria(empresaId: string): Promise<number> {
   return db.movimentacao.count({
     // Transferência nunca tem categoria por design (não é receita nem
     // despesa de verdade) — não conta como "esqueceram de categorizar".
-    where: { empresaId, categoriaId: null, data: { not: null }, transferenciaId: null },
+    // Cartão fica de fora pelo mesmo motivo do listarMovimentacoes — o
+    // alerta linkaria pra Movimentações, que não mostra essas linhas.
+    where: {
+      empresaId,
+      categoriaId: null,
+      data: { not: null },
+      transferenciaId: null,
+      conta: { tipo: { not: "CARTAO" } },
+    },
   });
+}
+
+/**
+ * Lançamentos de uma fatura específica do cartão — todo mundo que nasceu
+ * com `data` igual ao vencimento daquele ciclo (ver `calcularVencimentoFatura`
+ * e `criarPendencia`). Mesmo vencimento agrupa a fatura inteira, pago ou
+ * não — é o que faz o histórico de faturas já pagas continuar consultável.
+ */
+export async function listarFaturaCartao(
+  empresaId: string,
+  contaId: string,
+  vencimento: Date,
+): Promise<MovimentacaoResumo[]> {
+  const rows = await db.movimentacao.findMany({
+    where: { empresaId, contaId, data: vencimento, status: { not: "CANCELADO" } },
+    include: { categoria: true, conta: true, contato: true },
+    orderBy: { criadoEm: "desc" },
+  });
+  return rows.map((r) => mapearMovimentacao(r));
 }
 
 /** Saldo real de uma conta específica — mesma conta usada no saldo total do Início. */

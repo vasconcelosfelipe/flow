@@ -24,7 +24,11 @@ export function GerenciadorContas({
   const [pending, startTransition] = useTransition();
   const [editando, setEditando] = useState<ContaCompleta | null | "nova">(null);
 
-  const saldoTotal = inicial.reduce((soma, c) => soma + c.saldoCentavos, 0);
+  // Cartão é dívida, não dinheiro disponível — fica fora da soma total,
+  // mesmo mostrando o próprio saldo (negativo) normal na lista abaixo.
+  const saldoTotal = inicial
+    .filter((c) => c.tipo !== "CARTAO")
+    .reduce((soma, c) => soma + c.saldoCentavos, 0);
 
   function salvar(dados: DadosFormulario) {
     startTransition(async () => {

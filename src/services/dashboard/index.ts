@@ -191,6 +191,9 @@ export async function obterResumoDashboard(
         empresaId,
         status: { in: ["PAGO", "CONCILIADO"] },
         NOT: { transferenciaId: { not: null }, tipo: "RECEITA" },
+        // Compra no cartão não é dinheiro se movendo de verdade — mesma
+        // regra de `listarMovimentacoes`, fora da lista geral.
+        conta: { tipo: { not: "CARTAO" } },
       },
       include: { categoria: true, conta: true, contato: true },
       orderBy: { data: "desc" },
@@ -230,15 +233,20 @@ export async function obterResumoDashboard(
   const despesas = somar(noPeriodoSemTransferencia.filter((m) => m.tipo === "DESPESA"));
 
   const historicoSemTransferencia = semTransferencia(historico);
-  const saldoContas = contas.reduce((total, c) => {
-    const saldo =
-      c.saldoInicial +
-      c.movimentacoes.reduce(
-        (s, m) => s + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
-        0,
-      );
-    return total + saldo;
-  }, 0);
+  // Cartão fica de fora da soma — é dívida, não dinheiro disponível. Cada
+  // conta continua mostrando o próprio saldo (negativo) normalmente na
+  // tela de Contas; só esta soma agregada ("quanto eu tenho") o ignora.
+  const saldoContas = contas
+    .filter((c) => c.tipo !== "CARTAO")
+    .reduce((total, c) => {
+      const saldo =
+        c.saldoInicial +
+        c.movimentacoes.reduce(
+          (s, m) => s + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
+          0,
+        );
+      return total + saldo;
+    }, 0);
 
   const doAnterior = historicoSemTransferencia.filter(
     (m) => m.data !== null && m.data >= anterior.de && m.data < anterior.ate,

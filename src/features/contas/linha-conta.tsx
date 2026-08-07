@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Pencil } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { iconeDeConta } from "@/lib/icones-conta";
@@ -15,13 +16,10 @@ export function LinhaConta({
   aoAbrir: (id: string) => void;
 }) {
   const Icone = iconeDeConta(conta.tipo);
+  const ehCartao = conta.tipo === "CARTAO";
 
-  return (
-    <button
-      type="button"
-      onClick={() => aoAbrir(conta.id)}
-      className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-    >
+  const conteudo = (
+    <>
       <span
         className="grid size-10 shrink-0 place-items-center rounded-xl"
         style={{ backgroundColor: `${conta.cor}1a`, color: conta.cor }}
@@ -37,7 +35,40 @@ export function LinhaConta({
       </span>
 
       <AmountText centavos={conta.saldoCentavos} tom="neutro" tamanho="sm" />
+    </>
+  );
 
+  // Cartão prioriza ir direto pra fatura — é o que a pessoa quer ver na
+  // maioria das vezes. Editar fechamento/vencimento fica num botão à parte,
+  // não dentro do mesmo alvo de toque (não dá pra aninhar link em botão).
+  if (ehCartao) {
+    return (
+      <div className="flex min-h-11 w-full items-center gap-3 px-4 py-3">
+        <Link
+          href={`/contas/${conta.id}/fatura`}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+        >
+          {conteudo}
+        </Link>
+        <button
+          type="button"
+          onClick={() => aoAbrir(conta.id)}
+          aria-label={`Editar ${conta.nome}`}
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+        >
+          <Pencil className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => aoAbrir(conta.id)}
+      className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+    >
+      {conteudo}
       <ChevronRight className="size-4 shrink-0 text-ink-muted/50" aria-hidden="true" />
     </button>
   );

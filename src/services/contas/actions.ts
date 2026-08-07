@@ -23,6 +23,8 @@ export async function criarConta(dados: FormularioConta) {
       cor: dados.cor,
       tipo: dados.tipo,
       saldoInicial: dados.saldoInicialCentavos,
+      diaFechamento: dados.diaFechamento,
+      diaVencimentoFatura: dados.diaVencimentoFatura,
     },
   });
   revalidatePath("/contas");
@@ -37,6 +39,8 @@ export async function editarConta(id: string, dados: FormularioConta) {
       cor: dados.cor,
       tipo: dados.tipo,
       saldoInicial: dados.saldoInicialCentavos,
+      diaFechamento: dados.diaFechamento,
+      diaVencimentoFatura: dados.diaVencimentoFatura,
     },
   });
   revalidatePath("/contas");

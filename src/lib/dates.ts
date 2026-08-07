@@ -168,3 +168,32 @@ export function diasDeAtraso(vencimento: Date, hoje = new Date()): number {
     (startOfDay(hoje).getTime() - startOfDay(comoCalendario(vencimento)).getTime()) / umDia,
   );
 }
+
+/**
+ * Data de vencimento da fatura do cartão que cobre uma compra feita em
+ * `dataCompra`, dados o dia de fechamento e o dia de vencimento do cartão.
+ * Compra depois do fechamento cai no ciclo que fecha no mês seguinte (o
+ * deste mês já fechou); o vencimento cai no mesmo mês do fechamento se
+ * `diaVencimentoFatura >= diaFechamento`, ou no mês seguinte — caso comum:
+ * fecha dia 25, vence dia 5. Mesma disciplina de data-calendário do resto
+ * do arquivo — nunca lê campo local direto.
+ */
+export function calcularVencimentoFatura(
+  dataCompra: Date,
+  diaFechamento: number,
+  diaVencimentoFatura: number,
+): Date {
+  const alvo = comoCalendario(dataCompra);
+
+  const ano = alvo.getFullYear();
+  let mes = alvo.getMonth();
+  if (alvo.getDate() > diaFechamento) mes += 1;
+  if (diaVencimentoFatura < diaFechamento) mes += 1;
+
+  // Clampa o dia ao último dia do mês-alvo — cartão configurado pra
+  // vencer dia 31 não pode estourar pra março num mês de 28/30 dias.
+  const ultimoDiaDoMes = new Date(Date.UTC(ano, mes + 1, 0)).getUTCDate();
+  const dia = Math.min(diaVencimentoFatura, ultimoDiaDoMes);
+
+  return new Date(Date.UTC(ano, mes, dia));
+}

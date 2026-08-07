@@ -43,12 +43,16 @@ export default async function APagarReceberPage({ searchParams }: Props) {
     listarLinhasDre(),
   ]);
 
+  // Cartão tem sua própria tela — não entra como opção de conta pra
+  // lançar pendência aqui.
+  const contasSemCartao = contas.filter((c) => c.tipo !== "CARTAO");
+
   return (
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">A pagar e a receber</h1>
         <BotaoNovaPendencia
-          contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+          contas={contasSemCartao.map((c) => ({ id: c.id, nome: c.nome }))}
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
@@ -82,7 +86,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
 
       <ListaPendencias
         itens={pagina.itens}
-        contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+        contas={contasSemCartao.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}

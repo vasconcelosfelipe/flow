@@ -51,12 +51,16 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     filtro.contaId ? obterSaldoConta(empresaAtiva.id, filtro.contaId) : Promise.resolve(null),
   ]);
 
+  // Cartão não é dinheiro de verdade se movendo — não entra como opção de
+  // conta aqui (nem pra lançar, nem pro filtro). Ele tem sua própria tela.
+  const contasSemCartao = contas.filter((c) => c.tipo !== "CARTAO");
+
   return (
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">Movimentações</h1>
         <BotoesMovimentacoes
-          contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+          contas={contas.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
@@ -66,7 +70,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
 
       <PeriodPicker />
       <FiltrosMovimentacoes
-        contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+        contas={contasSemCartao.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias}
         linhas={linhas}
       />
@@ -81,7 +85,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         proximoCursor={pagina.proximoCursor}
         saldoContaAncora={saldoContaAncora}
         filtro={filtro}
-        contas={contas.map((c) => ({ id: c.id, nome: c.nome }))}
+        contas={contasSemCartao.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}

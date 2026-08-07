@@ -160,6 +160,10 @@ model Conta {
   // Saldo inicial importado; movimentações recalculam o saldo real
   saldoInicial Int       @default(0)
   ativa        Boolean   @default(true)
+  // Só usados quando tipo = CARTAO — dia do mês em que a fatura fecha e
+  // em que ela vence, base pro cálculo de em qual ciclo uma compra cai.
+  diaFechamento       Int?
+  diaVencimentoFatura Int?
   criadoEm    DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
 

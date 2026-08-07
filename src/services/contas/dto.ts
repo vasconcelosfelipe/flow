@@ -16,6 +16,9 @@ export type ContaCompleta = {
   saldoInicialCentavos: Centavos;
   saldoCentavos: Centavos;
   quantidadeMovimentacoes: number;
+  /** Só fazem sentido quando `tipo === "CARTAO"`. */
+  diaFechamento: number | null;
+  diaVencimentoFatura: number | null;
 };
 
 export type FormularioConta = {
@@ -24,4 +27,6 @@ export type FormularioConta = {
   cor: string;
   tipo: TipoConta;
   saldoInicialCentavos: Centavos;
+  diaFechamento: number | null;
+  diaVencimentoFatura: number | null;
 };

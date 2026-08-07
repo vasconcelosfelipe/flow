@@ -24,8 +24,9 @@ import { criarMovimentacao, criarTransferencia } from "@/services/movimentacoes/
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoConta } from "@/types/dominio";
 
-type OpcaoConta = { id: string; nome: string };
+type OpcaoConta = { id: string; nome: string; tipo?: TipoConta };
 type TipoLancamento = "DESPESA" | "RECEITA" | "TRANSFERENCIA";
 
 const SEM_CATEGORIA = "nenhuma";
@@ -60,13 +61,18 @@ export function BotoesMovimentacoes({
   const [categorias, setCategorias] = useState(categoriasIniciais);
   const [contatos, setContatos] = useState(contatosIniciais);
 
+  // Cartão não é "de onde sai dinheiro" — só entra como conta de destino de
+  // uma transferência (é assim que se paga a fatura). Lançamento comum
+  // (despesa/receita) nunca lista conta de cartão.
+  const contasNaoCartao = contas.filter((c) => c.tipo !== "CARTAO");
+
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [erroValor, setErroValor] = useState<string | null>(null);
   const [tipo, setTipo] = useState<TipoLancamento>("DESPESA");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [status, setStatus] = useState<"PAGO" | "PENDENTE" | "CONCILIADO">("PAGO");
-  const [contaId, setContaId] = useState(contas[0]?.id ?? "");
+  const [contaId, setContaId] = useState(contasNaoCartao[0]?.id ?? "");
   const [contaDestinoId, setContaDestinoId] = useState(contas[1]?.id ?? contas[0]?.id ?? "");
   const [categoriaId, setCategoriaId] = useState(SEM_CATEGORIA);
   const [contatoId, setContatoId] = useState(SEM_FORNECEDOR);
@@ -83,6 +89,15 @@ export function BotoesMovimentacoes({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo]);
 
+  // Sair do modo transferência com um cartão selecionado como origem (só
+  // permitido ali) deixaria a Conta de despesa/receita com um valor que não
+  // está mais entre as opções — volta pra primeira conta válida.
+  useEffect(() => {
+    if (transferencia) return;
+    if (!contasNaoCartao.some((c) => c.id === contaId)) setContaId(contasNaoCartao[0]?.id ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transferencia]);
+
   if (somenteLeitura) return null;
 
   function resetar() {
@@ -93,7 +108,7 @@ export function BotoesMovimentacoes({
     setTipo("DESPESA");
     setData(new Date().toISOString().slice(0, 10));
     setStatus("PAGO");
-    setContaId(contas[0]?.id ?? "");
+    setContaId(contasNaoCartao[0]?.id ?? "");
     setContaDestinoId(contas[1]?.id ?? contas[0]?.id ?? "");
     setCategoriaId(SEM_CATEGORIA);
     setContatoId(SEM_FORNECEDOR);
@@ -330,7 +345,7 @@ export function BotoesMovimentacoes({
                 </Select>
               </div>
 
-              {contas.length > 0 && (
+              {contasNaoCartao.length > 0 && (
                 <div className="space-y-1.5">
                   <Label>Conta</Label>
                   <Select value={contaId} onValueChange={setContaId}>
@@ -338,7 +353,7 @@ export function BotoesMovimentacoes({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {contas.map((c) => (
+                      {contasNaoCartao.map((c) => (
                         <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                       ))}
                     </SelectContent>

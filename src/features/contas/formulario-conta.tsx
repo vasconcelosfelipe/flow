@@ -37,6 +37,8 @@ const schema = z.object({
   tipo: z.enum(["CORRENTE", "POUPANCA", "CAIXA", "CARTAO", "INVESTIMENTO"]),
   cor: z.string(),
   saldoInicial: z.string().trim(),
+  diaFechamento: z.string().trim(),
+  diaVencimentoFatura: z.string().trim(),
 });
 
 /**
@@ -67,6 +69,8 @@ export function FormularioConta({
       tipo: conta?.tipo ?? "CORRENTE",
       cor: conta?.cor ?? PALETA_CORES[0],
       saldoInicial: conta ? (conta.saldoInicialCentavos / 100).toFixed(2).replace(".", ",") : "0,00",
+      diaFechamento: conta?.diaFechamento ? String(conta.diaFechamento) : "",
+      diaVencimentoFatura: conta?.diaVencimentoFatura ? String(conta.diaVencimentoFatura) : "",
     },
   });
 
@@ -75,12 +79,18 @@ export function FormularioConta({
   const IconeSelecionado = iconeDeConta(tipo);
 
   function enviar(dados: z.infer<typeof schema>) {
+    const diaValido = (v: string) => {
+      const n = Number(v);
+      return v.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 31 ? n : null;
+    };
     aoSalvar({
       id: conta?.id,
       nome: dados.nome,
       tipo: dados.tipo,
       cor: dados.cor,
       saldoInicialCentavos: parseMoeda(dados.saldoInicial) ?? 0,
+      diaFechamento: dados.tipo === "CARTAO" ? diaValido(dados.diaFechamento) : null,
+      diaVencimentoFatura: dados.tipo === "CARTAO" ? diaValido(dados.diaVencimentoFatura) : null,
     });
   }
 
@@ -117,6 +127,40 @@ export function FormularioConta({
           </SelectContent>
         </Select>
       </div>
+
+      {tipo === "CARTAO" && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="diaFechamento">Dia de fechamento</Label>
+            <Input
+              id="diaFechamento"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={31}
+              {...register("diaFechamento")}
+              placeholder="Ex.: 25"
+              className="h-11"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="diaVencimentoFatura">Dia de vencimento</Label>
+            <Input
+              id="diaVencimentoFatura"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={31}
+              {...register("diaVencimentoFatura")}
+              placeholder="Ex.: 5"
+              className="h-11"
+            />
+          </div>
+          <p className="col-span-2 text-nano text-ink-muted">
+            Usados pra calcular em qual fatura cada compra cai.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="saldoInicial">Saldo inicial (R$)</Label>

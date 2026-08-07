@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { addMonths } from "date-fns";
 
 import { db } from "@/lib/db";
+import { calcularVencimentoFatura } from "@/lib/dates";
 import { requireEscrita } from "@/lib/permissoes";
 import { requireSessao } from "@/lib/sessao";
 import { listarMovimentacoes } from "@/services/movimentacoes";
@@ -236,7 +237,9 @@ type CamposComunsPendencia = {
   contaId: string;
   categoriaId: string | null;
   contatoId: string | null;
-  dataVencimento: string; // YYYY-MM-DD — vencimento da 1ª ocorrência/parcela
+  /** YYYY-MM-DD — vencimento da 1ª ocorrência/parcela; numa conta CARTAO,
+   * é a data da compra, não o vencimento (esse é calculado). */
+  dataVencimento: string;
 };
 
 /**
@@ -256,9 +259,24 @@ export type NovaPendenciaInput =
   | (CamposComunsPendencia & { modalidade: "PARCELADO"; parcelas: number[] })
   | (CamposComunsPendencia & { modalidade: "RECORRENTE"; valorCentavos: number; quantidadeMeses: number });
 
+/**
+ * Numa conta comum, cada ocorrência nasce `PENDENTE` com `dataVencimento`.
+ * Numa conta CARTAO, a compra já é fato consumado pro próprio cartão — nasce
+ * `PAGO` com `data` (não `dataVencimento`) igual ao vencimento da fatura do
+ * ciclo daquela parcela, calculado a partir do fechamento/vencimento da
+ * conta. É isso que faz o saldo do cartão cair na hora e a DRE contar a
+ * parcela no mês certo (a DRE agrupa por `data`, não por `dataCompetencia`).
+ */
 export async function criarPendencia(dados: NovaPendenciaInput) {
   const empresaId = await obterEmpresaEscrita();
-  const vencInicial = new Date(dados.dataVencimento);
+  const conta = await db.conta.findFirstOrThrow({ where: { id: dados.contaId, empresaId } });
+  const ehCartao = conta.tipo === "CARTAO";
+
+  const dataDigitada = new Date(dados.dataVencimento);
+  const dataBase =
+    ehCartao && conta.diaFechamento && conta.diaVencimentoFatura
+      ? calcularVencimentoFatura(dataDigitada, conta.diaFechamento, conta.diaVencimentoFatura)
+      : dataDigitada;
 
   const base = {
     empresaId,
@@ -267,17 +285,19 @@ export async function criarPendencia(dados: NovaPendenciaInput) {
     contatoId: dados.contatoId,
     descricao: dados.descricao,
     tipo: dados.tipo,
-    status: "PENDENTE" as const,
-    data: null,
+    status: (ehCartao ? "PAGO" : "PENDENTE") as "PAGO" | "PENDENTE",
   };
+
+  const datasPor = (data: Date) =>
+    ehCartao ? { data, dataVencimento: null } : { data: null, dataVencimento: data };
 
   if (dados.modalidade === "UNICA") {
     await db.movimentacao.create({
       data: {
         ...base,
         valorCentavos: dados.valorCentavos,
-        dataVencimento: vencInicial,
-        dataCompetencia: vencInicial,
+        ...datasPor(dataBase),
+        dataCompetencia: dataBase,
       },
     });
   } else if (dados.modalidade === "PARCELADO") {
@@ -285,11 +305,11 @@ export async function criarPendencia(dados: NovaPendenciaInput) {
     const totalParcelas = dados.parcelas.length;
     await db.movimentacao.createMany({
       data: dados.parcelas.map((valorCentavos, i) => {
-        const venc = addMonths(vencInicial, i);
+        const venc = addMonths(dataBase, i);
         return {
           ...base,
           valorCentavos,
-          dataVencimento: venc,
+          ...datasPor(venc),
           dataCompetencia: venc,
           numeroParcela: i + 1,
           totalParcelas,
@@ -301,11 +321,11 @@ export async function criarPendencia(dados: NovaPendenciaInput) {
     const grupoParcelamento = crypto.randomUUID();
     await db.movimentacao.createMany({
       data: Array.from({ length: dados.quantidadeMeses }, (_, i) => {
-        const venc = addMonths(vencInicial, i);
+        const venc = addMonths(dataBase, i);
         return {
           ...base,
           valorCentavos: dados.valorCentavos,
-          dataVencimento: venc,
+          ...datasPor(venc),
           dataCompetencia: venc,
           numeroParcela: i + 1,
           totalParcelas: dados.quantidadeMeses,
@@ -317,5 +337,6 @@ export async function criarPendencia(dados: NovaPendenciaInput) {
   }
 
   revalidatePath("/a-pagar-receber");
+  revalidatePath("/movimentacoes");
   revalidatePath("/");
 }

@@ -27,5 +27,40 @@ export async function listarContas(empresaId: string): Promise<ContaCompleta[]> 
         0,
       ),
     quantidadeMovimentacoes: c._count.movimentacoes,
+    diaFechamento: c.diaFechamento,
+    diaVencimentoFatura: c.diaVencimentoFatura,
   }));
+}
+
+/** Uma conta específica, com o mesmo saldo calculado de `listarContas` —
+ * usado pela tela de fatura do cartão. */
+export async function obterConta(empresaId: string, id: string): Promise<ContaCompleta | null> {
+  const conta = await db.conta.findFirst({
+    where: { id, empresaId, ativa: true },
+    include: {
+      _count: { select: { movimentacoes: true } },
+      movimentacoes: {
+        where: { status: { in: ["PAGO", "CONCILIADO"] } },
+        select: { tipo: true, valorCentavos: true },
+      },
+    },
+  });
+  if (!conta) return null;
+
+  return {
+    id: conta.id,
+    nome: conta.nome,
+    cor: conta.cor,
+    tipo: conta.tipo,
+    saldoInicialCentavos: conta.saldoInicial,
+    saldoCentavos:
+      conta.saldoInicial +
+      conta.movimentacoes.reduce(
+        (sum, m) => sum + (m.tipo === "RECEITA" ? m.valorCentavos : -m.valorCentavos),
+        0,
+      ),
+    quantidadeMovimentacoes: conta._count.movimentacoes,
+    diaFechamento: conta.diaFechamento,
+    diaVencimentoFatura: conta.diaVencimentoFatura,
+  };
 }
