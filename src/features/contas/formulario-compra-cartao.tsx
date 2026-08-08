@@ -361,9 +361,7 @@ export function FormularioCompraCartao({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cc-data">
-            {modalidade === "UNICA" ? "Data da compra" : "Data da 1ª parcela/ocorrência"}
-          </Label>
+          <Label htmlFor="cc-data">Data da compra</Label>
           <Input
             id="cc-data"
             type="date"
