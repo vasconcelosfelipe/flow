@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CircleCheck } from "lucide-react";
 
 import { EmptyState } from "@/components/shared/empty-state";
@@ -33,7 +34,19 @@ export function ListaPendencias({
   linhas?: LinhaDreOpcao[];
   somenteLeitura?: boolean;
 }) {
+  const router = useRouter();
   const [abertoId, setAbertoId] = useState<string | null>(null);
+
+  // "fatura-<contaId>" é uma linha sintética (saldo devedor do cartão, não
+  // uma Movimentacao) — não tem o que editar num sheet, leva direto pra
+  // tela da fatura.
+  function aoAbrir(id: string) {
+    if (id.startsWith("fatura-")) {
+      router.push(`/contas/${id.slice("fatura-".length)}/fatura`);
+      return;
+    }
+    setAbertoId(id);
+  }
 
   if (itens.length === 0) {
     return (
@@ -50,7 +63,7 @@ export function ListaPendencias({
     <div className="pb-20">
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {itens.map((mov) => (
-          <LinhaPendencia key={mov.id} movimentacao={mov} aoAbrir={setAbertoId} />
+          <LinhaPendencia key={mov.id} movimentacao={mov} aoAbrir={aoAbrir} />
         ))}
       </div>
 

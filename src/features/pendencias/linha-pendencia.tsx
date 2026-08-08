@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Repeat } from "lucide-react";
+import { AlertCircle, CreditCard, Repeat } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,8 @@ export function LinhaPendencia({
   aoAbrir: (id: string) => void;
 }) {
   const { categoria, tipo, dataVencimento } = movimentacao;
-  const Icone = categoria ? iconeDe(categoria.icone) : AlertCircle;
+  const faturaCartao = movimentacao.id.startsWith("fatura-");
+  const Icone = faturaCartao ? CreditCard : categoria ? iconeDe(categoria.icone) : AlertCircle;
   const receita = tipo === "RECEITA";
   const atraso = dataVencimento ? diasDeAtraso(dataVencimento) : null;
 

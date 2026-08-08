@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
-import type { Periodo } from "@/lib/dates";
+import { calcularVencimentoFatura, type Periodo } from "@/lib/dates";
+import { listarContas } from "@/services/contas";
+import type { ContaCompleta } from "@/services/contas/dto";
 import type {
   FiltroPendencias,
   PaginaPendencias,
@@ -7,6 +9,45 @@ import type {
   TotaisPendencias,
 } from "@/services/pendencias/dto";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
+
+/**
+ * A fatura de um cartão não é uma `Movimentacao` — é o saldo devedor corrente
+ * da conta-cartão (compras já `PAGO` menos transferências recebidas), lido ao
+ * vivo a cada carregamento da tela. Por isso "atualiza sozinha": não existe
+ * snapshot gravado, o valor mostrado é sempre o saldo atual da conta no
+ * momento da leitura. Vencimento é o do ciclo aberto agora (não dá pra saber,
+ * pelo saldo corrente sozinho, se a dívida é de um ciclo já vencido).
+ */
+function faturaComoPendencia(conta: ContaCompleta, hoje: Date): MovimentacaoResumo | null {
+  if (!conta.diaFechamento || !conta.diaVencimentoFatura) return null;
+  if (conta.saldoCentavos >= 0) return null;
+  return {
+    id: `fatura-${conta.id}`,
+    descricao: `Fatura ${conta.nome}`,
+    valorCentavos: -conta.saldoCentavos,
+    tipo: "DESPESA",
+    status: "PENDENTE",
+    data: null,
+    dataVencimento: calcularVencimentoFatura(hoje, conta.diaFechamento, conta.diaVencimentoFatura),
+    categoria: null,
+    conta: { id: conta.id, nome: conta.nome, cor: conta.cor, tipo: conta.tipo },
+    contato: null,
+    numeroParcela: null,
+    totalParcelas: null,
+    recorrente: false,
+    transferenciaId: null,
+    contaPar: null,
+    origemFitId: null,
+  };
+}
+
+async function listarFaturasAbertas(empresaId: string, hoje: Date): Promise<MovimentacaoResumo[]> {
+  const contas = await listarContas(empresaId);
+  return contas
+    .filter((c) => c.tipo === "CARTAO")
+    .map((c) => faturaComoPendencia(c, hoje))
+    .filter((f): f is MovimentacaoResumo => f !== null);
+}
 
 function mapearMovimentacao(m: {
   id: string;
@@ -72,7 +113,14 @@ export async function listarPendencias(
     orderBy: { dataVencimento: "asc" },
   });
 
-  const itens = rows.map(mapearMovimentacao);
+  const faturas = filtro.tipo && filtro.tipo !== "DESPESA" ? [] : await listarFaturasAbertas(empresaId, hoje);
+  const faturasNoPeriodo = faturas.filter(
+    (f) => !filtro.de || !filtro.ate || (f.dataVencimento! >= filtro.de && f.dataVencimento! <= filtro.ate),
+  );
+
+  const itens = [...rows.map(mapearMovimentacao), ...faturasNoPeriodo].sort(
+    (a, b) => (a.dataVencimento?.getTime() ?? 0) - (b.dataVencimento?.getTime() ?? 0),
+  );
 
   const vencidas = itens.filter(
     (m) => m.dataVencimento !== null && m.dataVencimento < hoje,
@@ -96,17 +144,32 @@ export async function obterTotaisPendencias(
   periodo: Periodo,
   hoje = new Date(),
 ): Promise<TotaisPendencias> {
-  const rows = await db.movimentacao.findMany({
-    where: {
-      empresaId,
-      status: { in: ["PENDENTE", "PREVISTO"] },
-      dataVencimento: { gte: periodo.de, lte: periodo.ate },
-    },
-    select: { tipo: true, valorCentavos: true, dataVencimento: true },
-  });
+  const [rows, faturas] = await Promise.all([
+    db.movimentacao.findMany({
+      where: {
+        empresaId,
+        status: { in: ["PENDENTE", "PREVISTO"] },
+        dataVencimento: { gte: periodo.de, lte: periodo.ate },
+      },
+      select: { tipo: true, valorCentavos: true, dataVencimento: true },
+    }),
+    listarFaturasAbertas(empresaId, hoje),
+  ]);
+
+  const faturasNoPeriodo = faturas.filter(
+    (f) => f.dataVencimento! >= periodo.de && f.dataVencimento! <= periodo.ate,
+  );
+  const todos = [
+    ...rows,
+    ...faturasNoPeriodo.map((f) => ({
+      tipo: f.tipo,
+      valorCentavos: f.valorCentavos,
+      dataVencimento: f.dataVencimento,
+    })),
+  ];
 
   function bloco(tipo: "DESPESA" | "RECEITA"): TotalPendencia {
-    const doTipo = rows.filter((r) => r.tipo === tipo);
+    const doTipo = todos.filter((r) => r.tipo === tipo);
     const vencidas = doTipo.filter(
       (r) => r.dataVencimento !== null && r.dataVencimento < hoje,
     );
