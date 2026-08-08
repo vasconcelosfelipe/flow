@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { iconeDeConta } from "@/lib/icones-conta";
 import { ROTULO_TIPO_CONTA } from "@/types/dominio";
 import type { ContaCompleta } from "@/services/contas/dto";
 
+/**
+ * Tocar na conta sempre leva pra ver os lançamentos dela — Movimentações
+ * filtrada por essa conta, ou a tela de fatura no caso do cartão (não
+ * aparece em Movimentações). Editar nome/cor/saldo fica num botão à parte,
+ * igual em todo tipo de conta — não dá pra aninhar link dentro de botão,
+ * por isso os dois alvos de toque ficam lado a lado, não um dentro do outro.
+ */
 export function LinhaConta({
   conta,
   aoAbrir,
@@ -16,60 +23,39 @@ export function LinhaConta({
   aoAbrir: (id: string) => void;
 }) {
   const Icone = iconeDeConta(conta.tipo);
-  const ehCartao = conta.tipo === "CARTAO";
-
-  const conteudo = (
-    <>
-      <span
-        className="grid size-10 shrink-0 place-items-center rounded-xl"
-        style={{ backgroundColor: `${conta.cor}1a`, color: conta.cor }}
-      >
-        <Icone className="size-4.5" aria-hidden="true" />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-corpo font-medium text-ink">{conta.nome}</span>
-        <span className="block truncate text-nano text-ink-muted">
-          {ROTULO_TIPO_CONTA[conta.tipo]}
-        </span>
-      </span>
-
-      <AmountText centavos={conta.saldoCentavos} tom="neutro" tamanho="sm" />
-    </>
-  );
-
-  // Cartão prioriza ir direto pra fatura — é o que a pessoa quer ver na
-  // maioria das vezes. Editar fechamento/vencimento fica num botão à parte,
-  // não dentro do mesmo alvo de toque (não dá pra aninhar link em botão).
-  if (ehCartao) {
-    return (
-      <div className="flex min-h-11 w-full items-center gap-3 px-4 py-3">
-        <Link
-          href={`/contas/${conta.id}/fatura`}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-        >
-          {conteudo}
-        </Link>
-        <button
-          type="button"
-          onClick={() => aoAbrir(conta.id)}
-          aria-label={`Editar ${conta.nome}`}
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-        </button>
-      </div>
-    );
-  }
+  const href = conta.tipo === "CARTAO" ? `/contas/${conta.id}/fatura` : `/movimentacoes?conta=${conta.id}`;
 
   return (
-    <button
-      type="button"
-      onClick={() => aoAbrir(conta.id)}
-      className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-    >
-      {conteudo}
-      <ChevronRight className="size-4 shrink-0 text-ink-muted/50" aria-hidden="true" />
-    </button>
+    <div className="flex min-h-11 w-full items-center gap-3 px-4 py-3">
+      <Link
+        href={href}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+      >
+        <span
+          className="grid size-10 shrink-0 place-items-center rounded-xl"
+          style={{ backgroundColor: `${conta.cor}1a`, color: conta.cor }}
+        >
+          <Icone className="size-4.5" aria-hidden="true" />
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-corpo font-medium text-ink">{conta.nome}</span>
+          <span className="block truncate text-nano text-ink-muted">
+            {ROTULO_TIPO_CONTA[conta.tipo]}
+          </span>
+        </span>
+
+        <AmountText centavos={conta.saldoCentavos} tom="neutro" tamanho="sm" />
+      </Link>
+
+      <button
+        type="button"
+        onClick={() => aoAbrir(conta.id)}
+        aria-label={`Editar ${conta.nome}`}
+        className="grid size-8 shrink-0 place-items-center rounded-lg text-ink-muted transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+      >
+        <Pencil className="size-4" aria-hidden="true" />
+      </button>
+    </div>
   );
 }

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ChevronRight, CreditCard, Receipt } from "lucide-react";
+import { ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { Container } from "@/components/layout/container";
 import { EmptyState } from "@/components/shared/empty-state";
-import { TransactionRow } from "@/components/shared/transaction-row";
 import { BotaoNovaCompraCartao } from "@/features/contas/nova-compra-cartao";
+import { ListaFaturaCartao } from "@/features/contas/lista-fatura-cartao";
 import { calcularVencimentoFatura, formatarData, formatarMesAno } from "@/lib/dates";
 import { requireSessao } from "@/lib/sessao";
 import { listarCategorias } from "@/services/categorias";
@@ -63,7 +63,12 @@ export default async function FaturaCartaoPage({ params, searchParams }: Props) 
     ? new Date(`${sp.vencimento}T00:00:00.000Z`)
     : calcularVencimentoFatura(new Date(), conta.diaFechamento, conta.diaVencimentoFatura);
 
-  const itens = await listarFaturaCartao(empresaAtiva.id, id, vencimento);
+  const [itens, categorias, contatos, linhas] = await Promise.all([
+    listarFaturaCartao(empresaAtiva.id, id, vencimento),
+    listarCategorias(empresaAtiva.id),
+    listarContatos(empresaAtiva.id),
+    listarLinhasDre(),
+  ]);
   const totalCentavos = itens.reduce(
     (soma, m) => soma + (m.tipo === "RECEITA" ? -m.valorCentavos : m.valorCentavos),
     0,
@@ -92,9 +97,10 @@ export default async function FaturaCartaoPage({ params, searchParams }: Props) 
         </div>
         <BotaoNovaCompraCartao
           contaId={conta.id}
-          categorias={await listarCategorias(empresaAtiva.id)}
-          contatos={await listarContatos(empresaAtiva.id)}
-          linhas={await listarLinhasDre()}
+          contaNome={conta.nome}
+          categorias={categorias}
+          contatos={contatos}
+          linhas={linhas}
         />
       </div>
 
@@ -129,19 +135,14 @@ export default async function FaturaCartaoPage({ params, searchParams }: Props) 
         </Link>
       </div>
 
-      {itens.length === 0 ? (
-        <EmptyState
-          icone={Receipt}
-          titulo="Nada nesta fatura"
-          descricao="Nenhuma compra caiu neste ciclo ainda."
-        />
-      ) : (
-        <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-          {itens.map((mov) => (
-            <TransactionRow key={mov.id} movimentacao={mov} />
-          ))}
-        </div>
-      )}
+      <ListaFaturaCartao
+        itens={itens}
+        contaId={conta.id}
+        contaNome={conta.nome}
+        categorias={categorias}
+        contatos={contatos}
+        linhas={linhas}
+      />
     </Container>
   );
 }

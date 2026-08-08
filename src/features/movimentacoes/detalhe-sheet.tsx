@@ -337,6 +337,14 @@ function FormularioEdicao({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
+  // Lançamento de cartão vive fora do PENDENTE/PAGO comum — nasce PAGO com
+  // a data já calculada pelo ciclo da fatura (ver `criarPendencia`). Deixar
+  // trocar o status aqui tiraria a linha da fatura sem avisar (viraria
+  // PENDENTE com `dataVencimento`, e `listarFaturaCartao` procura por
+  // `data`) — por isso nem mostra o seletor, e a conta fica travada na
+  // mesma (trocar de cartão exigiria recalcular o ciclo, que esta tela
+  // genérica não faz).
+  const ehCartao = movimentacao.conta.tipo === "CARTAO";
 
   useEffect(() => {
     aoPendingChange(pending);
@@ -451,7 +459,7 @@ function FormularioEdicao({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="edit-data">Data</Label>
+        <Label htmlFor="edit-data">{ehCartao ? "Vencimento da fatura" : "Data"}</Label>
         <Input
           id="edit-data"
           type="date"
@@ -462,21 +470,23 @@ function FormularioEdicao({
         />
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Status</Label>
-        <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="PAGO">Pago</SelectItem>
-            <SelectItem value="PENDENTE">Pendente</SelectItem>
-            <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {!ehCartao && (
+        <div className="space-y-1.5">
+          <Label>Status</Label>
+          <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
+            <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PAGO">Pago</SelectItem>
+              <SelectItem value="PENDENTE">Pendente</SelectItem>
+              <SelectItem value="CONCILIADO">Conciliado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
-      {contas.length > 0 && (
+      {!ehCartao && contas.length > 0 && (
         <div className="space-y-1.5">
           <Label>Conta</Label>
           <Select value={contaId} onValueChange={setContaId}>
