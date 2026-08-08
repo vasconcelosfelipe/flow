@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { calcularVencimentoFatura, type Periodo } from "@/lib/dates";
 import { listarContas } from "@/services/contas";
-import type { ContaCompleta } from "@/services/contas/dto";
+import { listarFaturaCartao } from "@/services/movimentacoes";
 import type {
   FiltroPendencias,
   PaginaPendencias,
@@ -11,42 +11,51 @@ import type {
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 
 /**
- * A fatura de um cartão não é uma `Movimentacao` — é o saldo devedor corrente
- * da conta-cartão (compras já `PAGO` menos transferências recebidas), lido ao
- * vivo a cada carregamento da tela. Por isso "atualiza sozinha": não existe
- * snapshot gravado, o valor mostrado é sempre o saldo atual da conta no
- * momento da leitura. Vencimento é o do ciclo aberto agora (não dá pra saber,
- * pelo saldo corrente sozinho, se a dívida é de um ciclo já vencido).
+ * A fatura de um cartão não é uma `Movimentacao` — é a soma das compras do
+ * ciclo que vence agora (mesma consulta da tela da fatura, `listarFaturaCartao`),
+ * lida ao vivo a cada carregamento. Por isso "atualiza sozinha": não existe
+ * snapshot gravado. É só o ciclo que fecha/vence neste mês, não o saldo
+ * devedor total da conta (que pode incluir ciclos anteriores ainda não
+ * pagos) — senão dobra o valor de quem já vem pagando fatura por fatura.
  */
-function faturaComoPendencia(conta: ContaCompleta, hoje: Date): MovimentacaoResumo | null {
-  if (!conta.diaFechamento || !conta.diaVencimentoFatura) return null;
-  if (conta.saldoCentavos >= 0) return null;
-  return {
-    id: `fatura-${conta.id}`,
-    descricao: `Fatura ${conta.nome}`,
-    valorCentavos: -conta.saldoCentavos,
-    tipo: "DESPESA",
-    status: "PENDENTE",
-    data: null,
-    dataVencimento: calcularVencimentoFatura(hoje, conta.diaFechamento, conta.diaVencimentoFatura),
-    categoria: null,
-    conta: { id: conta.id, nome: conta.nome, cor: conta.cor, tipo: conta.tipo },
-    contato: null,
-    numeroParcela: null,
-    totalParcelas: null,
-    recorrente: false,
-    transferenciaId: null,
-    contaPar: null,
-    origemFitId: null,
-  };
-}
-
 async function listarFaturasAbertas(empresaId: string, hoje: Date): Promise<MovimentacaoResumo[]> {
   const contas = await listarContas(empresaId);
-  return contas
-    .filter((c) => c.tipo === "CARTAO")
-    .map((c) => faturaComoPendencia(c, hoje))
-    .filter((f): f is MovimentacaoResumo => f !== null);
+  const cartoes = contas.filter(
+    (c) => c.tipo === "CARTAO" && c.diaFechamento !== null && c.diaVencimentoFatura !== null,
+  );
+
+  const faturas = await Promise.all(
+    cartoes.map(async (conta) => {
+      const vencimento = calcularVencimentoFatura(hoje, conta.diaFechamento!, conta.diaVencimentoFatura!);
+      const itens = await listarFaturaCartao(empresaId, conta.id, vencimento);
+      const valorCentavos = itens.reduce(
+        (soma, m) => soma + (m.tipo === "RECEITA" ? -m.valorCentavos : m.valorCentavos),
+        0,
+      );
+      if (valorCentavos <= 0) return null;
+      const fatura: MovimentacaoResumo = {
+        id: `fatura-${conta.id}`,
+        descricao: `Fatura ${conta.nome}`,
+        valorCentavos,
+        tipo: "DESPESA",
+        status: "PENDENTE",
+        data: null,
+        dataVencimento: vencimento,
+        categoria: null,
+        conta: { id: conta.id, nome: conta.nome, cor: conta.cor, tipo: conta.tipo },
+        contato: null,
+        numeroParcela: null,
+        totalParcelas: null,
+        recorrente: false,
+        transferenciaId: null,
+        contaPar: null,
+        origemFitId: null,
+      };
+      return fatura;
+    }),
+  );
+
+  return faturas.filter((f): f is MovimentacaoResumo => f !== null);
 }
 
 function mapearMovimentacao(m: {

@@ -22,11 +22,12 @@ export function LinhaPendencia({
   movimentacao: MovimentacaoResumo;
   aoAbrir: (id: string) => void;
 }) {
-  const { categoria, tipo, dataVencimento } = movimentacao;
+  const { categoria, conta, tipo, dataVencimento } = movimentacao;
   const faturaCartao = movimentacao.id.startsWith("fatura-");
   const Icone = faturaCartao ? CreditCard : categoria ? iconeDe(categoria.icone) : AlertCircle;
   const receita = tipo === "RECEITA";
   const atraso = dataVencimento ? diasDeAtraso(dataVencimento) : null;
+  const corIcone = faturaCartao ? conta.cor : categoria?.cor;
 
   return (
     <button
@@ -36,7 +37,7 @@ export function LinhaPendencia({
     >
       <span
         className="grid size-10 shrink-0 place-items-center rounded-xl border border-dashed"
-        style={categoria ? { borderColor: categoria.cor, color: categoria.cor } : undefined}
+        style={corIcone ? { borderColor: corIcone, color: corIcone } : undefined}
       >
         <Icone className="size-4.5" aria-hidden="true" />
       </span>
