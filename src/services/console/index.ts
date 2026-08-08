@@ -12,6 +12,7 @@ export async function listarEmpresasConsole(): Promise<EmpresaConsole[]> {
     nome: e.nome,
     slug: e.slug,
     cnpj: e.cnpj,
+    tipo: e.tipo as import("@/types/dominio").TipoEmpresa,
     ativa: e.ativa,
     quantidadeUsuarios: e._count.membros,
     criadaEm: e.criadoEm,

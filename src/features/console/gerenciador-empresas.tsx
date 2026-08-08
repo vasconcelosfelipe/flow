@@ -23,9 +23,14 @@ export function GerenciadorEmpresasConsole({ inicial }: { inicial: EmpresaConsol
   function salvar(dados: DadosFormulario) {
     startTransition(async () => {
       if (dados.id) {
-        await editarEmpresa(dados.id, { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj });
+        await editarEmpresa(dados.id, {
+          nome: dados.nome,
+          slug: dados.slug,
+          cnpj: dados.cnpj,
+          tipo: dados.tipo,
+        });
       } else {
-        await criarEmpresa({ nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj });
+        await criarEmpresa({ nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj, tipo: dados.tipo });
       }
       setEditando(null);
       router.refresh();

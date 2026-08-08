@@ -1,3 +1,4 @@
+import type { ChaveIcone } from "@/lib/icones";
 import type { Centavos } from "@/lib/money";
 import type { TipoMovimentacao } from "@/types/dominio";
 
@@ -65,4 +66,26 @@ export type DreResultado = {
 
   /** Resultado líquido sobre receita líquida, em basis points. */
   margem: (number | null)[];
+};
+
+/**
+ * Substitui a DRE em espaços de tipo `PESSOA_FISICA` — a cascata contábil
+ * não faz sentido pra controle de finanças pessoais, então vira só o total
+ * de despesas do período, agrupado por categoria.
+ */
+export type ItemResumoDespesaCategoria = {
+  categoriaId: string;
+  nome: string;
+  cor: string;
+  icone: ChaveIcone;
+  totalCentavos: Centavos;
+  /** Fração do total de despesas do período (0 a 1), não percentual pronto. */
+  percentual: number;
+};
+
+export type ResumoDespesasPorCategoria = {
+  meses: Date[];
+  /** Ordenado do maior gasto pro menor. */
+  itens: ItemResumoDespesaCategoria[];
+  totalCentavos: Centavos;
 };

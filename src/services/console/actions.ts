@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { enviarEmail } from "@/lib/email";
 import { requireSessao } from "@/lib/sessao";
-import { ROTULO_PAPEL, type PapelMembro } from "@/types/dominio";
+import { ROTULO_PAPEL, type PapelMembro, type TipoEmpresa } from "@/types/dominio";
 
 const VALIDADE_CONVITE_DIAS = 7;
 
@@ -15,17 +15,30 @@ async function verificarAdmin() {
   return sessao;
 }
 
-export async function criarEmpresa(dados: { nome: string; slug: string; cnpj?: string | null }) {
+export async function criarEmpresa(dados: {
+  nome: string;
+  slug: string;
+  cnpj?: string | null;
+  tipo: TipoEmpresa;
+}) {
   const sessao = await verificarAdmin();
-  const empresa = await db.empresa.create({ data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj } });
+  const empresa = await db.empresa.create({
+    data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj, tipo: dados.tipo },
+  });
   // Auto-atribui o admin criador como ADMIN da empresa
   await db.membroEmpresa.create({ data: { userId: sessao.usuario.id, empresaId: empresa.id, papel: "ADMIN" } });
   revalidatePath("/console/empresas");
 }
 
-export async function editarEmpresa(id: string, dados: { nome: string; slug: string; cnpj?: string | null }) {
+export async function editarEmpresa(
+  id: string,
+  dados: { nome: string; slug: string; cnpj?: string | null; tipo: TipoEmpresa },
+) {
   await verificarAdmin();
-  await db.empresa.update({ where: { id }, data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj } });
+  await db.empresa.update({
+    where: { id },
+    data: { nome: dados.nome, slug: dados.slug, cnpj: dados.cnpj, tipo: dados.tipo },
+  });
   revalidatePath("/console/empresas");
 }
 

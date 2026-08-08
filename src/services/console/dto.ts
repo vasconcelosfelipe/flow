@@ -1,4 +1,4 @@
-import type { PapelMembro } from "@/types/dominio";
+import type { PapelMembro, TipoEmpresa } from "@/types/dominio";
 
 /**
  * Contrato do Console — visão de quem administra a plataforma, não de quem
@@ -12,6 +12,7 @@ export type EmpresaConsole = {
   nome: string;
   slug: string;
   cnpj: string | null;
+  tipo: TipoEmpresa;
   ativa: boolean;
   quantidadeUsuarios: number;
   criadaEm: Date;
@@ -22,6 +23,7 @@ export type FormularioEmpresaConsole = {
   nome: string;
   slug: string;
   cnpj: string | null;
+  tipo: TipoEmpresa;
 };
 
 export type MembroEmpresa = {

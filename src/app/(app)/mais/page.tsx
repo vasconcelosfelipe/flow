@@ -19,12 +19,19 @@ const ITENS_CADASTRO = [
 export default async function MaisPage() {
   const sessao = await requireSessao();
 
+  // Centro de custo é um conceito de empresa — não faz sentido pra um
+  // espaço de pessoa física, então some do menu (a rota em si continua
+  // funcionando, caso já exista dado cadastrado de antes da troca de tipo).
+  const itensCadastro = ITENS_CADASTRO.filter(
+    (item) => item.href !== "/centros-custo" || sessao.empresaAtiva?.tipo !== "PESSOA_FISICA",
+  );
+
   return (
     <Container className="space-y-4 pt-5">
       <h1 className="text-titulo font-semibold text-ink">Ajustes</h1>
 
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        {ITENS_CADASTRO.map((item) => (
+        {itensCadastro.map((item) => (
           <Link
             key={item.href}
             href={item.href}

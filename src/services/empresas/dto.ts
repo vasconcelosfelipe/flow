@@ -1,10 +1,11 @@
-import type { PapelMembro } from "@/types/dominio";
+import type { PapelMembro, TipoEmpresa } from "@/types/dominio";
 
 export type EmpresaResumo = {
   id: string;
   nome: string;
   slug: string;
   cnpj: string | null;
+  tipo: TipoEmpresa;
   /** Papel do usuário atual nesta empresa. Define o que a interface oferece. */
   papel: PapelMembro;
 };

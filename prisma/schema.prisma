@@ -94,6 +94,7 @@ model Empresa {
   nome         String
   slug         String   @unique
   cnpj         String?  @unique
+  tipo         TipoEmpresa @default(EMPRESA)
   ativa        Boolean  @default(true)
   criadoEm    DateTime @default(now())
   atualizadoEm DateTime @updatedAt
@@ -401,6 +402,11 @@ enum PapelMembro {
   ADMIN
   MEMBRO
   LEITOR
+}
+
+enum TipoEmpresa {
+  EMPRESA
+  PESSOA_FISICA
 }
 
 enum TipoConta {

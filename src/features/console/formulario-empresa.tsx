@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatarCnpj, validarCnpj } from "@/lib/documentos";
+import { cn } from "@/lib/utils";
 import { excluirEmpresa } from "@/services/console/actions";
 import type { EmpresaConsole, FormularioEmpresaConsole } from "@/services/console/dto";
+import { ROTULO_TIPO_EMPRESA, type TipoEmpresa } from "@/types/dominio";
 
 export const FORM_ID_EMPRESA = "form-empresa";
 
@@ -28,6 +30,7 @@ const schema = z.object({
     .trim()
     .optional()
     .refine((v) => !v || validarCnpj(v), "CNPJ inválido."),
+  tipo: z.enum(["EMPRESA", "PESSOA_FISICA"]),
 });
 
 /**
@@ -52,6 +55,7 @@ export function FormularioEmpresa({
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -59,8 +63,11 @@ export function FormularioEmpresa({
       nome: empresa?.nome ?? "",
       slug: empresa?.slug ?? "",
       cnpj: empresa?.cnpj ? formatarCnpj(empresa.cnpj) : "",
+      tipo: empresa?.tipo ?? "EMPRESA",
     },
   });
+
+  const tipo = watch("tipo");
 
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [nomeDigitado, setNomeDigitado] = useState("");
@@ -70,7 +77,7 @@ export function FormularioEmpresa({
   function enviar(dados: z.infer<typeof schema>) {
     // Guarda só dígitos — a máscara é responsabilidade da exibição, não do dado.
     const cnpj = dados.cnpj ? dados.cnpj.replace(/\D/g, "") : null;
-    aoSalvar({ id: empresa?.id, nome: dados.nome, slug: dados.slug, cnpj });
+    aoSalvar({ id: empresa?.id, nome: dados.nome, slug: dados.slug, cnpj, tipo: dados.tipo });
   }
 
   function excluir() {
@@ -115,6 +122,27 @@ export function FormularioEmpresa({
           className="h-11"
         />
         {errors.cnpj && <p className="text-nano text-negative-text">{errors.cnpj.message}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Tipo de espaço</Label>
+        <div className="flex gap-2">
+          {(Object.keys(ROTULO_TIPO_EMPRESA) as TipoEmpresa[]).map((opcao) => (
+            <button
+              key={opcao}
+              type="button"
+              onClick={() => setValue("tipo", opcao, { shouldValidate: true })}
+              className={cn(
+                "h-11 flex-1 rounded-xl border text-micro font-medium transition-colors",
+                tipo === opcao
+                  ? "border-brand bg-brand-wash text-brand"
+                  : "border-line text-ink-muted hover:bg-muted",
+              )}
+            >
+              {ROTULO_TIPO_EMPRESA[opcao]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {empresa && aoAlternarAtiva && (

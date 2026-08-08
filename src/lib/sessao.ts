@@ -54,6 +54,7 @@ export const requireSessao = cache(async function requireSessao(
     nome: m.empresa.nome,
     slug: m.empresa.slug,
     cnpj: m.empresa.cnpj,
+    tipo: m.empresa.tipo,
     papel: m.papel,
   }));
 
