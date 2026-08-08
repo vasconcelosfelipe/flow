@@ -52,12 +52,12 @@ export function GerenciadorEmpresasConsole({ inicial }: { inicial: EmpresaConsol
       <div className="flex justify-end">
         <Button size="sm" className="gap-1.5" onClick={() => setEditando("nova")} disabled={pending}>
           <Plus className="size-4" aria-hidden="true" />
-          Nova empresa
+          Novo espaço
         </Button>
       </div>
 
       {inicial.length === 0 ? (
-        <EmptyState icone={Building2} titulo="Nenhuma empresa" descricao="Cadastre a primeira empresa da plataforma." />
+        <EmptyState icone={Building2} titulo="Nenhum espaço" descricao="Cadastre o primeiro espaço da plataforma." />
       ) : (
         <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
           {inicial.map((empresa) => (
@@ -73,8 +73,8 @@ export function GerenciadorEmpresasConsole({ inicial }: { inicial: EmpresaConsol
       <ResponsiveModal
         aberto={editando !== null}
         aoMudarAberto={(aberto) => !aberto && setEditando(null)}
-        titulo={empresaEmEdicao ? "Editar empresa" : "Nova empresa"}
-        descricao="Nome, slug e CNPJ da empresa."
+        titulo={empresaEmEdicao ? "Editar espaço" : "Novo espaço"}
+        descricao="Nome, slug, CNPJ e tipo do espaço."
         rodape={
           <>
             <Button

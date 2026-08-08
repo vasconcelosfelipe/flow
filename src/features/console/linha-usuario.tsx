@@ -45,10 +45,10 @@ export function LinhaUsuarioConsole({
 
       <span className="shrink-0 text-right text-nano text-ink-muted">
         {usuario.empresas.length === 0
-          ? "Sem empresa"
+          ? "Sem espaço"
           : usuario.empresas.length === 1
             ? ROTULO_PAPEL[usuario.empresas[0].papel]
-            : `${usuario.empresas.length} empresas`}
+            : `${usuario.empresas.length} espaços`}
       </span>
 
       <ChevronRight className="size-4 shrink-0 text-ink-muted/50" aria-hidden="true" />

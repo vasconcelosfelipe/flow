@@ -14,6 +14,7 @@ import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaImportacao } from "@/services/importacao/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
 
@@ -58,6 +59,7 @@ export function LinhaImportacao({
   categorias,
   contatos,
   linhasDre,
+  tipoEspaco,
   aoAlternar,
   aoAtualizar,
   aoAlternarIgnorarPermanentemente,
@@ -69,6 +71,7 @@ export function LinhaImportacao({
   categorias: CategoriaCompleta[];
   contatos: ContatoCompleto[];
   linhasDre: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   aoAlternar: (id: string) => void;
   aoAtualizar: (
     id: string,
@@ -267,6 +270,8 @@ export function LinhaImportacao({
           ]}
           categorias={categorias}
           linhas={linhasDre}
+          tipoEspaco={tipoEspaco}
+          tipoPadrao={linha.tipo}
           aoCriar={aoCriarCategoria}
         />
       )}

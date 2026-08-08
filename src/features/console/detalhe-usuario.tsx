@@ -137,14 +137,14 @@ export function DetalheUsuarioConsole({
         </div>
       </div>
 
-      {/* Empresas vinculadas */}
+      {/* Espaços vinculados */}
       <div className="space-y-2">
         <p className="text-nano font-medium tracking-wide text-ink-muted uppercase">
-          Empresas vinculadas
+          Espaços vinculados
         </p>
 
         {membros.length === 0 ? (
-          <p className="text-micro text-ink-muted">Nenhuma empresa vinculada.</p>
+          <p className="text-micro text-ink-muted">Nenhum espaço vinculado.</p>
         ) : (
           <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
             {membros.map((m) => (
@@ -188,16 +188,16 @@ export function DetalheUsuarioConsole({
         )}
       </div>
 
-      {/* Adicionar empresa */}
+      {/* Adicionar espaço */}
       <div className="space-y-2">
         <p className="text-nano font-medium tracking-wide text-ink-muted uppercase">
-          Adicionar empresa
+          Adicionar espaço
         </p>
 
         <div className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
           <Input
-            placeholder="Buscar empresa por nome ou CNPJ…"
+            placeholder="Buscar espaço por nome ou CNPJ…"
             value={busca}
             onChange={(e) => {
               setBusca(e.target.value);
@@ -212,7 +212,7 @@ export function DetalheUsuarioConsole({
           <div className="max-h-48 overflow-y-auto rounded-2xl border border-line bg-surface shadow-card">
             {empresasFiltradas.length === 0 ? (
               <p className="px-4 py-3 text-micro text-ink-muted">
-                Nenhuma empresa encontrada.
+                Nenhum espaço encontrado.
               </p>
             ) : (
               empresasFiltradas.map((e) => (
@@ -239,7 +239,7 @@ export function DetalheUsuarioConsole({
           </div>
         )}
 
-        {/* Papel + botão — só aparecem quando uma empresa está selecionada */}
+        {/* Papel + botão — só aparecem quando um espaço está selecionado */}
         {empresaSelecionada && (
           <div className="flex gap-2">
             <Select
@@ -303,7 +303,7 @@ export function DetalheUsuarioConsole({
           <div className="space-y-3">
             <p className="text-micro text-ink">
               Isso vai apagar a conta de <strong>{usuario.nome}</strong> de vez: login e acesso a
-              todas as empresas vinculadas. Não apaga movimentações nem dados das empresas. Não
+              todos os espaços vinculados. Não apaga movimentações nem dados dos espaços. Não
               pode ser desfeito.
             </p>
             <div className="space-y-1.5">

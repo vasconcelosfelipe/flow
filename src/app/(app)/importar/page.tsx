@@ -39,6 +39,7 @@ export default async function ImportarPage() {
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}
+        tipoEspaco={empresaAtiva.tipo}
       />
     </Container>
   );

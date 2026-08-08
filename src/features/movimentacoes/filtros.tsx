@@ -21,6 +21,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoFiltro = { id: string; nome: string };
 
@@ -28,10 +29,12 @@ export function FiltrosMovimentacoes({
   contas = [],
   categorias: categoriasIniciais = [],
   linhas = [],
+  tipoEspaco,
 }: {
   contas?: OpcaoFiltro[];
   categorias?: CategoriaCompleta[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -211,6 +214,7 @@ export function FiltrosMovimentacoes({
           ]}
           categorias={categorias}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
           aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
         />
       )}

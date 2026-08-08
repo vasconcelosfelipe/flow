@@ -131,7 +131,7 @@ export function GerenciadorUsuariosConsole({
         aberto={visualizando !== null}
         aoMudarAberto={(aberto) => !aberto && setVisualizando(null)}
         titulo="Usuário"
-        descricao="Empresas e papéis deste usuário."
+        descricao="Espaços e papéis deste usuário."
         rodape={
           <Button variant="outline" className="w-full" onClick={() => setVisualizando(null)}>
             Fechar
@@ -157,7 +157,7 @@ export function GerenciadorUsuariosConsole({
         descricao={
           linkGerado
             ? "Copie o link e mande pra pessoa convidada."
-            : "E-mail, empresa e papel do convite."
+            : "E-mail, espaço e papel do convite."
         }
         rodape={
           linkGerado ? (

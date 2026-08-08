@@ -32,6 +32,7 @@ import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
 
@@ -52,6 +53,7 @@ export function DetalheMovimentacaoSheet({
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
+  tipoEspaco,
   aoFechar,
   somenteLeitura = false,
 }: {
@@ -60,6 +62,7 @@ export function DetalheMovimentacaoSheet({
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   aoFechar: () => void;
   somenteLeitura?: boolean;
 }) {
@@ -140,6 +143,7 @@ export function DetalheMovimentacaoSheet({
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
           aoCriarCategoria={(categoria) => setCategorias((atual) => [...atual, categoria])}
           aoCriarContato={(contato) => setContatos((atual) => [...atual, contato])}
           aoPendingChange={setSalvandoEdicao}
@@ -319,6 +323,7 @@ function FormularioEdicao({
   categorias,
   contatos,
   linhas,
+  tipoEspaco,
   aoCriarCategoria,
   aoCriarContato,
   aoSalvar,
@@ -329,6 +334,7 @@ function FormularioEdicao({
   categorias: CategoriaCompleta[];
   contatos: ContatoCompleto[];
   linhas: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   aoCriarCategoria: (categoria: CategoriaCompleta) => void;
   aoCriarContato: (contato: ContatoCompleto) => void;
   aoSalvar: () => void;
@@ -524,6 +530,8 @@ function FormularioEdicao({
           ]}
           categorias={categorias}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
+          tipoPadrao={tipo}
           aoCriar={aoCriarCategoria}
         />
       )}

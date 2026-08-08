@@ -11,6 +11,7 @@ import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
 
@@ -25,6 +26,7 @@ export function ListaPendencias({
   categorias = [],
   contatos = [],
   linhas = [],
+  tipoEspaco,
   somenteLeitura = false,
 }: {
   itens: MovimentacaoResumo[];
@@ -32,6 +34,7 @@ export function ListaPendencias({
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   somenteLeitura?: boolean;
 }) {
   const router = useRouter();
@@ -74,6 +77,7 @@ export function ListaPendencias({
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
           aoFechar={() => setAbertoId(null)}
           somenteLeitura={somenteLeitura}
         />

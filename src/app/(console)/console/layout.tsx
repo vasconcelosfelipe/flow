@@ -38,7 +38,7 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
             href="/console/empresas"
             className="rounded-lg px-3 py-1.5 text-micro font-medium text-ink-muted transition-colors hover:bg-muted hover:text-ink"
           >
-            Empresas
+            Espaços
           </Link>
           <Link
             href="/console/usuarios"

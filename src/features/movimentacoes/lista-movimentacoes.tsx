@@ -13,6 +13,7 @@ import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { FiltroMovimentacoes, GrupoDiario } from "@/services/movimentacoes/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
 
@@ -49,6 +50,7 @@ export function ListaMovimentacoes({
   categorias = [],
   contatos = [],
   linhas = [],
+  tipoEspaco,
   somenteLeitura = false,
 }: {
   grupos: GrupoDiario[];
@@ -61,6 +63,7 @@ export function ListaMovimentacoes({
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   somenteLeitura?: boolean;
 }) {
   const [, startTransition] = useTransition();
@@ -155,6 +158,7 @@ export function ListaMovimentacoes({
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
           aoFechar={() => setAbertoId(null)}
           somenteLeitura={somenteLeitura}
         />

@@ -21,7 +21,7 @@ import { ICONES, iconeDe, type ChaveIcone } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { CategoriaCompleta, FormularioCategoria } from "@/services/categorias/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
-import type { TipoMovimentacao } from "@/types/dominio";
+import type { TipoEmpresa, TipoMovimentacao } from "@/types/dominio";
 
 export const FORM_ID_CATEGORIA = "form-categoria";
 
@@ -56,12 +56,20 @@ export function FormularioCategoria({
   categoria,
   categorias,
   linhas,
+  tipoEspaco,
+  tipoPadrao,
   aoSalvar,
   aoExcluir,
 }: {
   categoria: CategoriaCompleta | null;
   categorias: CategoriaCompleta[];
   linhas: LinhaDreOpcao[];
+  /** Espaço pessoa física não usa DRE — some o campo de linha, não a tela inteira. */
+  tipoEspaco: TipoEmpresa;
+  /** Só pra categoria nova: pré-seleciona Receita/Despesa herdando do
+   * lançamento que disparou o "+ Nova categoria" (ex.: criando uma receita
+   * em Nova movimentação, a categoria já nasce Receita, não Despesa). */
+  tipoPadrao?: TipoMovimentacao;
   aoSalvar: (dados: FormularioCategoria) => void;
   aoExcluir?: (id: string) => void;
 }) {
@@ -77,7 +85,7 @@ export function FormularioCategoria({
     resolver: zodResolver(schema),
     defaultValues: {
       nome: categoria?.nome ?? "",
-      tipo: categoria?.tipo ?? "DESPESA",
+      tipo: categoria?.tipo ?? tipoPadrao ?? "DESPESA",
       cor: categoria?.cor ?? PALETA_CORES[0],
       icone: categoria?.icone ?? "diversos",
       linhaDreId: categoria?.linhaDreId ?? SEM_LINHA,
@@ -202,34 +210,36 @@ export function FormularioCategoria({
         </p>
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Linha da DRE</Label>
-        {paiSelecionado ? (
-          <div className="flex h-11 w-full items-center rounded-lg border border-line bg-muted px-3 text-corpo text-ink-muted">
-            {linhasDisponiveis.find((l) => l.id === paiSelecionado.linhaDreId)?.nome ??
-              "Nenhuma — fora da DRE"}
-          </div>
-        ) : (
-          <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
-            <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
-              {linhasDisponiveis.map((linha) => (
-                <SelectItem key={linha.id} value={linha.id}>
-                  {linha.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <p className="text-nano text-ink-muted">
-          {paiSelecionado
-            ? `Herdada de "${paiSelecionado.nome}" — mude na categoria mãe pra afetar todas as subcategorias.`
-            : "Define em qual linha da DRE esta categoria soma. Sem linha, os lançamentos ficam fora do relatório."}
-        </p>
-      </div>
+      {tipoEspaco !== "PESSOA_FISICA" && (
+        <div className="space-y-1.5">
+          <Label>Linha da DRE</Label>
+          {paiSelecionado ? (
+            <div className="flex h-11 w-full items-center rounded-lg border border-line bg-muted px-3 text-corpo text-ink-muted">
+              {linhasDisponiveis.find((l) => l.id === paiSelecionado.linhaDreId)?.nome ??
+                "Nenhuma — fora da DRE"}
+            </div>
+          ) : (
+            <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
+              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
+                {linhasDisponiveis.map((linha) => (
+                  <SelectItem key={linha.id} value={linha.id}>
+                    {linha.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <p className="text-nano text-ink-muted">
+            {paiSelecionado
+              ? `Herdada de "${paiSelecionado.nome}" — mude na categoria mãe pra afetar todas as subcategorias.`
+              : "Define em qual linha da DRE esta categoria soma. Sem linha, os lançamentos ficam fora do relatório."}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label>Cor</Label>

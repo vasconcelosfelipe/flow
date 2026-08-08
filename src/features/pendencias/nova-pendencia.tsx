@@ -23,6 +23,7 @@ import { criarPendencia } from "@/services/movimentacoes/actions";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
 type Modalidade = "UNICA" | "PARCELADO" | "RECORRENTE";
@@ -41,12 +42,14 @@ export function BotaoNovaPendencia({
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
+  tipoEspaco,
   somenteLeitura = false,
 }: {
   contas: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   somenteLeitura?: boolean;
 }) {
   const router = useRouter();
@@ -430,6 +433,8 @@ export function BotaoNovaPendencia({
           ]}
           categorias={categorias}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
+          tipoPadrao={tipo}
           aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
         />
       )}

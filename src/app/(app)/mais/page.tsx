@@ -56,7 +56,7 @@ export default async function MaisPage() {
           </span>
           <span className="flex-1">
             <span className="block text-corpo font-medium text-ink">Console da plataforma</span>
-            <span className="block text-nano text-ink-muted">Empresas e usuários</span>
+            <span className="block text-nano text-ink-muted">Espaços e usuários</span>
           </span>
           <ChevronRight className="size-4 shrink-0 text-ink-muted/50" aria-hidden="true" />
         </Link>

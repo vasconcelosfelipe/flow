@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <DesktopRail />
+      <DesktopRail tipoEspaco={sessao.empresaAtiva.tipo} />
 
       <div className="flex min-h-app-safe flex-col md:pl-16">
         <AppHeader sessao={sessao} />
@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <BottomNav />
+      <BottomNav tipoEspaco={sessao.empresaAtiva.tipo} />
       <Toaster position="top-center" />
     </TooltipProvider>
   );

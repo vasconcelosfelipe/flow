@@ -9,6 +9,7 @@ import type { LinhaImportacao as TipoLinha, StatusLinhaImportacao } from "@/serv
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 import { cn } from "@/lib/utils";
 
 type OpcaoConta = { id: string; nome: string };
@@ -35,6 +36,7 @@ export function PassoRevisao({
   categorias,
   contatos,
   linhasDre,
+  tipoEspaco,
   confirmando,
   aoAlternarLinha,
   aoAtualizarLinha,
@@ -52,6 +54,7 @@ export function PassoRevisao({
   categorias: CategoriaCompleta[];
   contatos: ContatoCompleto[];
   linhasDre: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   confirmando: boolean;
   aoAlternarLinha: (id: string) => void;
   aoAtualizarLinha: (
@@ -123,6 +126,7 @@ export function PassoRevisao({
             categorias={categorias}
             contatos={contatos}
             linhasDre={linhasDre}
+            tipoEspaco={tipoEspaco}
             aoAlternar={aoAlternarLinha}
             aoAtualizar={aoAtualizarLinha}
             aoAlternarIgnorarPermanentemente={aoAlternarIgnorarPermanentemente}

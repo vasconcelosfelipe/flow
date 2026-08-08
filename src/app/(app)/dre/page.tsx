@@ -33,7 +33,7 @@ export default async function DrePage({ searchParams }: Props) {
     const resumo = await montarResumoDespesasPorCategoria(empresaAtiva.id, meses);
     return (
       <Container className="space-y-4 pt-5">
-        <h1 className="text-titulo font-semibold text-ink">Resumo de despesas</h1>
+        <h1 className="text-titulo font-semibold text-ink">Resumo</h1>
 
         <FiltrosDre modo={modo} mes={mes} ano={ano} />
 

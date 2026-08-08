@@ -13,15 +13,17 @@ import { LinhaCategoria } from "@/features/categorias/linha-categoria";
 import { criarCategoria, editarCategoria, excluirCategoria } from "@/services/categorias/actions";
 import type { CategoriaCompleta, FormularioCategoria as DadosFormulario } from "@/services/categorias/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
-import type { TipoMovimentacao } from "@/types/dominio";
+import type { TipoEmpresa, TipoMovimentacao } from "@/types/dominio";
 
 export function GerenciadorCategorias({
   inicial,
   linhas,
+  tipoEspaco,
   somenteLeitura = false,
 }: {
   inicial: CategoriaCompleta[];
   linhas: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   somenteLeitura?: boolean;
 }) {
   const router = useRouter();
@@ -135,6 +137,8 @@ export function GerenciadorCategorias({
           categoria={categoriaEmEdicao}
           categorias={inicial}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
+          tipoPadrao={aba}
           aoSalvar={salvar}
           aoExcluir={categoriaEmEdicao ? excluir : undefined}
         />

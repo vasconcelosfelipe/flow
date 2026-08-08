@@ -19,6 +19,7 @@ import { criarPendencia } from "@/services/movimentacoes/actions";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type Modalidade = "UNICA" | "PARCELADO" | "RECORRENTE";
 type OpcaoConta = { id: string; nome: string };
@@ -48,6 +49,7 @@ export function FormularioCompraCartao({
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
+  tipoEspaco,
   aoSalvar,
   aoPendingChange,
 }: {
@@ -56,6 +58,7 @@ export function FormularioCompraCartao({
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   aoSalvar: () => void;
   aoPendingChange?: (pending: boolean) => void;
 }) {
@@ -390,6 +393,8 @@ export function FormularioCompraCartao({
           ]}
           categorias={categorias}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
+          tipoPadrao={tipo}
           aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
         />
       )}

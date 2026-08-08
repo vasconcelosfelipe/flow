@@ -64,6 +64,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          tipoEspaco={empresaAtiva.tipo}
           somenteLeitura={somenteLeitura}
         />
       </div>
@@ -73,6 +74,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         contas={contasSemCartao.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias}
         linhas={linhas}
+        tipoEspaco={empresaAtiva.tipo}
       />
 
       <p className="text-micro text-ink-muted">
@@ -85,6 +87,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
         proximoCursor={pagina.proximoCursor}
         saldoContaAncora={saldoContaAncora}
         filtro={filtro}
+        tipoEspaco={empresaAtiva.tipo}
         contas={contasSemCartao.map((c) => ({ id: c.id, nome: c.nome }))}
         categorias={categorias}
         contatos={contatos}

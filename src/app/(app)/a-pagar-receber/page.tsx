@@ -56,6 +56,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          tipoEspaco={empresaAtiva.tipo}
           somenteLeitura={somenteLeitura}
         />
       </div>
@@ -90,6 +91,7 @@ export default async function APagarReceberPage({ searchParams }: Props) {
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}
+        tipoEspaco={empresaAtiva.tipo}
         somenteLeitura={somenteLeitura}
       />
     </Container>

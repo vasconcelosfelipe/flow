@@ -34,10 +34,10 @@ const schema = z.object({
 });
 
 /**
- * Cadastrar uma empresa aqui é diferente de qualquer outro formulário do
- * produto: não pertence a uma empresa, cria uma. Por isso pede o slug (a
- * URL que a empresa vai usar) e não tem cor nem ícone — nada de identidade
- * visual, só os dados que a fazem existir na plataforma.
+ * Cadastrar um espaço aqui é diferente de qualquer outro formulário do
+ * produto: não pertence a um espaço, cria um. Por isso pede o slug (a
+ * URL que o espaço vai usar) e não tem cor nem ícone — nada de identidade
+ * visual, só os dados que o fazem existir na plataforma.
  */
 export function FormularioEmpresa({
   empresa,
@@ -48,7 +48,7 @@ export function FormularioEmpresa({
   empresa: EmpresaConsole | null;
   aoSalvar: (dados: FormularioEmpresaConsole) => void;
   aoAlternarAtiva?: (id: string) => void;
-  /** Chamado depois que a empresa é apagada de verdade — fecha o modal. */
+  /** Chamado depois que o espaço é apagado de verdade — fecha o modal. */
   aoExcluir?: () => void;
 }) {
   const {
@@ -96,7 +96,7 @@ export function FormularioEmpresa({
   return (
     <form id={FORM_ID_EMPRESA} onSubmit={handleSubmit(enviar)} className="space-y-5 py-2">
       <div className="space-y-1.5">
-        <Label htmlFor="nome">Nome da empresa</Label>
+        <Label htmlFor="nome">Nome do espaço</Label>
         <Input id="nome" {...register("nome")} placeholder="Ex.: Aurora Comércio" className="h-11" />
         {errors.nome && <p className="text-nano text-negative-text">{errors.nome.message}</p>}
       </div>
@@ -107,7 +107,7 @@ export function FormularioEmpresa({
         {errors.slug ? (
           <p className="text-nano text-negative-text">{errors.slug.message}</p>
         ) : (
-          <p className="text-nano text-ink-muted">Usado para identificar a empresa em links e integrações.</p>
+          <p className="text-nano text-ink-muted">Usado para identificar o espaço em links e integrações.</p>
         )}
       </div>
 
@@ -150,7 +150,7 @@ export function FormularioEmpresa({
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-micro font-medium text-ink">
-                {empresa.ativa ? "Empresa ativa" : "Empresa inativa"}
+                {empresa.ativa ? "Espaço ativo" : "Espaço inativo"}
               </p>
               <p className="text-nano text-ink-muted">
                 {empresa.ativa
@@ -223,7 +223,7 @@ export function FormularioEmpresa({
           ) : (
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-micro font-medium text-ink">Excluir empresa</p>
+                <p className="text-micro font-medium text-ink">Excluir espaço</p>
                 <p className="text-nano text-ink-muted">Apaga tudo. Não pode ser desfeito.</p>
               </div>
               <Button

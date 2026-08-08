@@ -24,9 +24,9 @@ export default async function SemEmpresaPage() {
         <Building2 className="size-6" aria-hidden="true" />
       </span>
 
-      <h1 className="mt-4 text-titulo font-semibold text-night-text">Sem empresa vinculada</h1>
+      <h1 className="mt-4 text-titulo font-semibold text-night-text">Sem espaço vinculado</h1>
       <p className="mt-2 text-micro text-night-muted">
-        Sua conta ainda não faz parte de nenhuma empresa. Peça a um administrador para te
+        Sua conta ainda não faz parte de nenhum espaço. Peça a um administrador para te
         convidar — assim que isso acontecer, é só entrar de novo.
       </p>
 

@@ -18,6 +18,7 @@ export default async function CategoriasPage() {
       <GerenciadorCategorias
         inicial={categorias}
         linhas={linhas}
+        tipoEspaco={empresaAtiva.tipo}
         somenteLeitura={empresaAtiva.papel === "LEITOR"}
       />
     </Container>

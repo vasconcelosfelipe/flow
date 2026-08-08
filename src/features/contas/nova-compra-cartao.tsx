@@ -10,6 +10,7 @@ import { FormularioCompraCartao } from "@/features/contas/formulario-compra-cart
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 const FORM_ID = "form-nova-compra-cartao";
 
@@ -21,12 +22,14 @@ export function BotaoNovaCompraCartao({
   categorias,
   contatos,
   linhas,
+  tipoEspaco,
 }: {
   contaId: string;
   contaNome: string;
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
 }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
@@ -66,6 +69,7 @@ export function BotaoNovaCompraCartao({
             categorias={categorias}
             contatos={contatos}
             linhas={linhas}
+            tipoEspaco={tipoEspaco}
             aoPendingChange={setPending}
             aoSalvar={() => {
               fechar();

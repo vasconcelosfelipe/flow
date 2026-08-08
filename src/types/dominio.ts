@@ -48,8 +48,8 @@ export const ROTULO_TIPO_CONTATO: Record<TipoContato, string> = {
 export type TipoEmpresa = "EMPRESA" | "PESSOA_FISICA";
 
 export const ROTULO_TIPO_EMPRESA: Record<TipoEmpresa, string> = {
-  EMPRESA: "Empresa",
-  PESSOA_FISICA: "Pessoa física",
+  EMPRESA: "Empresarial",
+  PESSOA_FISICA: "Pessoal",
 };
 
 export type PapelMembro = "DONO" | "ADMIN" | "MEMBRO" | "LEITOR";

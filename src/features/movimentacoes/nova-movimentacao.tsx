@@ -25,7 +25,7 @@ import { criarMovimentacao, criarTransferencia } from "@/services/movimentacoes/
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
-import type { TipoConta } from "@/types/dominio";
+import type { TipoConta, TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string; tipo?: TipoConta };
 type TipoLancamento = "DESPESA" | "RECEITA" | "TRANSFERENCIA";
@@ -46,12 +46,14 @@ export function BotoesMovimentacoes({
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
+  tipoEspaco,
   somenteLeitura = false,
 }: {
   contas: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
   somenteLeitura?: boolean;
 }) {
   const router = useRouter();
@@ -289,6 +291,7 @@ export function BotoesMovimentacoes({
             categorias={categorias}
             contatos={contatos}
             linhas={linhas}
+            tipoEspaco={tipoEspaco}
             aoPendingChange={setPendingCartao}
             aoSalvar={() => {
               setAberto(false);
@@ -481,6 +484,8 @@ export function BotoesMovimentacoes({
           ]}
           categorias={categorias}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
+          tipoPadrao={tipo === "TRANSFERENCIA" ? undefined : tipo}
           aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
         />
       )}

@@ -11,6 +11,7 @@ import type { ResultadoConfirmacao, ResumoImportacao } from "@/services/importac
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
 type Passo = "upload" | "revisao" | "confirmacao";
@@ -80,11 +81,13 @@ export function WizardImportacao({
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
+  tipoEspaco,
 }: {
   contas: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
 }) {
   const [passo, setPasso] = useState<Passo>("upload");
   const [resumo, setResumo] = useState<ResumoImportacao | null>(null);
@@ -239,6 +242,7 @@ export function WizardImportacao({
           categorias={categorias}
           contatos={contatos}
           linhasDre={linhas}
+          tipoEspaco={tipoEspaco}
           confirmando={confirmando}
           aoAlternarLinha={alternarLinha}
           aoAtualizarLinha={atualizarLinha}

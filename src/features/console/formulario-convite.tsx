@@ -22,7 +22,7 @@ const PAPEIS = Object.keys(ROTULO_PAPEL) as PapelMembro[];
 
 const schema = z.object({
   email: z.string().trim().email("Digite um e-mail válido."),
-  empresaId: z.string().min(1, "Escolha uma empresa."),
+  empresaId: z.string().min(1, "Escolha um espaço."),
   papel: z.enum(["DONO", "ADMIN", "MEMBRO", "LEITOR"]),
 });
 
@@ -56,10 +56,10 @@ export function FormularioConvite({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Empresa</Label>
+        <Label>Espaço</Label>
         <Select value={empresaId} onValueChange={(v) => setValue("empresaId", v)}>
           <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue placeholder="Escolha a empresa" />
+            <SelectValue placeholder="Escolha o espaço" />
           </SelectTrigger>
           <SelectContent>
             {empresas.map((e) => (

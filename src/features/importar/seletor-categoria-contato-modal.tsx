@@ -22,6 +22,7 @@ import type { CategoriaCompleta, FormularioCategoria as DadosCategoria } from "@
 import { criarContato } from "@/services/contatos/actions";
 import type { ContatoCompleto, FormularioContato as DadosContato } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { TipoEmpresa, TipoMovimentacao } from "@/types/dominio";
 
 type OpcaoLista = { value: string; label: string };
 
@@ -35,6 +36,10 @@ type Props =
       opcoes: OpcaoLista[];
       categorias: CategoriaCompleta[];
       linhas: LinhaDreOpcao[];
+      tipoEspaco: TipoEmpresa;
+      /** Receita/Despesa do lançamento que abriu este seletor — a categoria
+       * nova nasce com o mesmo tipo, em vez de sempre cair em Despesa. */
+      tipoPadrao?: TipoMovimentacao;
       aoCriar: (categoria: CategoriaCompleta) => void;
     }
   | {
@@ -183,6 +188,8 @@ export function SeletorCategoriaContatoModal(props: Props) {
           categoria={null}
           categorias={props.categorias}
           linhas={props.linhas}
+          tipoEspaco={props.tipoEspaco}
+          tipoPadrao={props.tipoPadrao}
           aoSalvar={salvarCategoria}
         />
       ) : (

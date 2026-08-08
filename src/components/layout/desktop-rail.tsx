@@ -11,14 +11,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { TipoEmpresa } from "@/types/dominio";
 
 /**
  * No desktop a barra inferior vira um rail estreito, mantendo os mesmos cinco
  * destinos na mesma ordem. O app cresce de tamanho sem virar outro produto —
  * quem aprendeu no celular não reaprende nada aqui.
  */
-export function DesktopRail() {
+export function DesktopRail({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
   const pathname = usePathname();
+  const destinos = DESTINOS.map((d) =>
+    d.href === "/dre" && tipoEspaco === "PESSOA_FISICA" ? { ...d, rotulo: "Resumo" } : d,
+  );
 
   return (
     <nav
@@ -33,7 +37,7 @@ export function DesktopRail() {
         <span className="sr-only">Flow — início</span>
       </Link>
 
-      {DESTINOS.map((destino) => {
+      {destinos.map((destino) => {
         const ativo = destinoAtivo(pathname, destino);
         const Icone = destino.icone;
 

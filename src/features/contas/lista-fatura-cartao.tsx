@@ -10,6 +10,7 @@ import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
+import type { TipoEmpresa } from "@/types/dominio";
 
 /** Lista de uma fatura, com o mesmo sheet de detalhe/edição das outras
  * telas — só que a conta chega travada num item só (esta conta), porque
@@ -21,6 +22,7 @@ export function ListaFaturaCartao({
   categorias,
   contatos,
   linhas,
+  tipoEspaco,
 }: {
   itens: MovimentacaoResumo[];
   contaId: string;
@@ -28,6 +30,7 @@ export function ListaFaturaCartao({
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
+  tipoEspaco: TipoEmpresa;
 }) {
   const [abertoId, setAbertoId] = useState<string | null>(null);
 
@@ -55,6 +58,7 @@ export function ListaFaturaCartao({
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}
+        tipoEspaco={tipoEspaco}
         aoFechar={() => setAbertoId(null)}
       />
     </>

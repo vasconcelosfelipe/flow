@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 
 import { DESTINOS, destinoAtivo } from "@/components/layout/navegacao";
 import { cn } from "@/lib/utils";
+import type { TipoEmpresa } from "@/types/dominio";
 
 /**
  * Barra inferior fixa — o polegar alcança tudo sem reposicionar a mão.
@@ -14,8 +15,14 @@ import { cn } from "@/lib/utils";
  * vez de aparecer e sumir: o movimento conta de onde a pessoa veio, o que
  * torna a navegação legível sem exigir leitura do rótulo.
  */
-export function BottomNav() {
+export function BottomNav({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
   const pathname = usePathname();
+  // Espaço pessoa física não tem DRE — o mesmo destino leva pro resumo de
+  // despesas por categoria, então o rótulo muda junto, sem duplicar a
+  // navegação numa lista separada por tipo de espaço.
+  const destinos = DESTINOS.map((d) =>
+    d.href === "/dre" && tipoEspaco === "PESSOA_FISICA" ? { ...d, rotulo: "Resumo" } : d,
+  );
 
   return (
     <nav
@@ -23,7 +30,7 @@ export function BottomNav() {
       aria-label="Navegação principal"
     >
       <ul className="flex items-stretch justify-around px-1">
-        {DESTINOS.map((destino) => {
+        {destinos.map((destino) => {
           const ativo = destinoAtivo(pathname, destino);
           const Icone = destino.icone;
 

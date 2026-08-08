@@ -37,6 +37,7 @@ export default async function FaturaCartaoPage({ params, searchParams }: Props) 
 
   const conta = await obterConta(empresaAtiva.id, id);
   if (!conta || conta.tipo !== "CARTAO") notFound();
+  const tipoEspaco = empresaAtiva.tipo;
 
   // Sem fechamento/vencimento configurado, não tem como calcular ciclo —
   // manda arrumar isso primeiro em vez de mostrar uma fatura errada.
@@ -101,6 +102,7 @@ export default async function FaturaCartaoPage({ params, searchParams }: Props) 
           categorias={categorias}
           contatos={contatos}
           linhas={linhas}
+          tipoEspaco={tipoEspaco}
         />
       </div>
 
@@ -142,6 +144,7 @@ export default async function FaturaCartaoPage({ params, searchParams }: Props) 
         categorias={categorias}
         contatos={contatos}
         linhas={linhas}
+        tipoEspaco={tipoEspaco}
       />
     </Container>
   );

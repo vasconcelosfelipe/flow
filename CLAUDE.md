@@ -50,7 +50,8 @@ client component chama `db` direto). Mutação sempre via Server Action em
   fixo (as linhas gerenciais: Receita Bruta, Deduções, Custos…); `Categoria`
   aponta pra uma `LinhaDre` via `linhaDreId`. A tela de Categorias decide a
   composição; o serviço de DRE só soma. Não crie lista de categorias no
-  código do relatório.
+  código do relatório. Espaço `PESSOA_FISICA` não usa essa cascata — ver
+  "Espaço: empresarial vs. pessoal" abaixo.
 - **Status de movimentação**: `PREVISTO → PENDENTE → PAGO → CONCILIADO`,
   mais `CANCELADO` (soft-delete). Excluir uma movimentação nunca apaga a
   linha — marca `CANCELADO` — porque preserva histórico e a referência de
@@ -64,6 +65,55 @@ client component chama `db` direto). Mutação sempre via Server Action em
   Dedup é por `origemFitId` (`@@unique([contaId, origemFitId])`) — reimportar
   o mesmo arquivo não duplica. Uma linha `CONCILIAVEL` fecha uma `PENDENTE`
   existente (mesma conta, tipo e valor) em vez de criar lançamento novo.
+
+## Espaço: empresarial vs. pessoal
+
+Todo espaço (`Empresa` no schema — "empresa" é o nome técnico, a UI diz
+"espaço", ver "Idioma/nomenclatura" abaixo) tem um `tipo: TipoEmpresa`
+(`EMPRESA` ou `PESSOA_FISICA`, rótulos "Empresarial"/"Pessoal"). Hoje só é
+definido no formulário de cadastro do Console (`formulario-empresa.tsx`),
+já que criar espaço é admin-only — `empresaAtiva.tipo` chega em toda página
+via `requireSessao()`.
+
+**Regra fixa: nunca criar um modal/tela separada para o caso pessoal.**
+Um único componente atende os dois tipos, recebendo `tipoEspaco: TipoEmpresa`
+como prop e escondendo/trocando só os campos que não fazem sentido pro tipo
+pessoal — nunca um `FormularioCategoriaPessoal` ao lado de
+`FormularioCategoria`, nunca uma paginação de rota `/dre` vs. `/resumo`.
+Motivo: manter dois componentes quase-iguais sincronizados é o tipo de
+dívida que gera bugs silenciosos (uma mudança feita num esquece do outro) —
+um único componente com um `if`/`{tipoEspaco !== "PESSOA_FISICA" && (...)}`
+não tem como divergir.
+
+Exemplos já no código:
+- `FormularioCategoria` (`features/categorias/formulario-categoria.tsx`)
+  recebe `tipoEspaco` e esconde o bloco "Linha da DRE" inteiro quando
+  `PESSOA_FISICA` — o resto do formulário (nome, tipo, cor, ícone,
+  categoria pai) é idêntico pros dois tipos.
+- `/dre/page.tsx` é uma única rota — o Server Component decide, a partir de
+  `empresaAtiva.tipo`, se busca `montarDre` (cascata) ou
+  `montarResumoDespesasPorCategoria` (lista por categoria) e qual par de
+  componentes de conteúdo renderizar, mas reaproveita o mesmo
+  `<FiltrosDre>` (seletor de mês/ano) nos dois casos.
+- `BottomNav`/`DesktopRail` recebem `tipoEspaco` e trocam só o `rotulo` do
+  destino `/dre` pra "Resumo" quando pessoal — a lista `DESTINOS` e a rota
+  continuam as mesmas.
+
+Ao adicionar uma tela/formulário novo que deveria se comportar diferente
+pra pessoa física: comece assumindo que é o **mesmo componente** com um
+prop `tipoEspaco` novo, não um componente irmão. Só quebre esse padrão se
+o formulário for genuinamente outra coisa (não um subconjunto de campos).
+
+Um segundo bug de UX já corrigido nesse entorno: qualquer formulário que
+cria uma categoria "no meio do caminho" (o "+ Nova categoria" dentro do
+seletor de categoria/fornecedor, usado em Nova movimentação, Nova
+pendência, edição de movimentação, compra no cartão e revisão de OFX)
+precisa herdar o tipo Receita/Despesa do lançamento que abriu o seletor —
+passe `tipoPadrao` pra `SeletorCategoriaContatoModal`/`FormularioCategoria`
+a partir do estado local de tipo daquele formulário. Sem isso a categoria
+nasce sempre como Despesa (o default do formulário), mesmo dentro de um
+fluxo de Receita, e a pessoa só percebe quando o lançamento salvo aparece
+com uma categoria do tipo errado.
 
 ## Sistema de design
 
@@ -206,3 +256,12 @@ Fazer isso automaticamente após qualquer mudança, sem esperar o pedido.
 Todo identificador, comentário, string de UI e mensagem de commit é em
 português. Não traduza para inglês "para seguir convenção" — a convenção
 daqui é português.
+
+**Nomenclatura "empresa" vs. "espaço"**: o model Prisma é `Empresa`
+(`empresaId`, `empresaAtiva`, `requireSessao()` etc.) e continua assim no
+código — não renomear, é usado em centenas de arquivos e a mudança não
+traria benefício nenhum além de cosmético. Mas **todo texto visível pro
+usuário** (títulos, labels, botões, mensagens) diz "espaço", não "empresa"
+— reflete que um espaço pode ser `PESSOA_FISICA`, não só `EMPRESA` (ver
+"Espaço: empresarial vs. pessoal"). Ao escrever UI nova: `Empresa`/
+`empresaId` no código, "espaço" na tela.

@@ -69,12 +69,12 @@ export function EmpresaSwitcher({
         <Building2 className="size-3.5 shrink-0 text-night-muted" aria-hidden="true" />
         <span className="truncate">{ativa.nome}</span>
         <ChevronsUpDown className="size-3.5 shrink-0 text-night-muted" aria-hidden="true" />
-        <span className="sr-only">Trocar de empresa</span>
+        <span className="sr-only">Trocar de espaço</span>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="w-64">
         <DropdownMenuLabel className="text-[11px] text-ink-muted">
-          Suas empresas
+          Seus espaços
         </DropdownMenuLabel>
 
         {empresas.map((empresa) => {

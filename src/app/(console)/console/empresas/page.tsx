@@ -5,7 +5,7 @@ import { listarEmpresasConsole } from "@/services/console";
 export default async function ConsoleEmpresasPage() {
   return (
     <Container className="space-y-4 pt-5">
-      <h1 className="text-titulo font-semibold text-ink">Empresas</h1>
+      <h1 className="text-titulo font-semibold text-ink">Espaços</h1>
       <GerenciadorEmpresasConsole inicial={await listarEmpresasConsole()} />
     </Container>
   );
