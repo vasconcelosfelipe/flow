@@ -31,6 +31,7 @@ const ABAS: { valor: Aba; rotulo: string }[] = [
 export function PassoRevisao({
   arquivoNome,
   contaAtualId,
+  contaAtualNome,
   linhas,
   contas,
   categorias,
@@ -49,6 +50,7 @@ export function PassoRevisao({
   arquivoNome: string;
   /** Conta do extrato sendo importado — nunca aparece como opção de "outro lado" da transferência. */
   contaAtualId: string;
+  contaAtualNome: string;
   linhas: TipoLinha[];
   contas: OpcaoConta[];
   categorias: CategoriaCompleta[];
@@ -99,9 +101,15 @@ export function PassoRevisao({
 
   return (
     <div className="space-y-4 pb-24">
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <p className="text-micro text-ink-muted">Arquivo</p>
-        <p className="truncate font-medium text-ink">{arquivoNome}</p>
+      <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 shadow-card">
+        <div className="min-w-0 flex-1">
+          <p className="text-micro text-ink-muted">Arquivo</p>
+          <p className="truncate font-medium text-ink">{arquivoNome}</p>
+        </div>
+        <div className="min-w-0 flex-1 border-l border-line pl-4">
+          <p className="text-micro text-ink-muted">Conta</p>
+          <p className="truncate font-medium text-ink">{contaAtualNome}</p>
+        </div>
       </div>
 
       <Tabs value={aba} onValueChange={(v) => setAba(v as Aba)}>

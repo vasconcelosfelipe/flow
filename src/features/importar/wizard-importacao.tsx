@@ -93,6 +93,7 @@ export function WizardImportacao({
   const [resumo, setResumo] = useState<ResumoImportacao | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoConfirmacao | null>(null);
+  const [contaConfirmadaNome, setContaConfirmadaNome] = useState("");
   // Categoria/fornecedor criados no meio da revisão de OFX precisam entrar
   // nessas listas na hora — a revisão é 100% client-side, sem round-trip ao
   // servidor, então `router.refresh()` não repovoa props já espalhadas.
@@ -185,6 +186,7 @@ export function WizardImportacao({
         linhas: relevantes,
       });
       setResultado(r);
+      setContaConfirmadaNome(resumo.conta.nome);
       setPasso("confirmacao");
       // Já foi gravado — não é mais "revisão em andamento" pra restaurar.
       setResumo(null);
@@ -237,6 +239,7 @@ export function WizardImportacao({
         <PassoRevisao
           arquivoNome={resumo.arquivoNome}
           contaAtualId={resumo.conta.id}
+          contaAtualNome={resumo.conta.nome}
           linhas={resumo.linhas}
           contas={contas}
           categorias={categorias}
@@ -255,7 +258,11 @@ export function WizardImportacao({
       )}
 
       {passo === "confirmacao" && resultado && (
-        <PassoConfirmacao resultado={resultado} aoImportarOutro={reiniciar} />
+        <PassoConfirmacao
+          resultado={resultado}
+          contaNome={contaConfirmadaNome}
+          aoImportarOutro={reiniciar}
+        />
       )}
     </div>
   );

@@ -13,9 +13,11 @@ import type { ResultadoConfirmacao } from "@/services/importacao/dto";
  */
 export function PassoConfirmacao({
   resultado,
+  contaNome,
   aoImportarOutro,
 }: {
   resultado: ResultadoConfirmacao;
+  contaNome: string;
   aoImportarOutro: () => void;
 }) {
   const total = resultado.criadas + resultado.conciliadas;
@@ -28,7 +30,8 @@ export function PassoConfirmacao({
 
       <h2 className="mt-5 text-titulo font-semibold text-ink">Importação concluída</h2>
       <p className="mt-1 max-w-xs text-corpo text-ink-muted">
-        {total} {total === 1 ? "lançamento entrou" : "lançamentos entraram"} no extrato.
+        {total} {total === 1 ? "lançamento entrou" : "lançamentos entraram"} em{" "}
+        <strong className="text-ink">{contaNome}</strong>.
       </p>
 
       <div className="mt-6 w-full max-w-xs space-y-2 rounded-2xl border border-line bg-surface p-4 text-left shadow-card">
