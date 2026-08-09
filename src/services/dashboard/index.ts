@@ -35,6 +35,7 @@ function mapearParaResumo(m: {
   dataVencimento: Date | null;
   numeroParcela: number | null;
   totalParcelas: number | null;
+  grupoParcelamento: string | null;
   recorrente: boolean;
   transferenciaId: string | null;
   origemFitId: string | null;
@@ -52,6 +53,7 @@ function mapearParaResumo(m: {
     dataVencimento: m.dataVencimento,
     numeroParcela: m.numeroParcela,
     totalParcelas: m.totalParcelas,
+    grupoParcelamento: m.grupoParcelamento,
     recorrente: m.recorrente,
     transferenciaId: m.transferenciaId,
     contaPar: null,

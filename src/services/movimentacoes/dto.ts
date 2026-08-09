@@ -52,6 +52,9 @@ export type MovimentacaoResumo = {
   contato: ContatoResumo | null;
   numeroParcela: number | null;
   totalParcelas: number | null;
+  /** Não-nulo = uma de N parcelas/ocorrências que nasceram juntas — liga o
+   * grupo pra editar/excluir em lote (ver `editarGrupoParcelamento`). */
+  grupoParcelamento: string | null;
   /** Veio de uma regra de recorrência, não de lançamento avulso. */
   recorrente: boolean;
   /** Não-nulo = uma perna de transferência entre contas — ver `transferenciaId`. */

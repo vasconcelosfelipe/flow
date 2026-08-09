@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addMonths } from "date-fns";
+import { addDays, addMonths } from "date-fns";
 
 import { db } from "@/lib/db";
 import { calcularVencimentoFatura } from "@/lib/dates";
@@ -229,6 +229,94 @@ export async function atualizarCategoriaEmLote(ids: string[], categoriaId: strin
   revalidatePath("/movimentacoes");
   revalidatePath("/a-pagar-receber");
   revalidatePath("/");
+}
+
+export type EditarGrupoParcelamentoInput = {
+  descricao: string;
+  tipo: "RECEITA" | "DESPESA";
+  categoriaId: string | null;
+  contatoId: string | null;
+  contaId: string;
+  /** Diferença (em dias) entre a nova e a antiga data da parcela que
+   * originou a edição — desloca a série mantendo o intervalo entre
+   * parcelas, em vez de igualar todas à mesma data. */
+  deltaDias: number;
+};
+
+/**
+ * Propaga uma edição pro resto do grupo (as outras parcelas/ocorrências
+ * que nasceram junto, ver `grupoParcelamento`) — chamada só quando a
+ * pessoa marca "aplicar a todas" ao editar uma parcela. A parcela que
+ * originou a edição já foi salva por `editarMovimentacao` antes desta
+ * chamada, por isso fica de fora (`excetoId`).
+ *
+ * Valor e status nunca são propagados: parcela pode ter valor diferente
+ * por design (juros, arredondamento — ver `NovaPendenciaInput`), e status
+ * mistura PAGO/PENDENTE/CONCILIADO dentro do mesmo grupo por natureza.
+ *
+ * Data conciliada está casada com o extrato bancário real — deslocá-la
+ * quebraria a conciliação sem avisar, mesma razão que já bloqueia
+ * exclusão de conciliado — por isso o deslocamento pula quem está
+ * CONCILIADO (os outros campos ainda são atualizados nela).
+ */
+export async function editarGrupoParcelamento(
+  grupoParcelamento: string,
+  excetoId: string,
+  dados: EditarGrupoParcelamentoInput,
+) {
+  const empresaId = await obterEmpresaEscrita();
+  const membros = await db.movimentacao.findMany({
+    where: { empresaId, grupoParcelamento, id: { not: excetoId }, status: { not: "CANCELADO" } },
+  });
+
+  await db.$transaction(
+    membros.map((m) =>
+      db.movimentacao.update({
+        where: { id: m.id },
+        data: {
+          descricao: dados.descricao,
+          tipo: dados.tipo,
+          categoriaId: dados.categoriaId,
+          contatoId: dados.contatoId,
+          contaId: dados.contaId,
+          ...(dados.deltaDias !== 0 && m.status !== "CONCILIADO"
+            ? {
+                data: m.data ? addDays(m.data, dados.deltaDias) : null,
+                dataVencimento: m.dataVencimento ? addDays(m.dataVencimento, dados.deltaDias) : null,
+                dataCompetencia: addDays(m.dataCompetencia, dados.deltaDias),
+              }
+            : {}),
+        },
+      }),
+    ),
+  );
+
+  revalidatePath("/movimentacoes");
+  revalidatePath("/a-pagar-receber");
+  revalidatePath("/");
+}
+
+/**
+ * Exclui (cancela) todas as parcelas/ocorrências de um grupo de uma vez.
+ * Mesma regra do `excluirMovimentacao` de hoje (bloqueia conciliado), mas
+ * em vez de travar tudo por causa de uma parcela conciliada, pula só ela
+ * e devolve a contagem — com dezenas de parcelas não faz sentido travar a
+ * exclusão inteira por 1 ou 2 já conciliadas.
+ */
+export async function excluirGrupoParcelamento(grupoParcelamento: string) {
+  const empresaId = await obterEmpresaEscrita();
+  const totalElegivel = await db.movimentacao.count({
+    where: { empresaId, grupoParcelamento, status: { not: "CANCELADO" } },
+  });
+  const resultado = await db.movimentacao.updateMany({
+    where: { empresaId, grupoParcelamento, status: { not: "CONCILIADO" } },
+    data: { status: "CANCELADO", origemFitId: null },
+  });
+
+  revalidatePath("/movimentacoes");
+  revalidatePath("/a-pagar-receber");
+  revalidatePath("/");
+  return { excluidas: resultado.count, puladas: totalElegivel - resultado.count };
 }
 
 type CamposComunsPendencia = {

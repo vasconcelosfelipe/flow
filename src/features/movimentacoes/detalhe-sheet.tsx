@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { differenceInCalendarDays } from "date-fns";
 import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
@@ -18,7 +21,9 @@ import { parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import {
   desfazerConciliacao,
+  editarGrupoParcelamento,
   editarMovimentacao,
+  excluirGrupoParcelamento,
   excluirMovimentacao,
 } from "@/services/movimentacoes/actions";
 import { ROTULO_STATUS } from "@/types/dominio";
@@ -172,6 +177,7 @@ function Detalhe({
   const [pending, startTransition] = useTransition();
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const transferencia = movimentacao.transferenciaId !== null;
+  const agrupada = movimentacao.grupoParcelamento !== null;
   const Icone = transferencia ? ArrowLeftRight : movimentacao.categoria ? iconeDe(movimentacao.categoria.icone) : Tag;
   const receita = movimentacao.tipo === "RECEITA";
   const conciliada = movimentacao.status === "CONCILIADO";
@@ -184,6 +190,19 @@ function Detalhe({
   function excluir() {
     startTransition(async () => {
       await excluirMovimentacao(movimentacao.id);
+      router.refresh();
+      aoRemover();
+    });
+  }
+
+  function excluirGrupo() {
+    startTransition(async () => {
+      const { excluidas, puladas } = await excluirGrupoParcelamento(movimentacao.grupoParcelamento!);
+      if (puladas > 0) {
+        toast.success(`${excluidas} parcelas excluídas`, {
+          description: `${puladas} continuam por estarem conciliadas.`,
+        });
+      }
       router.refresh();
       aoRemover();
     });
@@ -274,6 +293,43 @@ function Detalhe({
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
               Desfazer
+            </Button>
+          </div>
+        </div>
+      ) : confirmandoExclusao && agrupada ? (
+        <div className="space-y-2 rounded-xl border border-line p-3">
+          <p className="text-micro text-ink">
+            Esta movimentação faz parte de um grupo de {movimentacao.totalParcelas} parcelas.
+          </p>
+          <div className="space-y-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={excluir}
+              disabled={pending}
+            >
+              Excluir só esta parcela
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              className="w-full border-transparent bg-negative text-white hover:bg-negative/90"
+              onClick={excluirGrupo}
+              disabled={pending}
+            >
+              {pending ? "Excluindo…" : `Excluir as ${movimentacao.totalParcelas} parcelas`}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              className="w-full"
+              onClick={() => setConfirmandoExclusao(false)}
+              disabled={pending}
+            >
+              Cancelar
             </Button>
           </div>
         </div>
@@ -378,6 +434,7 @@ function FormularioEdicao({
   const [contaId, setContaId] = useState(movimentacao.conta.id);
   const [categoriaId, setCategoriaId] = useState(movimentacao.categoria?.id ?? SEM_CATEGORIA);
   const [contatoId, setContatoId] = useState(movimentacao.contato?.id ?? SEM_FORNECEDOR);
+  const [aplicarATodas, setAplicarATodas] = useState(false);
 
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
   const categoriaSelecionada = categorias.find((c) => c.id === categoriaId);
@@ -401,6 +458,16 @@ function FormularioEdicao({
         status,
         data,
       });
+      if (aplicarATodas && movimentacao.grupoParcelamento) {
+        await editarGrupoParcelamento(movimentacao.grupoParcelamento, movimentacao.id, {
+          descricao,
+          tipo,
+          categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
+          contatoId: contatoId === SEM_FORNECEDOR ? null : contatoId,
+          contaId,
+          deltaDias: differenceInCalendarDays(new Date(`${data}T00:00:00.000Z`), new Date(`${dataInicial}T00:00:00.000Z`)),
+        });
+      }
       // Atualiza a linha na lista de trás na hora — `router.refresh()`
       // ainda roda por baixo pra manter tudo consistente (saldo, DRE etc.),
       // mas sem isto a edição só aparece depois do round-trip completar.
@@ -517,6 +584,25 @@ function FormularioEdicao({
           required
         />
       </div>
+
+      {movimentacao.grupoParcelamento && movimentacao.totalParcelas && (
+        <label className="flex items-start gap-2.5 rounded-xl border border-line p-3">
+          <Checkbox
+            checked={aplicarATodas}
+            onCheckedChange={(v) => setAplicarATodas(v === true)}
+            className="mt-0.5"
+          />
+          <span className="space-y-0.5">
+            <span className="block text-micro font-medium text-ink">
+              Aplicar a todas as {movimentacao.totalParcelas} parcelas
+            </span>
+            <span className="block text-nano text-ink-muted">
+              Atualiza descrição, categoria, fornecedor, conta e vencimento (mantendo o
+              intervalo) das outras parcelas. Valor e status continuam individuais.
+            </span>
+          </span>
+        </label>
+      )}
 
       {!ehCartao && (
         <div className="space-y-1.5">

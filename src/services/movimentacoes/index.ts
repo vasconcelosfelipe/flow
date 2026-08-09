@@ -20,6 +20,7 @@ export function mapearMovimentacao(
     dataVencimento: Date | null;
     numeroParcela: number | null;
     totalParcelas: number | null;
+    grupoParcelamento: string | null;
     recorrente: boolean;
     transferenciaId?: string | null;
     origemFitId?: string | null;
@@ -39,6 +40,7 @@ export function mapearMovimentacao(
     dataVencimento: m.dataVencimento,
     numeroParcela: m.numeroParcela,
     totalParcelas: m.totalParcelas,
+    grupoParcelamento: m.grupoParcelamento,
     recorrente: m.recorrente,
     transferenciaId: m.transferenciaId ?? null,
     contaPar: contaPar

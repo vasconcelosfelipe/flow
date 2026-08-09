@@ -55,6 +55,7 @@ async function listarFaturasAbertas(empresaId: string, hoje: Date): Promise<Movi
         contato: null,
         numeroParcela: null,
         totalParcelas: null,
+        grupoParcelamento: null,
         recorrente: false,
         transferenciaId: null,
         contaPar: null,
@@ -77,6 +78,7 @@ function mapearMovimentacao(m: {
   dataVencimento: Date | null;
   numeroParcela: number | null;
   totalParcelas: number | null;
+  grupoParcelamento: string | null;
   recorrente: boolean;
   transferenciaId: string | null;
   origemFitId: string | null;
@@ -94,6 +96,7 @@ function mapearMovimentacao(m: {
     dataVencimento: m.dataVencimento,
     numeroParcela: m.numeroParcela,
     totalParcelas: m.totalParcelas,
+    grupoParcelamento: m.grupoParcelamento,
     recorrente: m.recorrente,
     transferenciaId: m.transferenciaId,
     contaPar: null,
