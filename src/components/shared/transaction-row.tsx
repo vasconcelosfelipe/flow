@@ -3,7 +3,9 @@
 import { AlertCircle, ArrowLeftRight, Clock, RefreshCw, Repeat } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { diasDeAtraso } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
@@ -41,6 +43,7 @@ export function TransactionRow({
   const semCategoria = categoria === null && !transferencia;
   const emSelecao = aoAlternarSelecao !== undefined;
   const previsto = status === "PREVISTO" || status === "PENDENTE";
+  const atraso = previsto && movimentacao.dataVencimento ? diasDeAtraso(movimentacao.dataVencimento) : null;
 
   return (
     <div
@@ -125,6 +128,11 @@ export function TransactionRow({
                 <Clock className="size-3" aria-hidden="true" />
                 {status === "PREVISTO" ? "Previsto" : "A pagar"}
               </span>
+            )}
+            {atraso !== null && atraso > 0 && (
+              <Badge variant="destructive" className="shrink-0">
+                {atraso}d atrasado
+              </Badge>
             )}
           </span>
         </span>

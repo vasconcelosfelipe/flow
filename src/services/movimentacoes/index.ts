@@ -116,11 +116,11 @@ export async function listarMovimentacoes(
     ...(filtro.contaId ? { contaId: filtro.contaId } : {}),
     ...(filtro.categoriaId ? { categoriaId: filtro.categoriaId } : {}),
     ...(filtro.tipo ? { tipo: filtro.tipo } : {}),
-    // Sem filtro de status, só mostra o que já aconteceu de fato (pago ou
-    // conciliado) — agendamento (PENDENTE/PREVISTO) é assunto da tela de A
-    // pagar/receber, e CANCELADO é o equivalente de exclusão das outras
+    // Sem filtro de status, mostra tudo que não foi excluído — realizado
+    // (pago/conciliado) e a pagar/receber (pendente/previsto) juntos,
+    // ordenados por data. CANCELADO é o equivalente de exclusão das outras
     // entidades (ativa: false), nunca aparece.
-    status: filtro.status ?? { in: REALIZADO },
+    status: filtro.status ?? { not: "CANCELADO" },
     ...(filtro.busca
       ? { descricao: { contains: filtro.busca, mode: "insensitive" as const } }
       : {}),
@@ -163,7 +163,12 @@ export async function listarMovimentacoes(
         conta: true,
         contato: true,
       },
-      orderBy: [{ data: "desc" }, { dataVencimento: "desc" }],
+      // `dataCompetencia` nasce igual a `data`/`dataVencimento` em todo
+      // caminho de criação/edição (ver `criarMovimentacao`/`criarPendencia`)
+      // — ordenar por ela sozinha evita o problema de NULLS FIRST/LAST do
+      // Postgres ao misturar pendente (`data` nulo) com realizado
+      // (`dataVencimento` nulo) na mesma lista.
+      orderBy: { dataCompetencia: "desc" },
       take: TAMANHO_PAGINA,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     }),

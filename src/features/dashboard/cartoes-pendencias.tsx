@@ -26,13 +26,13 @@ export function CartoesPendencias({
         rotulo="A pagar"
         bloco={aPagar}
         tom="saida"
-        href="/a-pagar-receber?tipo=DESPESA"
+        href="/movimentacoes?status=PENDENTE&tipo=DESPESA"
       />
       <CartaoPendencia
         rotulo="A receber"
         bloco={aReceber}
         tom="entrada"
-        href="/a-pagar-receber?tipo=RECEITA"
+        href="/movimentacoes?status=PENDENTE&tipo=RECEITA"
       />
     </div>
   );

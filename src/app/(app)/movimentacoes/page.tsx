@@ -2,7 +2,7 @@ import { Container } from "@/components/layout/container";
 import { PeriodPicker } from "@/components/shared/period-picker";
 import { FiltrosMovimentacoes } from "@/features/movimentacoes/filtros";
 import { ListaMovimentacoes } from "@/features/movimentacoes/lista-movimentacoes";
-import { BotoesMovimentacoes } from "@/features/movimentacoes/nova-movimentacao";
+import { BotaoNovaMovimentacao } from "@/features/movimentacoes/nova-movimentacao";
 import { resolverPeriodoDeParams } from "@/lib/dates";
 import { requireSessao } from "@/lib/sessao";
 import { listarContas } from "@/services/contas";
@@ -59,14 +59,7 @@ export default async function MovimentacoesPage({ searchParams }: Props) {
     <Container className="space-y-4 pt-5">
       <div className="flex items-center justify-between">
         <h1 className="text-titulo font-semibold text-ink">Movimentações</h1>
-        <BotoesMovimentacoes
-          contas={contas.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
-          categorias={categorias}
-          contatos={contatos}
-          linhas={linhas}
-          tipoEspaco={empresaAtiva.tipo}
-          somenteLeitura={somenteLeitura}
-        />
+        <BotaoNovaMovimentacao somenteLeitura={somenteLeitura} />
       </div>
 
       <PeriodPicker />

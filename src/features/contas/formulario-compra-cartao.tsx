@@ -28,9 +28,10 @@ const ROTULO_MODALIDADE: Record<Modalidade, string> = {
 
 /**
  * Campos de uma compra no cartão — mesma lógica de ocorrência
- * (única/parcelado/recorrente) de `BotaoNovaPendencia`, sem o botão/modal
- * ao redor, pra caber tanto na tela do cartão (`BotaoNovaCompraCartao`)
- * quanto dentro do fluxo unificado de "Nova movimentação". `criarPendencia`
+ * (única/parcelado/recorrente) do modo "Débito em conta" de
+ * `ModalNovaMovimentacao`, sem o botão/modal ao redor, pra caber tanto na
+ * tela do cartão (`BotaoNovaCompraCartao`) quanto dentro do fluxo unificado
+ * de "Nova movimentação". `criarPendencia`
  * reconhece conta tipo CARTAO e grava `status: PAGO` com a data calculada
  * pelo ciclo da fatura em vez de `PENDENTE` — o campo que aqui chama "Data
  * da compra" é o mesmo `dataVencimento` que numa pendência normal seria o

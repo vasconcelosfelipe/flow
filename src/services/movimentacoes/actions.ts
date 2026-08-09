@@ -91,7 +91,6 @@ export async function editarMovimentacao(id: string, dados: NovaMovimentacaoInpu
     },
   });
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
 
@@ -126,7 +125,6 @@ export async function excluirMovimentacao(id: string) {
     });
   }
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
 
@@ -215,7 +213,6 @@ export async function desfazerConciliacao(id: string) {
       : { status: "PAGO", origemFitId: null },
   });
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
 
@@ -227,7 +224,6 @@ export async function atualizarCategoriaEmLote(ids: string[], categoriaId: strin
     data: { categoriaId },
   });
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
 
@@ -306,7 +302,6 @@ export async function editarGrupoParcelamento(
   );
 
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 }
 
@@ -328,7 +323,6 @@ export async function excluirGrupoParcelamento(grupoParcelamento: string) {
   });
 
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
   return { excluidas: resultado.count, puladas: totalElegivel - resultado.count };
 }
@@ -438,7 +432,6 @@ export async function criarPendencia(dados: NovaPendenciaInput) {
     });
   }
 
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/movimentacoes");
   revalidatePath("/");
 }

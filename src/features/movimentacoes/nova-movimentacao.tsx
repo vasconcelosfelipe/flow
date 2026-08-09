@@ -13,16 +13,18 @@ import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { FormularioCompraCartao } from "@/features/contas/formulario-compra-cartao";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
-import { parseMoeda } from "@/lib/money";
+import { useNovoLancamento } from "@/components/layout/novo-lancamento-provider";
+import { dividirEmParcelas, formatarValor, parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { criarMovimentacao, criarTransferencia } from "@/services/movimentacoes/actions";
+import { criarMovimentacao, criarPendencia, criarTransferencia } from "@/services/movimentacoes/actions";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoConta, TipoEmpresa } from "@/types/dominio";
 
-type OpcaoConta = { id: string; nome: string; tipo?: TipoConta };
+export type OpcaoConta = { id: string; nome: string; tipo?: TipoConta };
 type TipoLancamento = "DESPESA" | "RECEITA" | "TRANSFERENCIA";
+type Modalidade = "UNICA" | "PARCELADO" | "RECORRENTE";
 
 const SEM_CATEGORIA = "nenhuma";
 const SEM_FORNECEDOR = "nenhum";
@@ -41,25 +43,68 @@ const ROTULO_STATUS_LANCAMENTO: Record<"PAGO" | "PENDENTE" | "CONCILIADO", strin
   CONCILIADO: "Conciliado",
 };
 
-export function BotoesMovimentacoes({
+const ROTULO_MODALIDADE: Record<Modalidade, string> = {
+  UNICA: "Única",
+  PARCELADO: "Parcelado",
+  RECORRENTE: "Recorrente",
+};
+
+/**
+ * Botão-gatilho da tela de Movimentações — o modal em si (`ModalNovaMovimentacao`)
+ * vive uma única vez no layout raiz (ver `NovoLancamentoProvider`), acionado
+ * por este botão OU pelo "+" da navegação, de qualquer tela do app.
+ */
+export function BotaoNovaMovimentacao({ somenteLeitura = false }: { somenteLeitura?: boolean }) {
+  const { abrir } = useNovoLancamento();
+
+  if (somenteLeitura) return null;
+
+  return (
+    <div className="flex gap-2">
+      <Button size="sm" variant="outline" className="gap-1.5" asChild>
+        <Link href="/importar">
+          <Upload className="size-4" aria-hidden="true" />
+          Importar OFX
+        </Link>
+      </Button>
+      <Button size="sm" className="gap-1.5" onClick={abrir}>
+        <Plus className="size-4" aria-hidden="true" />
+        Nova
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Modal de novo lançamento — débito em conta (à vista, parcelado ou
+ * recorrente) ou compra no cartão. Controlado (`aberto`/`aoMudarAberto`),
+ * montado uma vez no layout raiz.
+ *
+ * Débito em conta única chama `criarMovimentacao` (aceita Pago/Pendente/
+ * Conciliado, nasce com `data` ocorrida). Parcelado/Recorrente chamam
+ * `criarPendencia` — mesma action do cartão, sempre nasce PENDENTE, sem
+ * seletor de status (não faz sentido "pagar" uma série inteira de uma vez).
+ */
+export function ModalNovaMovimentacao({
+  aberto,
+  aoMudarAberto,
   contas,
   categorias: categoriasIniciais = [],
   contatos: contatosIniciais = [],
   linhas = [],
   tipoEspaco,
-  somenteLeitura = false,
 }: {
+  aberto: boolean;
+  aoMudarAberto: (aberto: boolean) => void;
   contas: OpcaoConta[];
   categorias?: CategoriaCompleta[];
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
   tipoEspaco: TipoEmpresa;
-  somenteLeitura?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [pendingCartao, setPendingCartao] = useState(false);
-  const [aberto, setAberto] = useState(false);
   // "Nova" abre nesta escolha antes de qualquer formulário — débito em
   // conta e compra no cartão são fluxos diferentes o bastante (parcelamento,
   // sem status, fatura calculada) pra não caber escondidos atrás de um
@@ -91,6 +136,11 @@ export function BotoesMovimentacoes({
   const [contatoId, setContatoId] = useState(SEM_FORNECEDOR);
   const [erroTransferencia, setErroTransferencia] = useState<string | null>(null);
 
+  const [modalidade, setModalidade] = useState<Modalidade>("UNICA");
+  const [numeroParcelas, setNumeroParcelas] = useState("2");
+  const [parcelas, setParcelas] = useState<string[]>([]);
+  const [quantidadeMeses, setQuantidadeMeses] = useState("2");
+
   const transferencia = tipo === "TRANSFERENCIA";
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
   const categoriaSelecionada = categorias.find((c) => c.id === categoriaId);
@@ -111,8 +161,6 @@ export function BotoesMovimentacoes({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transferencia]);
 
-  if (somenteLeitura) return null;
-
   function resetar() {
     setModo("escolha");
     setDescricao("");
@@ -126,18 +174,32 @@ export function BotoesMovimentacoes({
     setContaDestinoId(contas[1]?.id ?? contas[0]?.id ?? "");
     setCategoriaId(SEM_CATEGORIA);
     setContatoId(SEM_FORNECEDOR);
+    setModalidade("UNICA");
+    setNumeroParcelas("2");
+    setParcelas([]);
+    setQuantidadeMeses("2");
+  }
+
+  // Recalcula a divisão igual das parcelas a partir do valor total e da
+  // quantidade — só dispara quando a pessoa mexe num dos dois campos-fonte,
+  // nunca sozinho, porque a edição manual de uma parcela é permanente até o
+  // próximo recálculo explícito.
+  function dividirParcelasIgualmente(valorTexto = valor, quantidadeTexto = numeroParcelas) {
+    const total = parseMoeda(valorTexto) ?? 0;
+    const quantidade = Math.max(2, Math.min(360, Number(quantidadeTexto) || 2));
+    setParcelas(dividirEmParcelas(total, quantidade).map((c) => formatarValor(c)));
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const centavos = parseMoeda(valor);
-    if (!centavos || centavos <= 0) {
-      setErroValor("Digite um valor válido.");
-      return;
-    }
-    if (!contaId) return;
 
     if (transferencia) {
+      const centavos = parseMoeda(valor);
+      if (!centavos || centavos <= 0) {
+        setErroValor("Digite um valor válido.");
+        return;
+      }
+      if (!contaId) return;
       if (contaId === contaDestinoId) {
         setErroTransferencia("Escolha duas contas diferentes.");
         return;
@@ -150,25 +212,72 @@ export function BotoesMovimentacoes({
           data,
           descricao: descricao || undefined,
         });
-        setAberto(false);
+        aoMudarAberto(false);
         resetar();
         router.refresh();
       });
       return;
     }
 
-    startTransition(async () => {
-      await criarMovimentacao({
-        descricao,
-        tipo,
-        valorCentavos: centavos,
-        contaId,
-        categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
-        contatoId: contatoId === SEM_FORNECEDOR ? null : contatoId,
-        status,
-        data,
+    if (!contaId) return;
+    const camposComuns = {
+      descricao,
+      tipo: tipo as "RECEITA" | "DESPESA",
+      contaId,
+      categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
+      contatoId: contatoId === SEM_FORNECEDOR ? null : contatoId,
+    };
+
+    if (modalidade === "UNICA") {
+      const centavos = parseMoeda(valor);
+      if (!centavos || centavos <= 0) {
+        setErroValor("Digite um valor válido.");
+        return;
+      }
+      startTransition(async () => {
+        await criarMovimentacao({ ...camposComuns, valorCentavos: centavos, status, data });
+        aoMudarAberto(false);
+        resetar();
+        router.refresh();
       });
-      setAberto(false);
+      return;
+    }
+
+    if (modalidade === "PARCELADO") {
+      const valoresParcelas = parcelas.map((p) => parseMoeda(p) ?? 0);
+      if (valoresParcelas.length < 2 || valoresParcelas.some((c) => c <= 0)) {
+        setErroValor("Confira o valor de cada parcela.");
+        return;
+      }
+      startTransition(async () => {
+        await criarPendencia({
+          ...camposComuns,
+          modalidade: "PARCELADO",
+          parcelas: valoresParcelas,
+          dataVencimento: data,
+        });
+        aoMudarAberto(false);
+        resetar();
+        router.refresh();
+      });
+      return;
+    }
+
+    const centavos = parseMoeda(valor);
+    if (!centavos || centavos <= 0) {
+      setErroValor("Digite um valor válido.");
+      return;
+    }
+    const meses = Math.max(2, Math.min(360, Number(quantidadeMeses) || 2));
+    startTransition(async () => {
+      await criarPendencia({
+        ...camposComuns,
+        modalidade: "RECORRENTE",
+        valorCentavos: centavos,
+        quantidadeMeses: meses,
+        dataVencimento: data,
+      });
+      aoMudarAberto(false);
       resetar();
       router.refresh();
     });
@@ -176,29 +285,9 @@ export function BotoesMovimentacoes({
 
   return (
     <>
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" className="gap-1.5" asChild>
-          <Link href="/importar">
-            <Upload className="size-4" aria-hidden="true" />
-            Importar OFX
-          </Link>
-        </Button>
-        <Button
-          size="sm"
-          className="gap-1.5"
-          onClick={() => {
-            setAberto(true);
-            setModo(contasCartao.length === 0 ? "debito" : "escolha");
-          }}
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Nova
-        </Button>
-      </div>
-
       <ResponsiveModal
         aberto={aberto}
-        aoMudarAberto={(v) => { setAberto(v); if (!v) resetar(); }}
+        aoMudarAberto={(v) => { aoMudarAberto(v); if (!v) resetar(); }}
         titulo={modo === "cartao" ? "Nova compra no cartão" : "Nova movimentação"}
         descricao={
           modo === "escolha"
@@ -214,7 +303,7 @@ export function BotoesMovimentacoes({
               variant="outline"
               size="lg"
               className="w-full"
-              onClick={() => { setAberto(false); resetar(); }}
+              onClick={() => { aoMudarAberto(false); resetar(); }}
             >
               Cancelar
             </Button>
@@ -234,7 +323,7 @@ export function BotoesMovimentacoes({
                 variant="outline"
                 size="lg"
                 className="flex-1"
-                onClick={() => (contasCartao.length === 0 ? (setAberto(false), resetar()) : setModo("escolha"))}
+                onClick={() => (contasCartao.length === 0 ? (aoMudarAberto(false), resetar()) : setModo("escolha"))}
               >
                 {contasCartao.length === 0 ? "Cancelar" : "Voltar"}
               </Button>
@@ -258,7 +347,8 @@ export function BotoesMovimentacoes({
               <span className="min-w-0 flex-1">
                 <span className="block font-medium text-ink">Débito em conta</span>
                 <span className="block text-micro text-ink-muted">
-                  Entrada ou saída numa conta corrente, poupança, caixa ou investimento.
+                  Entrada ou saída numa conta corrente, poupança, caixa ou investimento —
+                  à vista, parcelada ou recorrente.
                 </span>
               </span>
               <ChevronRight className="size-4 shrink-0 text-ink-muted/50" aria-hidden="true" />
@@ -296,7 +386,7 @@ export function BotoesMovimentacoes({
             tipoEspaco={tipoEspaco}
             aoPendingChange={setPendingCartao}
             aoSalvar={() => {
-              setAberto(false);
+              aoMudarAberto(false);
               resetar();
               router.refresh();
             }}
@@ -305,23 +395,27 @@ export function BotoesMovimentacoes({
 
         {modo === "debito" && (
         <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="nov-valor">Valor (R$)</Label>
-            <Input
-              id="nov-valor"
-              type="text"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={valor}
-              onChange={(e) => {
-                setValor(e.target.value);
-                setErroValor(null);
-              }}
-              className="h-11"
-              required
-            />
-            {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
-          </div>
+          {(transferencia || modalidade !== "PARCELADO") && (
+            <div className="space-y-1.5">
+              <Label htmlFor="nov-valor">
+                {!transferencia && modalidade === "RECORRENTE" ? "Valor de cada ocorrência (R$)" : "Valor (R$)"}
+              </Label>
+              <Input
+                id="nov-valor"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={valor}
+                onChange={(e) => {
+                  setValor(e.target.value);
+                  setErroValor(null);
+                }}
+                className="h-11"
+                required
+              />
+              {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="nov-descricao">Descrição{transferencia && " (opcional)"}</Label>
@@ -399,6 +493,117 @@ export function BotoesMovimentacoes({
           ) : (
             <>
               <div className="space-y-1.5">
+                <Label>Ocorrência</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["UNICA", "PARCELADO", "RECORRENTE"] as const).map((valorModalidade) => (
+                    <button
+                      key={valorModalidade}
+                      type="button"
+                      onClick={() => {
+                        setModalidade(valorModalidade);
+                        setErroValor(null);
+                        if (valorModalidade === "PARCELADO") dividirParcelasIgualmente();
+                      }}
+                      className={cn(
+                        "h-11 rounded-lg border text-micro font-medium transition-colors",
+                        modalidade === valorModalidade
+                          ? "border-brand bg-brand-wash text-brand"
+                          : "border-line text-ink-muted hover:bg-muted",
+                      )}
+                    >
+                      {ROTULO_MODALIDADE[valorModalidade]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {modalidade === "PARCELADO" && (
+                <div className="space-y-3 rounded-2xl border border-line bg-muted/40 p-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nov-valor-total">Valor total (R$)</Label>
+                    <Input
+                      id="nov-valor-total"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={valor}
+                      onChange={(e) => {
+                        setValor(e.target.value);
+                        setErroValor(null);
+                      }}
+                      onBlur={() => dividirParcelasIgualmente()}
+                      className="h-11 bg-surface"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nov-num-parcelas">Número de parcelas</Label>
+                    <Input
+                      id="nov-num-parcelas"
+                      type="number"
+                      min={2}
+                      max={360}
+                      value={numeroParcelas}
+                      onChange={(e) => {
+                        setNumeroParcelas(e.target.value);
+                        dividirParcelasIgualmente(valor, e.target.value);
+                      }}
+                      className="h-11 bg-surface"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label>Valor de cada parcela</Label>
+                      <button
+                        type="button"
+                        onClick={() => dividirParcelasIgualmente()}
+                        className="text-nano font-medium text-brand hover:underline"
+                      >
+                        Dividir igualmente
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {parcelas.map((valorParcela, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-14 shrink-0 text-nano text-ink-muted">
+                            {i + 1}/{parcelas.length}
+                          </span>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={valorParcela}
+                            onChange={(e) =>
+                              setParcelas((atuais) =>
+                                atuais.map((v, idx) => (idx === i ? e.target.value : v)),
+                              )
+                            }
+                            className="h-10 flex-1 bg-surface"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {erroValor && <p className="text-nano text-negative-text">{erroValor}</p>}
+                  </div>
+                </div>
+              )}
+
+              {modalidade === "RECORRENTE" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="nov-meses">Repetir por quantos meses</Label>
+                  <Input
+                    id="nov-meses"
+                    type="number"
+                    min={2}
+                    max={360}
+                    value={quantidadeMeses}
+                    onChange={(e) => setQuantidadeMeses(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
                 <Label>Categoria</Label>
                 <GatilhoSelecao
                   label={categoriaSelecionada?.nome ?? null}
@@ -417,7 +622,9 @@ export function BotoesMovimentacoes({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="nov-data">Data</Label>
+                <Label htmlFor="nov-data">
+                  {modalidade === "UNICA" ? "Data" : "Vencimento da 1ª ocorrência"}
+                </Label>
                 <Input
                   id="nov-data"
                   type="date"
@@ -428,14 +635,16 @@ export function BotoesMovimentacoes({
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <GatilhoSelecao
-                  label={ROTULO_STATUS_LANCAMENTO[status]}
-                  placeholder="Escolher status"
-                  onClick={() => setModalAberto("status")}
-                />
-              </div>
+              {modalidade === "UNICA" && (
+                <div className="space-y-1.5">
+                  <Label>Status</Label>
+                  <GatilhoSelecao
+                    label={ROTULO_STATUS_LANCAMENTO[status]}
+                    placeholder="Escolher status"
+                    onClick={() => setModalAberto("status")}
+                  />
+                </div>
+              )}
 
               {contasNaoCartao.length > 0 && (
                 <div className="space-y-1.5">

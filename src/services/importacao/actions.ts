@@ -490,7 +490,6 @@ export async function confirmarImportacao(input: {
   }
 
   revalidatePath("/movimentacoes");
-  revalidatePath("/a-pagar-receber");
   revalidatePath("/");
 
   return { criadas, conciliadas, ignoradas };

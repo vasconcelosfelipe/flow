@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
+import { Plus } from "lucide-react";
 
 import { DESTINOS, destinoAtivo } from "@/components/layout/navegacao";
+import { useNovoLancamento } from "@/components/layout/novo-lancamento-provider";
 import { cn } from "@/lib/utils";
 import type { TipoEmpresa } from "@/types/dominio";
 
@@ -14,13 +16,24 @@ import type { TipoEmpresa } from "@/types/dominio";
  * O indicador é um único elemento que desliza entre destinos (`layoutId`), em
  * vez de aparecer e sumir: o movimento conta de onde a pessoa veio, o que
  * torna a navegação legível sem exigir leitura do rótulo.
+ *
+ * O "+" central não é um destino (não navega) — abre o modal global de novo
+ * lançamento (`NovoLancamentoProvider`), de qualquer tela. Por isso vive
+ * fora do `.map()` de `DESTINOS`, inserido na posição central por índice.
  */
-export function BottomNav({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
+export function BottomNav({
+  tipoEspaco,
+  somenteLeitura = false,
+}: {
+  tipoEspaco: TipoEmpresa;
+  somenteLeitura?: boolean;
+}) {
   const pathname = usePathname();
   // O kill-switch global de prefers-reduced-motion (globals.css) só zera
   // duração de transition/animation CSS — este indicador é motion/react
   // (spring via WAAPI), então precisa checar a preferência na mão.
   const semAnimacao = useReducedMotion();
+  const { abrir } = useNovoLancamento();
   // Espaço pessoa física não tem DRE — o mesmo destino leva pro resumo de
   // despesas por categoria, então o rótulo muda junto, sem duplicar a
   // navegação numa lista separada por tipo de espaço.
@@ -34,11 +47,11 @@ export function BottomNav({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
       aria-label="Navegação principal"
     >
       <ul className="flex items-stretch justify-around px-1">
-        {destinos.map((destino) => {
+        {destinos.flatMap((destino, i) => {
           const ativo = destinoAtivo(pathname, destino);
           const Icone = destino.icone;
 
-          return (
+          const link = (
             <li key={destino.href} className="flex-1">
               <Link
                 href={destino.href}
@@ -61,6 +74,24 @@ export function BottomNav({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
               </Link>
             </li>
           );
+
+          if (i !== 2) return [link];
+          return [
+            <li key="novo-lancamento" className="flex-1">
+              <button
+                type="button"
+                onClick={abrir}
+                disabled={somenteLeitura}
+                aria-label="Novo lançamento"
+                className="flex min-h-14 w-full flex-col items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset focus-visible:outline-none disabled:opacity-40"
+              >
+                <span className="grid size-9 place-items-center rounded-full bg-brand text-white shadow-night">
+                  <Plus className="size-5" aria-hidden="true" />
+                </span>
+              </button>
+            </li>,
+            link,
+          ];
         })}
       </ul>
       <div className="h-safe-bottom" />
