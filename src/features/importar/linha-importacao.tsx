@@ -262,59 +262,53 @@ export function LinhaImportacao({
         )}
       </div>
 
-      {modalAberto === "categoria" && (
-        <SeletorCategoriaContatoModal
-          tipo="categoria"
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          value={linha.categoriaId ?? SEM_CATEGORIA}
-          onValueChange={(v) =>
-            aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v, origemSugestao: null })
-          }
-          opcoes={[
-            { value: SEM_CATEGORIA, label: "Sem categoria" },
-            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          categorias={categorias}
-          linhas={linhasDre}
-          tipoEspaco={tipoEspaco}
-          tipoPadrao={linha.tipo}
-          aoCriar={aoCriarCategoria}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="categoria"
+        aberto={modalAberto === "categoria"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        value={linha.categoriaId ?? SEM_CATEGORIA}
+        onValueChange={(v) =>
+          aoAtualizar(linha.id, { categoriaId: v === SEM_CATEGORIA ? null : v, origemSugestao: null })
+        }
+        opcoes={[
+          { value: SEM_CATEGORIA, label: "Sem categoria" },
+          ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        categorias={categorias}
+        linhas={linhasDre}
+        tipoEspaco={tipoEspaco}
+        tipoPadrao={linha.tipo}
+        aoCriar={aoCriarCategoria}
+      />
 
-      {modalAberto === "contato" && (
-        <SeletorCategoriaContatoModal
-          tipo="contato"
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          value={linha.contatoId ?? SEM_FORNECEDOR}
-          onValueChange={(v) =>
-            aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v, origemSugestao: null })
-          }
-          opcoes={[
-            { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-            ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          aoCriar={aoCriarContato}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="contato"
+        aberto={modalAberto === "contato"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        value={linha.contatoId ?? SEM_FORNECEDOR}
+        onValueChange={(v) =>
+          aoAtualizar(linha.id, { contatoId: v === SEM_FORNECEDOR ? null : v, origemSugestao: null })
+        }
+        opcoes={[
+          { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+          ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        aoCriar={aoCriarContato}
+      />
 
-      {modalAberto === "contaTransferencia" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo={receita ? "De qual conta veio?" : "Para qual conta foi?"}
-          value={linha.contaTransferenciaId ?? SEM_CONTA}
-          onValueChange={(v) =>
-            aoAtualizar(linha.id, { contaTransferenciaId: v === SEM_CONTA ? null : v })
-          }
-          opcoes={[
-            { value: SEM_CONTA, label: receita ? "De qual conta veio?" : "Para qual conta foi?" },
-            ...contas.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "contaTransferencia"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo={receita ? "De qual conta veio?" : "Para qual conta foi?"}
+        value={linha.contaTransferenciaId ?? SEM_CONTA}
+        onValueChange={(v) =>
+          aoAtualizar(linha.id, { contaTransferenciaId: v === SEM_CONTA ? null : v })
+        }
+        opcoes={[
+          { value: SEM_CONTA, label: receita ? "De qual conta veio?" : "Para qual conta foi?" },
+          ...contas.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+      />
     </div>
   );
 }

@@ -71,28 +71,24 @@ export function FormularioConvite({
         />
       </div>
 
-      {modalAberto === "espaco" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Espaço"
-          value={empresaId}
-          onValueChange={(v) => setValue("empresaId", v, { shouldValidate: true })}
-          opcoes={empresas.map((e) => ({ value: e.id, label: e.nome }))}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "espaco"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Espaço"
+        value={empresaId}
+        onValueChange={(v) => setValue("empresaId", v, { shouldValidate: true })}
+        opcoes={empresas.map((e) => ({ value: e.id, label: e.nome }))}
+      />
 
-      {modalAberto === "papel" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Papel"
-          value={papel}
-          onValueChange={(v) => setValue("papel", v as PapelMembro)}
-          opcoes={PAPEIS.map((p) => ({ value: p, label: ROTULO_PAPEL[p] }))}
-          buscavel={false}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "papel"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Papel"
+        value={papel}
+        onValueChange={(v) => setValue("papel", v as PapelMembro)}
+        opcoes={PAPEIS.map((p) => ({ value: p, label: ROTULO_PAPEL[p] }))}
+        buscavel={false}
+      />
     </form>
   );
 }

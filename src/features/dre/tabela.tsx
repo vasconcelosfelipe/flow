@@ -135,30 +135,41 @@ function LinhaComponente({
         </span>
       </button>
 
-      {aberto && (
-        <div className="space-y-1.5 bg-muted/20 px-4 py-2.5 pl-9">
-          {linha.itens.map((item) => (
-            <div key={item.categoriaId} className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-micro text-ink-muted">
-                  {item.tipo === "DESPESA" && "(-) "}
-                  {item.nome}
-                </span>
-                <AmountText centavos={item.totalCentavos} tom="neutro" tamanho="sm" />
-              </div>
-              {item.subitens.map((sub) => (
-                <div key={sub.categoriaId} className="flex items-center justify-between gap-2 pl-4">
-                  <span className="text-nano text-ink-muted/80">
-                    {sub.tipo === "DESPESA" && "(-) "}
-                    {sub.nome}
+      {/* Grid-rows 0fr→1fr é o jeito de animar "altura automática" sem JS
+          medindo pixel algum — o item de grid encolhe pra zero e o
+          `overflow-hidden` do miolo esconde o conteúdo (padding incluso)
+          nesse estado, em vez do antigo aparece/some sem transição nenhuma. */}
+      <div
+        className={cn(
+          "grid bg-muted/20 transition-[grid-template-rows] duration-200 ease-out",
+          aberto ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-1.5 px-4 py-2.5 pl-9">
+            {linha.itens.map((item) => (
+              <div key={item.categoriaId} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-micro text-ink-muted">
+                    {item.tipo === "DESPESA" && "(-) "}
+                    {item.nome}
                   </span>
-                  <AmountText centavos={sub.totalCentavos} tom="neutro" tamanho="sm" />
+                  <AmountText centavos={item.totalCentavos} tom="neutro" tamanho="sm" />
                 </div>
-              ))}
-            </div>
-          ))}
+                {item.subitens.map((sub) => (
+                  <div key={sub.categoriaId} className="flex items-center justify-between gap-2 pl-4">
+                    <span className="text-nano text-ink-muted/80">
+                      {sub.tipo === "DESPESA" && "(-) "}
+                      {sub.nome}
+                    </span>
+                    <AmountText centavos={sub.totalCentavos} tom="neutro" tamanho="sm" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

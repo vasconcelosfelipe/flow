@@ -326,33 +326,29 @@ export function FormularioCategoria({
         </div>
       )}
 
-      {modalAberto === "categoriaPai" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Categoria pai"
-          value={categoriaPaiId}
-          onValueChange={(v) => setValue("categoriaPaiId", v)}
-          opcoes={[
-            { value: SEM_PAI, label: "Nenhuma — categoria principal" },
-            ...paisDisponiveis.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "categoriaPai"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Categoria pai"
+        value={categoriaPaiId}
+        onValueChange={(v) => setValue("categoriaPaiId", v)}
+        opcoes={[
+          { value: SEM_PAI, label: "Nenhuma — categoria principal" },
+          ...paisDisponiveis.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+      />
 
-      {modalAberto === "linhaDre" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Linha da DRE"
-          value={linhaDreId}
-          onValueChange={(v) => setValue("linhaDreId", v)}
-          opcoes={[
-            { value: SEM_LINHA, label: "Nenhuma — fora da DRE" },
-            ...linhasDisponiveis.map((l) => ({ value: l.id, label: l.nome })),
-          ]}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "linhaDre"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Linha da DRE"
+        value={linhaDreId}
+        onValueChange={(v) => setValue("linhaDreId", v)}
+        opcoes={[
+          { value: SEM_LINHA, label: "Nenhuma — fora da DRE" },
+          ...linhasDisponiveis.map((l) => ({ value: l.id, label: l.nome })),
+        ]}
+      />
     </form>
   );
 }

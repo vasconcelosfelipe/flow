@@ -549,66 +549,58 @@ function FormularioEdicao({
         />
       </div>
 
-      {modalAberto === "categoria" && (
-        <SeletorCategoriaContatoModal
-          tipo="categoria"
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          value={categoriaId}
-          onValueChange={setCategoriaId}
-          opcoes={[
-            { value: SEM_CATEGORIA, label: "Sem categoria" },
-            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          categorias={categorias}
-          linhas={linhas}
-          tipoEspaco={tipoEspaco}
-          tipoPadrao={tipo}
-          aoCriar={aoCriarCategoria}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="categoria"
+        aberto={modalAberto === "categoria"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        value={categoriaId}
+        onValueChange={setCategoriaId}
+        opcoes={[
+          { value: SEM_CATEGORIA, label: "Sem categoria" },
+          ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        categorias={categorias}
+        linhas={linhas}
+        tipoEspaco={tipoEspaco}
+        tipoPadrao={tipo}
+        aoCriar={aoCriarCategoria}
+      />
 
-      {modalAberto === "contato" && (
-        <SeletorCategoriaContatoModal
-          tipo="contato"
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          value={contatoId}
-          onValueChange={setContatoId}
-          opcoes={[
-            { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-            ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          aoCriar={aoCriarContato}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="contato"
+        aberto={modalAberto === "contato"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        value={contatoId}
+        onValueChange={setContatoId}
+        opcoes={[
+          { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+          ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        aoCriar={aoCriarContato}
+      />
 
-      {modalAberto === "status" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Status"
-          value={status}
-          onValueChange={(v) => setStatus(v as typeof status)}
-          opcoes={[
-            { value: "PAGO", label: "Pago" },
-            { value: "PENDENTE", label: "Pendente" },
-            { value: "CONCILIADO", label: "Conciliado" },
-          ]}
-          buscavel={false}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "status"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Status"
+        value={status}
+        onValueChange={(v) => setStatus(v as typeof status)}
+        opcoes={[
+          { value: "PAGO", label: "Pago" },
+          { value: "PENDENTE", label: "Pendente" },
+          { value: "CONCILIADO", label: "Conciliado" },
+        ]}
+        buscavel={false}
+      />
 
-      {modalAberto === "conta" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Conta"
-          value={contaId}
-          onValueChange={setContaId}
-          opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "conta"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Conta"
+        value={contaId}
+        onValueChange={setContaId}
+        opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
+      />
     </form>
   );
 }

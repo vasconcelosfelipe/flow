@@ -229,17 +229,15 @@ export function FormularioConta({
         </div>
       )}
 
-      {modalAberto === "tipo" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Tipo de conta"
-          value={tipo}
-          onValueChange={(v) => setValue("tipo", v as TipoConta)}
-          opcoes={TIPOS_CONTA.map((t) => ({ value: t, label: ROTULO_TIPO_CONTA[t] }))}
-          buscavel={false}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "tipo"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Tipo de conta"
+        value={tipo}
+        onValueChange={(v) => setValue("tipo", v as TipoConta)}
+        opcoes={TIPOS_CONTA.map((t) => ({ value: t, label: ROTULO_TIPO_CONTA[t] }))}
+        buscavel={false}
+      />
     </form>
   );
 }

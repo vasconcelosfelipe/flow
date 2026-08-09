@@ -409,50 +409,44 @@ export function BotaoNovaPendencia({
         </form>
       </ResponsiveModal>
 
-      {modalAberto === "categoria" && (
-        <SeletorCategoriaContatoModal
-          tipo="categoria"
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          value={categoriaId}
-          onValueChange={setCategoriaId}
-          opcoes={[
-            { value: SEM_CATEGORIA, label: "Sem categoria" },
-            ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          categorias={categorias}
-          linhas={linhas}
-          tipoEspaco={tipoEspaco}
-          tipoPadrao={tipo}
-          aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="categoria"
+        aberto={modalAberto === "categoria"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        value={categoriaId}
+        onValueChange={setCategoriaId}
+        opcoes={[
+          { value: SEM_CATEGORIA, label: "Sem categoria" },
+          ...categoriasDoTipo.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        categorias={categorias}
+        linhas={linhas}
+        tipoEspaco={tipoEspaco}
+        tipoPadrao={tipo}
+        aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
+      />
 
-      {modalAberto === "contato" && (
-        <SeletorCategoriaContatoModal
-          tipo="contato"
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          value={contatoId}
-          onValueChange={setContatoId}
-          opcoes={[
-            { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
-            ...contatos.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          aoCriar={(contato) => setContatos((atual) => [...atual, contato])}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="contato"
+        aberto={modalAberto === "contato"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        value={contatoId}
+        onValueChange={setContatoId}
+        opcoes={[
+          { value: SEM_FORNECEDOR, label: "Sem fornecedor/cliente" },
+          ...contatos.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        aoCriar={(contato) => setContatos((atual) => [...atual, contato])}
+      />
 
-      {modalAberto === "conta" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalAberto(null)}
-          titulo="Conta"
-          value={contaId}
-          onValueChange={setContaId}
-          opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalAberto === "conta"}
+        aoMudarAberto={(a) => !a && setModalAberto(null)}
+        titulo="Conta"
+        value={contaId}
+        onValueChange={setContaId}
+        opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
+      />
     </>
   );
 }

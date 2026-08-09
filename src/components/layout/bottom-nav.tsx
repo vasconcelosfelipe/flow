@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 
 import { DESTINOS, destinoAtivo } from "@/components/layout/navegacao";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,10 @@ import type { TipoEmpresa } from "@/types/dominio";
  */
 export function BottomNav({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
   const pathname = usePathname();
+  // O kill-switch global de prefers-reduced-motion (globals.css) só zera
+  // duração de transition/animation CSS — este indicador é motion/react
+  // (spring via WAAPI), então precisa checar a preferência na mão.
+  const semAnimacao = useReducedMotion();
   // Espaço pessoa física não tem DRE — o mesmo destino leva pro resumo de
   // despesas por categoria, então o rótulo muda junto, sem duplicar a
   // navegação numa lista separada por tipo de espaço.
@@ -49,7 +53,7 @@ export function BottomNav({ tipoEspaco }: { tipoEspaco: TipoEmpresa }) {
                   <motion.span
                     layoutId="nav-ativo"
                     className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-night-text"
-                    transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    transition={semAnimacao ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                   />
                 )}
                 <Icone className="size-5" aria-hidden="true" />

@@ -184,71 +184,63 @@ export function FiltrosMovimentacoes({
         </div>
       </ResponsiveModal>
 
-      {campoAberto === "tipo" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setCampoAberto(null)}
-          titulo="Tipo"
-          value={params.get("tipo") ?? "todos"}
-          onValueChange={(v) => aplicar({ tipo: v })}
-          opcoes={[
-            { value: "todos", label: "Todos os tipos" },
-            { value: "RECEITA", label: "Receitas" },
-            { value: "DESPESA", label: "Despesas" },
-          ]}
-          buscavel={false}
-        />
-      )}
+      <SeletorListaModal
+        aberto={campoAberto === "tipo"}
+        aoMudarAberto={(a) => !a && setCampoAberto(null)}
+        titulo="Tipo"
+        value={params.get("tipo") ?? "todos"}
+        onValueChange={(v) => aplicar({ tipo: v })}
+        opcoes={[
+          { value: "todos", label: "Todos os tipos" },
+          { value: "RECEITA", label: "Receitas" },
+          { value: "DESPESA", label: "Despesas" },
+        ]}
+        buscavel={false}
+      />
 
-      {campoAberto === "conta" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setCampoAberto(null)}
-          titulo="Conta"
-          value={params.get("conta") ?? "todos"}
-          onValueChange={(v) => aplicar({ conta: v })}
-          opcoes={[
-            { value: "todos", label: "Todas as contas" },
-            ...contas.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-        />
-      )}
+      <SeletorListaModal
+        aberto={campoAberto === "conta"}
+        aoMudarAberto={(a) => !a && setCampoAberto(null)}
+        titulo="Conta"
+        value={params.get("conta") ?? "todos"}
+        onValueChange={(v) => aplicar({ conta: v })}
+        opcoes={[
+          { value: "todos", label: "Todas as contas" },
+          ...contas.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+      />
 
-      {campoAberto === "status" && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setCampoAberto(null)}
-          titulo="Status"
-          value={params.get("status") ?? "todos"}
-          onValueChange={(v) => aplicar({ status: v })}
-          opcoes={[
-            { value: "todos", label: "Todos os status" },
-            { value: "PAGO", label: "Pago" },
-            { value: "PENDENTE", label: "Pendente" },
-            { value: "CONCILIADO", label: "Conciliado" },
-            { value: "CANCELADO", label: "Excluído" },
-          ]}
-          buscavel={false}
-        />
-      )}
+      <SeletorListaModal
+        aberto={campoAberto === "status"}
+        aoMudarAberto={(a) => !a && setCampoAberto(null)}
+        titulo="Status"
+        value={params.get("status") ?? "todos"}
+        onValueChange={(v) => aplicar({ status: v })}
+        opcoes={[
+          { value: "todos", label: "Todos os status" },
+          { value: "PAGO", label: "Pago" },
+          { value: "PENDENTE", label: "Pendente" },
+          { value: "CONCILIADO", label: "Conciliado" },
+          { value: "CANCELADO", label: "Excluído" },
+        ]}
+        buscavel={false}
+      />
 
-      {categoriaModalAberto && (
-        <SeletorCategoriaContatoModal
-          tipo="categoria"
-          aberto
-          aoMudarAberto={setCategoriaModalAberto}
-          value={params.get("categoria") ?? "todos"}
-          onValueChange={(v) => aplicar({ categoria: v })}
-          opcoes={[
-            { value: "todos", label: "Todas as categorias" },
-            ...categorias.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
-          categorias={categorias}
-          linhas={linhas}
-          tipoEspaco={tipoEspaco}
-          aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
-        />
-      )}
+      <SeletorCategoriaContatoModal
+        tipo="categoria"
+        aberto={categoriaModalAberto}
+        aoMudarAberto={setCategoriaModalAberto}
+        value={params.get("categoria") ?? "todos"}
+        onValueChange={(v) => aplicar({ categoria: v })}
+        opcoes={[
+          { value: "todos", label: "Todas as categorias" },
+          ...categorias.map((c) => ({ value: c.id, label: c.nome })),
+        ]}
+        categorias={categorias}
+        linhas={linhas}
+        tipoEspaco={tipoEspaco}
+        aoCriar={(categoria) => setCategorias((atual) => [...atual, categoria])}
+      />
     </div>
   );
 }

@@ -346,20 +346,18 @@ export function DetalheUsuarioConsole({
         )}
       </div>
 
-      {modalPapelAberto && (
-        <SeletorListaModal
-          aberto
-          aoMudarAberto={(a) => !a && setModalPapelAberto(null)}
-          titulo="Papel"
-          value={modalPapelAberto === "papelNovo" ? papelNovo : (membros.find((m) => m.empresaId === modalPapelAberto)?.papel ?? "MEMBRO")}
-          onValueChange={(v) => {
-            if (modalPapelAberto === "papelNovo") setPapelNovo(v as PapelMembro);
-            else handlePapel(modalPapelAberto, v as PapelMembro);
-          }}
-          opcoes={PAPEIS.map((p) => ({ value: p, label: ROTULO_PAPEL[p] }))}
-          buscavel={false}
-        />
-      )}
+      <SeletorListaModal
+        aberto={modalPapelAberto !== null}
+        aoMudarAberto={(a) => !a && setModalPapelAberto(null)}
+        titulo="Papel"
+        value={modalPapelAberto === "papelNovo" ? papelNovo : (membros.find((m) => m.empresaId === modalPapelAberto)?.papel ?? "MEMBRO")}
+        onValueChange={(v) => {
+          if (modalPapelAberto === "papelNovo") setPapelNovo(v as PapelMembro);
+          else if (modalPapelAberto) handlePapel(modalPapelAberto, v as PapelMembro);
+        }}
+        opcoes={PAPEIS.map((p) => ({ value: p, label: ROTULO_PAPEL[p] }))}
+        buscavel={false}
+      />
     </div>
   );
 }
