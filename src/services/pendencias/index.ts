@@ -14,9 +14,16 @@ import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
  * A fatura de um cartão não é uma `Movimentacao` — é a soma das compras do
  * ciclo que vence agora (mesma consulta da tela da fatura, `listarFaturaCartao`),
  * lida ao vivo a cada carregamento. Por isso "atualiza sozinha": não existe
- * snapshot gravado. É só o ciclo que fecha/vence neste mês, não o saldo
- * devedor total da conta (que pode incluir ciclos anteriores ainda não
- * pagos) — senão dobra o valor de quem já vem pagando fatura por fatura.
+ * snapshot gravado.
+ *
+ * O valor mostrado é limitado ao saldo devedor atual da conta
+ * (`min(total do ciclo, saldo devedor))`. `saldoCentavos` já é a dívida
+ * líquida de tudo — compras de todos os ciclos menos toda transferência de
+ * pagamento recebida — então esse teto é o que faz a fatura diminuir (e
+ * eventualmente sumir da lista) conforme o pagamento entra, mesmo sendo
+ * parcial, sem precisar casar transferência com ciclo específico. Sem
+ * pagamento nenhum, o saldo devedor de ciclos anteriores nunca pagos deixa
+ * o teto sempre maior que o ciclo atual, então o `min` não interfere.
  */
 async function listarFaturasAbertas(empresaId: string, hoje: Date): Promise<MovimentacaoResumo[]> {
   const contas = await listarContas(empresaId);
@@ -28,10 +35,12 @@ async function listarFaturasAbertas(empresaId: string, hoje: Date): Promise<Movi
     cartoes.map(async (conta) => {
       const vencimento = calcularVencimentoFatura(hoje, conta.diaFechamento!, conta.diaVencimentoFatura!);
       const itens = await listarFaturaCartao(empresaId, conta.id, vencimento);
-      const valorCentavos = itens.reduce(
+      const totalCiclo = itens.reduce(
         (soma, m) => soma + (m.tipo === "RECEITA" ? -m.valorCentavos : m.valorCentavos),
         0,
       );
+      const saldoDevedor = Math.max(-conta.saldoCentavos, 0);
+      const valorCentavos = Math.min(totalCiclo, saldoDevedor);
       if (valorCentavos <= 0) return null;
       const fatura: MovimentacaoResumo = {
         id: `fatura-${conta.id}`,
