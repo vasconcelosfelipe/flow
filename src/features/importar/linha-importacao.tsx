@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
-import { SearchableSelect } from "@/components/shared/searchable-select";
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
@@ -88,7 +89,9 @@ export function LinhaImportacao({
   aoCriarCategoria: (categoria: CategoriaCompleta) => void;
   aoCriarContato: (contato: ContatoCompleto) => void;
 }) {
-  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
+  const [modalAberto, setModalAberto] = useState<
+    "categoria" | "contato" | "contaTransferencia" | null
+  >(null);
   const receita = linha.tipo === "RECEITA";
   const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
   const categoriaSelecionada = categorias.find((c) => c.id === linha.categoriaId);
@@ -204,19 +207,11 @@ export function LinhaImportacao({
 
             {linha.ehTransferencia ? (
               <div className="mt-1.5">
-                <SearchableSelect
+                <GatilhoSelecao
                   size="sm"
-                  value={linha.contaTransferenciaId ?? SEM_CONTA}
-                  onValueChange={(v) =>
-                    aoAtualizar(linha.id, { contaTransferenciaId: v === SEM_CONTA ? null : v })
-                  }
+                  label={contas.find((c) => c.id === linha.contaTransferenciaId)?.nome ?? null}
                   placeholder={receita ? "De qual conta veio?" : "Para qual conta foi?"}
-                  searchPlaceholder="Buscar conta…"
-                  emptyText="Nenhuma outra conta cadastrada."
-                  options={[
-                    { value: SEM_CONTA, label: receita ? "De qual conta veio?" : "Para qual conta foi?" },
-                    ...contas.map((c) => ({ value: c.id, label: c.nome })),
-                  ]}
+                  onClick={() => setModalAberto("contaTransferencia")}
                 />
               </div>
             ) : (
@@ -302,6 +297,22 @@ export function LinhaImportacao({
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
           aoCriar={aoCriarContato}
+        />
+      )}
+
+      {modalAberto === "contaTransferencia" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo={receita ? "De qual conta veio?" : "Para qual conta foi?"}
+          value={linha.contaTransferenciaId ?? SEM_CONTA}
+          onValueChange={(v) =>
+            aoAtualizar(linha.id, { contaTransferenciaId: v === SEM_CONTA ? null : v })
+          }
+          opcoes={[
+            { value: SEM_CONTA, label: receita ? "De qual conta veio?" : "Para qual conta foi?" },
+            ...contas.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
         />
       )}
     </div>

@@ -11,13 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { parseMoeda } from "@/lib/money";
@@ -350,7 +344,9 @@ function FormularioEdicao({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
+  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | "status" | "conta" | null>(
+    null,
+  );
   // Lançamento de cartão vive fora do PENDENTE/PAGO comum — nasce PAGO com
   // a data já calculada pelo ciclo da fatura (ver `criarPendencia`). Deixar
   // trocar o status aqui tiraria a linha da fatura sem avisar (viraria
@@ -525,32 +521,22 @@ function FormularioEdicao({
       {!ehCartao && (
         <div className="space-y-1.5">
           <Label>Status</Label>
-          <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-            <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PAGO">Pago</SelectItem>
-              <SelectItem value="PENDENTE">Pendente</SelectItem>
-              <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-            </SelectContent>
-          </Select>
+          <GatilhoSelecao
+            label={ROTULO_STATUS[status]}
+            placeholder="Escolher status"
+            onClick={() => setModalAberto("status")}
+          />
         </div>
       )}
 
       {!ehCartao && contas.length > 0 && (
         <div className="space-y-1.5">
           <Label>Conta</Label>
-          <Select value={contaId} onValueChange={setContaId}>
-            <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {contas.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <GatilhoSelecao
+            label={contas.find((c) => c.id === contaId)?.nome ?? null}
+            placeholder="Escolher conta"
+            onClick={() => setModalAberto("conta")}
+          />
         </div>
       )}
 
@@ -594,6 +580,33 @@ function FormularioEdicao({
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
           aoCriar={aoCriarContato}
+        />
+      )}
+
+      {modalAberto === "status" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Status"
+          value={status}
+          onValueChange={(v) => setStatus(v as typeof status)}
+          opcoes={[
+            { value: "PAGO", label: "Pago" },
+            { value: "PENDENTE", label: "Pendente" },
+            { value: "CONCILIADO", label: "Conciliado" },
+          ]}
+          buscavel={false}
+        />
+      )}
+
+      {modalAberto === "conta" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Conta"
+          value={contaId}
+          onValueChange={setContaId}
+          opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
         />
       )}
     </form>

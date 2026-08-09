@@ -198,6 +198,17 @@ comportam diferente nos dois modos (ver abaixo).
 - Formulário de modal: campos em `space-y-1.5` por grupo (`Label` + campo),
   `space-y-4` entre grupos, botões finais `flex gap-2 pt-2` com `flex-1`
   cada. Ver `nova-movimentacao.tsx` como referência para copiar um form novo.
+- **Nenhum campo de lista usa `Select`/`SearchableSelect` do shadcn**
+  (dropdown ou popover ancorado no campo — lê como menu de contexto).
+  Todo campo do tipo lista é `GatilhoSelecao` (botão) +
+  `SeletorListaModal` (`components/shared/`) — folha cheia com busca,
+  igual o seletor de categoria/fornecedor. `SeletorListaModal` é genérico
+  (`opcoes: {value, label}[]`, `buscavel` desliga a busca em listas curtas
+  tipo Status/Tipo); `SeletorCategoriaContatoModal` é a variante
+  específica que também sabe cadastrar um item novo na hora. Única
+  exceção: campo fora de modal (ex.: `PassoUpload` do wizard de
+  importação) — a regra é sobre o padrão de interação dentro de modal,
+  não uma proibição do `Select` em toda a UI.
 
 ## Verificação de mudanças visuais/PWA
 

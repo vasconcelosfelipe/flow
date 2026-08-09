@@ -6,13 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { dividirEmParcelas, formatarValor, parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { criarPendencia } from "@/services/movimentacoes/actions";
@@ -63,7 +57,7 @@ export function FormularioCompraCartao({
   aoPendingChange?: (pending: boolean) => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
+  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | "cartao" | null>(null);
   const [categorias, setCategorias] = useState(categoriasIniciais);
   const [contatos, setContatos] = useState(contatosIniciais);
 
@@ -164,16 +158,11 @@ export function FormularioCompraCartao({
         {contas.length > 1 && (
           <div className="space-y-1.5">
             <Label>Cartão</Label>
-            <Select value={contaId} onValueChange={setContaId}>
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {contas.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GatilhoSelecao
+              label={contas.find((c) => c.id === contaId)?.nome ?? null}
+              placeholder="Escolher cartão"
+              onClick={() => setModalAberto("cartao")}
+            />
           </div>
         )}
 
@@ -411,6 +400,17 @@ export function FormularioCompraCartao({
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
           aoCriar={(contato) => setContatos((atual) => [...atual, contato])}
+        />
+      )}
+
+      {modalAberto === "cartao" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Cartão"
+          value={contaId}
+          onValueChange={setContaId}
+          opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
         />
       )}
     </>

@@ -9,14 +9,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { SearchableSelect } from "@/components/shared/searchable-select";
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { ICONES, iconeDe, type ChaveIcone } from "@/lib/icones";
 import { cn } from "@/lib/utils";
 import type { CategoriaCompleta, FormularioCategoria } from "@/services/categorias/dto";
@@ -74,6 +68,7 @@ export function FormularioCategoria({
   aoExcluir?: (id: string) => void;
 }) {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [modalAberto, setModalAberto] = useState<"categoriaPai" | "linhaDre" | null>(null);
 
   const {
     register,
@@ -194,16 +189,10 @@ export function FormularioCategoria({
 
       <div className="space-y-1.5">
         <Label>Categoria pai</Label>
-        <SearchableSelect
-          value={categoriaPaiId}
-          onValueChange={(v) => setValue("categoriaPaiId", v)}
+        <GatilhoSelecao
+          label={paiSelecionado?.nome ?? null}
           placeholder="Nenhuma — categoria principal"
-          searchPlaceholder="Buscar categoria…"
-          emptyText="Nenhuma categoria principal desse tipo ainda."
-          options={[
-            { value: SEM_PAI, label: "Nenhuma — categoria principal" },
-            ...paisDisponiveis.map((c) => ({ value: c.id, label: c.nome })),
-          ]}
+          onClick={() => setModalAberto("categoriaPai")}
         />
         <p className="text-nano text-ink-muted">
           Escolha uma categoria principal pra tornar esta uma subcategoria dela.
@@ -219,19 +208,11 @@ export function FormularioCategoria({
                 "Nenhuma — fora da DRE"}
             </div>
           ) : (
-            <Select value={linhaDreId} onValueChange={(v) => setValue("linhaDreId", v)}>
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={SEM_LINHA}>Nenhuma — fora da DRE</SelectItem>
-                {linhasDisponiveis.map((linha) => (
-                  <SelectItem key={linha.id} value={linha.id}>
-                    {linha.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GatilhoSelecao
+              label={linhasDisponiveis.find((l) => l.id === linhaDreId)?.nome ?? null}
+              placeholder="Nenhuma — fora da DRE"
+              onClick={() => setModalAberto("linhaDre")}
+            />
           )}
           <p className="text-nano text-ink-muted">
             {paiSelecionado
@@ -343,6 +324,34 @@ export function FormularioCategoria({
             </button>
           )}
         </div>
+      )}
+
+      {modalAberto === "categoriaPai" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Categoria pai"
+          value={categoriaPaiId}
+          onValueChange={(v) => setValue("categoriaPaiId", v)}
+          opcoes={[
+            { value: SEM_PAI, label: "Nenhuma — categoria principal" },
+            ...paisDisponiveis.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+        />
+      )}
+
+      {modalAberto === "linhaDre" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Linha da DRE"
+          value={linhaDreId}
+          onValueChange={(v) => setValue("linhaDreId", v)}
+          opcoes={[
+            { value: SEM_LINHA, label: "Nenhuma — fora da DRE" },
+            ...linhasDisponiveis.map((l) => ({ value: l.id, label: l.nome })),
+          ]}
+        />
       )}
     </form>
   );

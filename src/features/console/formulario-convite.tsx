@@ -2,17 +2,13 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { z } from "zod";
 
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ROTULO_PAPEL, type PapelMembro } from "@/types/dominio";
 import type { EmpresaConsole, FormularioConviteUsuario } from "@/services/console/dto";
 
@@ -46,6 +42,7 @@ export function FormularioConvite({
 
   const empresaId = watch("empresaId");
   const papel = watch("papel");
+  const [modalAberto, setModalAberto] = useState<"espaco" | "papel" | null>(null);
 
   return (
     <form id={FORM_ID_CONVITE} onSubmit={handleSubmit(aoConvidar)} className="space-y-5 py-2 pb-6">
@@ -57,36 +54,45 @@ export function FormularioConvite({
 
       <div className="space-y-1.5">
         <Label>Espaço</Label>
-        <Select value={empresaId} onValueChange={(v) => setValue("empresaId", v)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue placeholder="Escolha o espaço" />
-          </SelectTrigger>
-          <SelectContent>
-            {empresas.map((e) => (
-              <SelectItem key={e.id} value={e.id}>
-                {e.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <GatilhoSelecao
+          label={empresas.find((e) => e.id === empresaId)?.nome ?? null}
+          placeholder="Escolha o espaço"
+          onClick={() => setModalAberto("espaco")}
+        />
         {errors.empresaId && <p className="text-nano text-negative-text">{errors.empresaId.message}</p>}
       </div>
 
       <div className="space-y-1.5">
         <Label>Papel</Label>
-        <Select value={papel} onValueChange={(v) => setValue("papel", v as PapelMembro)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PAPEIS.map((p) => (
-              <SelectItem key={p} value={p}>
-                {ROTULO_PAPEL[p]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <GatilhoSelecao
+          label={ROTULO_PAPEL[papel]}
+          placeholder="Escolher papel"
+          onClick={() => setModalAberto("papel")}
+        />
       </div>
+
+      {modalAberto === "espaco" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Espaço"
+          value={empresaId}
+          onValueChange={(v) => setValue("empresaId", v, { shouldValidate: true })}
+          opcoes={empresas.map((e) => ({ value: e.id, label: e.nome }))}
+        />
+      )}
+
+      {modalAberto === "papel" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Papel"
+          value={papel}
+          onValueChange={(v) => setValue("papel", v as PapelMembro)}
+          opcoes={PAPEIS.map((p) => ({ value: p, label: ROTULO_PAPEL[p] }))}
+          buscavel={false}
+        />
+      )}
     </form>
   );
 }

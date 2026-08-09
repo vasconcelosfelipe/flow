@@ -4,16 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, useMemo } from "react";
 import { Building2, Plus, PowerOff, Search, Trash2, ShieldCheck } from "lucide-react";
 
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   alternarUsuarioAtivo,
   atribuirEmpresa,
@@ -47,6 +42,9 @@ export function DetalheUsuarioConsole({
   const [emailDigitado, setEmailDigitado] = useState("");
   const [erroExclusao, setErroExclusao] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // "papelNovo" é o seletor do bloco "Adicionar espaço"; qualquer outro
+  // valor é o empresaId da linha de membro cujo papel está sendo trocado.
+  const [modalPapelAberto, setModalPapelAberto] = useState<string | "papelNovo" | null>(null);
 
   function alternarAtiva() {
     startTransition(async () => {
@@ -157,22 +155,14 @@ export function DetalheUsuarioConsole({
                   {m.empresaNome}
                 </span>
 
-                <Select
-                  value={m.papel}
-                  onValueChange={(v) => handlePapel(m.empresaId, v as PapelMembro)}
+                <GatilhoSelecao
+                  size="sm"
+                  label={ROTULO_PAPEL[m.papel]}
+                  placeholder="Escolher papel"
+                  className="w-32"
                   disabled={pending}
-                >
-                  <SelectTrigger className="h-8 w-32 text-micro">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAPEIS.map((p) => (
-                      <SelectItem key={p} value={p} className="text-micro">
-                        {ROTULO_PAPEL[p]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onClick={() => setModalPapelAberto(m.empresaId)}
+                />
 
                 <button
                   onClick={() => handleRemover(m.empresaId)}
@@ -242,21 +232,12 @@ export function DetalheUsuarioConsole({
         {/* Papel + botão — só aparecem quando um espaço está selecionado */}
         {empresaSelecionada && (
           <div className="flex gap-2">
-            <Select
-              value={papelNovo}
-              onValueChange={(v) => setPapelNovo(v as PapelMembro)}
-            >
-              <SelectTrigger className="h-10 flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAPEIS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {ROTULO_PAPEL[p]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <GatilhoSelecao
+              label={ROTULO_PAPEL[papelNovo]}
+              placeholder="Escolher papel"
+              className="h-10 flex-1"
+              onClick={() => setModalPapelAberto("papelNovo")}
+            />
 
             <Button
               onClick={handleAtribuir}
@@ -364,6 +345,21 @@ export function DetalheUsuarioConsole({
           </div>
         )}
       </div>
+
+      {modalPapelAberto && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalPapelAberto(null)}
+          titulo="Papel"
+          value={modalPapelAberto === "papelNovo" ? papelNovo : (membros.find((m) => m.empresaId === modalPapelAberto)?.papel ?? "MEMBRO")}
+          onValueChange={(v) => {
+            if (modalPapelAberto === "papelNovo") setPapelNovo(v as PapelMembro);
+            else handlePapel(modalPapelAberto, v as PapelMembro);
+          }}
+          opcoes={PAPEIS.map((p) => ({ value: p, label: ROTULO_PAPEL[p] }))}
+          buscavel={false}
+        />
+      )}
     </div>
   );
 }

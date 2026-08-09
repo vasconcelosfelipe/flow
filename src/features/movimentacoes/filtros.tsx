@@ -6,16 +6,9 @@ import { useEffect, useState, useTransition } from "react";
 
 import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
-import { SearchableSelect } from "@/components/shared/searchable-select";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
@@ -24,6 +17,13 @@ import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoFiltro = { id: string; nome: string };
+
+const ROTULO_STATUS_FILTRO: Record<string, string> = {
+  PAGO: "Pago",
+  PENDENTE: "Pendente",
+  CONCILIADO: "Conciliado",
+  CANCELADO: "Excluído",
+};
 
 export function FiltrosMovimentacoes({
   contas = [],
@@ -45,6 +45,7 @@ export function FiltrosMovimentacoes({
   const buscaAtrasada = useDebouncedValue(busca, 250);
   const [modalAberto, setModalAberto] = useState(false);
   const [categoriaModalAberto, setCategoriaModalAberto] = useState(false);
+  const [campoAberto, setCampoAberto] = useState<"tipo" | "conta" | "status" | null>(null);
   const [categorias, setCategorias] = useState(categoriasIniciais);
 
   useEffect(() => {
@@ -141,33 +142,25 @@ export function FiltrosMovimentacoes({
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
             <Label>Tipo</Label>
-            <Select
-              value={params.get("tipo") ?? "todos"}
-              onValueChange={(v) => aplicar({ tipo: v })}
-            >
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os tipos</SelectItem>
-                <SelectItem value="RECEITA">Receitas</SelectItem>
-                <SelectItem value="DESPESA">Despesas</SelectItem>
-              </SelectContent>
-            </Select>
+            <GatilhoSelecao
+              label={
+                params.get("tipo") === "RECEITA"
+                  ? "Receitas"
+                  : params.get("tipo") === "DESPESA"
+                    ? "Despesas"
+                    : null
+              }
+              placeholder="Todos os tipos"
+              onClick={() => setCampoAberto("tipo")}
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>Conta</Label>
-            <SearchableSelect
-              value={params.get("conta") ?? "todos"}
-              onValueChange={(v) => aplicar({ conta: v })}
+            <GatilhoSelecao
+              label={contas.find((c) => c.id === params.get("conta"))?.nome ?? null}
               placeholder="Todas as contas"
-              searchPlaceholder="Buscar conta…"
-              emptyText="Nenhuma conta encontrada."
-              options={[
-                { value: "todos", label: "Todas as contas" },
-                ...contas.map((c) => ({ value: c.id, label: c.nome })),
-              ]}
+              onClick={() => setCampoAberto("conta")}
             />
           </div>
 
@@ -182,24 +175,62 @@ export function FiltrosMovimentacoes({
 
           <div className="space-y-1.5">
             <Label>Status</Label>
-            <Select
-              value={params.get("status") ?? "todos"}
-              onValueChange={(v) => aplicar({ status: v })}
-            >
-              <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                <SelectItem value="PAGO">Pago</SelectItem>
-                <SelectItem value="PENDENTE">Pendente</SelectItem>
-                <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-                <SelectItem value="CANCELADO">Excluído</SelectItem>
-              </SelectContent>
-            </Select>
+            <GatilhoSelecao
+              label={ROTULO_STATUS_FILTRO[params.get("status") ?? ""] ?? null}
+              placeholder="Todos os status"
+              onClick={() => setCampoAberto("status")}
+            />
           </div>
         </div>
       </ResponsiveModal>
+
+      {campoAberto === "tipo" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setCampoAberto(null)}
+          titulo="Tipo"
+          value={params.get("tipo") ?? "todos"}
+          onValueChange={(v) => aplicar({ tipo: v })}
+          opcoes={[
+            { value: "todos", label: "Todos os tipos" },
+            { value: "RECEITA", label: "Receitas" },
+            { value: "DESPESA", label: "Despesas" },
+          ]}
+          buscavel={false}
+        />
+      )}
+
+      {campoAberto === "conta" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setCampoAberto(null)}
+          titulo="Conta"
+          value={params.get("conta") ?? "todos"}
+          onValueChange={(v) => aplicar({ conta: v })}
+          opcoes={[
+            { value: "todos", label: "Todas as contas" },
+            ...contas.map((c) => ({ value: c.id, label: c.nome })),
+          ]}
+        />
+      )}
+
+      {campoAberto === "status" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setCampoAberto(null)}
+          titulo="Status"
+          value={params.get("status") ?? "todos"}
+          onValueChange={(v) => aplicar({ status: v })}
+          opcoes={[
+            { value: "todos", label: "Todos os status" },
+            { value: "PAGO", label: "Pago" },
+            { value: "PENDENTE", label: "Pendente" },
+            { value: "CONCILIADO", label: "Conciliado" },
+            { value: "CANCELADO", label: "Excluído" },
+          ]}
+          buscavel={false}
+        />
+      )}
 
       {categoriaModalAberto && (
         <SeletorCategoriaContatoModal

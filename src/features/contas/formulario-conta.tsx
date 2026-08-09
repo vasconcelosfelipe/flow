@@ -9,13 +9,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { iconeDeConta } from "@/lib/icones-conta";
 import { parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -55,6 +50,7 @@ export function FormularioConta({
   aoExcluir?: (id: string) => void;
 }) {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  const [modalAberto, setModalAberto] = useState<"tipo" | null>(null);
 
   const {
     register,
@@ -114,18 +110,11 @@ export function FormularioConta({
 
       <div className="space-y-1.5">
         <Label>Tipo</Label>
-        <Select value={tipo} onValueChange={(v) => setValue("tipo", v as TipoConta)}>
-          <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {TIPOS_CONTA.map((t) => (
-              <SelectItem key={t} value={t}>
-                {ROTULO_TIPO_CONTA[t]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <GatilhoSelecao
+          label={ROTULO_TIPO_CONTA[tipo]}
+          placeholder="Escolher tipo"
+          onClick={() => setModalAberto("tipo")}
+        />
       </div>
 
       {tipo === "CARTAO" && (
@@ -238,6 +227,18 @@ export function FormularioConta({
             </button>
           )}
         </div>
+      )}
+
+      {modalAberto === "tipo" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Tipo de conta"
+          value={tipo}
+          onValueChange={(v) => setValue("tipo", v as TipoConta)}
+          opcoes={TIPOS_CONTA.map((t) => ({ value: t, label: ROTULO_TIPO_CONTA[t] }))}
+          buscavel={false}
+        />
       )}
     </form>
   );

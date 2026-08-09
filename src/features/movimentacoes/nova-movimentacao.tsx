@@ -12,13 +12,7 @@ import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
 import { ResponsiveModal } from "@/components/shared/responsive-modal";
 import { FormularioCompraCartao } from "@/features/contas/formulario-compra-cartao";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { criarMovimentacao, criarTransferencia } from "@/services/movimentacoes/actions";
@@ -40,6 +34,12 @@ const TIPOS: { valor: TipoLancamento; rotulo: string }[] = [
   { valor: "RECEITA", rotulo: "Receita" },
   { valor: "TRANSFERENCIA", rotulo: "Transferência" },
 ];
+
+const ROTULO_STATUS_LANCAMENTO: Record<"PAGO" | "PENDENTE" | "CONCILIADO", string> = {
+  PAGO: "Pago",
+  PENDENTE: "Pendente",
+  CONCILIADO: "Conciliado",
+};
 
 export function BotoesMovimentacoes({
   contas,
@@ -65,7 +65,9 @@ export function BotoesMovimentacoes({
   // sem status, fatura calculada) pra não caber escondidos atrás de um
   // seletor de tipo de conta comum.
   const [modo, setModo] = useState<"escolha" | "debito" | "cartao">("escolha");
-  const [modalAberto, setModalAberto] = useState<"categoria" | "contato" | null>(null);
+  const [modalAberto, setModalAberto] = useState<
+    "categoria" | "contato" | "contaOrigem" | "contaDestino" | "status" | "conta" | null
+  >(null);
   // Categoria/fornecedor criados na hora entram aqui pra ficarem selecionáveis
   // sem precisar recarregar a página.
   const [categorias, setCategorias] = useState(categoriasIniciais);
@@ -363,30 +365,20 @@ export function BotoesMovimentacoes({
             <>
               <div className="space-y-1.5">
                 <Label>Conta de origem</Label>
-                <Select value={contaId} onValueChange={setContaId}>
-                  <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contas.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GatilhoSelecao
+                  label={contas.find((c) => c.id === contaId)?.nome ?? null}
+                  placeholder="Escolher conta"
+                  onClick={() => setModalAberto("contaOrigem")}
+                />
               </div>
 
               <div className="space-y-1.5">
                 <Label>Conta de destino</Label>
-                <Select value={contaDestinoId} onValueChange={setContaDestinoId}>
-                  <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contas.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GatilhoSelecao
+                  label={contas.find((c) => c.id === contaDestinoId)?.nome ?? null}
+                  placeholder="Escolher conta"
+                  onClick={() => setModalAberto("contaDestino")}
+                />
                 {erroTransferencia && (
                   <p className="text-nano text-negative-text">{erroTransferencia}</p>
                 )}
@@ -438,31 +430,21 @@ export function BotoesMovimentacoes({
 
               <div className="space-y-1.5">
                 <Label>Status</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as typeof status)}>
-                  <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PAGO">Pago</SelectItem>
-                    <SelectItem value="PENDENTE">Pendente</SelectItem>
-                    <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-                  </SelectContent>
-                </Select>
+                <GatilhoSelecao
+                  label={ROTULO_STATUS_LANCAMENTO[status]}
+                  placeholder="Escolher status"
+                  onClick={() => setModalAberto("status")}
+                />
               </div>
 
               {contasNaoCartao.length > 0 && (
                 <div className="space-y-1.5">
                   <Label>Conta</Label>
-                  <Select value={contaId} onValueChange={setContaId}>
-                    <SelectTrigger className="h-11 w-full rounded-lg border-line bg-surface">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {contasNaoCartao.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <GatilhoSelecao
+                    label={contasNaoCartao.find((c) => c.id === contaId)?.nome ?? null}
+                    placeholder="Escolher conta"
+                    onClick={() => setModalAberto("conta")}
+                  />
                 </div>
               )}
             </>
@@ -502,6 +484,53 @@ export function BotoesMovimentacoes({
             ...contatos.map((c) => ({ value: c.id, label: c.nome })),
           ]}
           aoCriar={(contato) => setContatos((atual) => [...atual, contato])}
+        />
+      )}
+
+      {modalAberto === "contaOrigem" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Conta de origem"
+          value={contaId}
+          onValueChange={setContaId}
+          opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
+        />
+      )}
+
+      {modalAberto === "contaDestino" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Conta de destino"
+          value={contaDestinoId}
+          onValueChange={setContaDestinoId}
+          opcoes={contas.map((c) => ({ value: c.id, label: c.nome }))}
+        />
+      )}
+
+      {modalAberto === "status" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Status"
+          value={status}
+          onValueChange={(v) => setStatus(v as typeof status)}
+          opcoes={(Object.keys(ROTULO_STATUS_LANCAMENTO) as (keyof typeof ROTULO_STATUS_LANCAMENTO)[]).map(
+            (v) => ({ value: v, label: ROTULO_STATUS_LANCAMENTO[v] }),
+          )}
+          buscavel={false}
+        />
+      )}
+
+      {modalAberto === "conta" && (
+        <SeletorListaModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          titulo="Conta"
+          value={contaId}
+          onValueChange={setContaId}
+          opcoes={contasNaoCartao.map((c) => ({ value: c.id, label: c.nome }))}
         />
       )}
     </>
