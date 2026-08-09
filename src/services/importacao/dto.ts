@@ -21,6 +21,14 @@ export type LinhaImportacao = {
   /** FITID do OFX — também a chave de dedup gravada em `origemFitId`. */
   id: string;
   descricao: string;
+  /**
+   * Texto exatamente como veio do extrato, nunca editado — a pessoa pode
+   * reescrever `descricao` livremente na revisão, mas a conciliação de
+   * importações futuras precisa comparar contra o texto original do banco,
+   * senão um "PIX RECEBIDO — JOAO 04/03" renomeado pra "Aluguel" para de
+   * casar com a próxima ocorrência do mesmo PIX.
+   */
+  descricaoOriginal: string;
   data: Date;
   valorCentavos: Centavos;
   tipo: TipoMovimentacao;

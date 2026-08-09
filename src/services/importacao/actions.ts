@@ -87,6 +87,9 @@ type HistoricoEntrada = {
   tipo: string;
   categoriaId: string | null;
   contatoId: string | null;
+  /** Descrição legível que a pessoa deixou da última vez — vira sugestão
+   * de texto pra próxima ocorrência parecida (ver `descricaoSugerida`). */
+  descricao: string;
 };
 
 /**
@@ -96,11 +99,25 @@ type HistoricoEntrada = {
  * do limiar), sempre restrito ao mesmo tipo (RECEITA/DESPESA). Só olha pro
  * histórico já conciliado — é a única fonte que representa uma decisão
  * confirmada de verdade, não um rascunho de importação anterior.
+ *
+ * O núcleo compara sempre `descricaoOriginal` (o texto cru do banco, nunca
+ * editado) — não `descricao`. Comparar contra `descricao` quebraria o match
+ * assim que a pessoa renomeasse um lançamento (ex.: "PIX RECEBIDO — JOAO
+ * 04/03" virar "Aluguel recebido" faria a próxima ocorrência do mesmo PIX
+ * parar de casar). `descricaoOriginal` é `null` em lançamento manual (nunca
+ * veio de importação) — nesse caso cai pra `descricao` mesmo, é a única
+ * referência que existe.
  */
 async function aprenderComHistorico(empresaId: string): Promise<HistoricoEntrada[]> {
   const historico = await db.movimentacao.findMany({
     where: { empresaId, status: "CONCILIADO", data: { not: null } },
-    select: { descricao: true, tipo: true, categoriaId: true, contatoId: true },
+    select: {
+      descricao: true,
+      descricaoOriginal: true,
+      tipo: true,
+      categoriaId: true,
+      contatoId: true,
+    },
     orderBy: { data: "desc" },
     take: 3000,
   });
@@ -109,7 +126,7 @@ async function aprenderComHistorico(empresaId: string): Promise<HistoricoEntrada
   const entradas: HistoricoEntrada[] = [];
   for (const mov of historico) {
     if (mov.categoriaId === null && mov.contatoId === null) continue;
-    const nucleo = normalizarDescricao(mov.descricao);
+    const nucleo = normalizarDescricao(mov.descricaoOriginal ?? mov.descricao);
     if (!nucleo) continue;
     const chave = `${mov.tipo}::${nucleo}`;
     // Descrição repetida (mesmo núcleo) só entra uma vez — a lista já vem da
@@ -123,6 +140,7 @@ async function aprenderComHistorico(empresaId: string): Promise<HistoricoEntrada
       tipo: mov.tipo,
       categoriaId: mov.categoriaId,
       contatoId: mov.contatoId,
+      descricao: mov.descricao,
     });
   }
   return entradas;
@@ -131,19 +149,22 @@ async function aprenderComHistorico(empresaId: string): Promise<HistoricoEntrada
 /** Acha a melhor pista pro histórico pra uma descrição nova: primeiro tenta
  * bater exato (núcleo idêntico), senão pega a entrada mais parecida acima do
  * limiar. Restrito ao mesmo tipo — RECEITA nunca sugere categoria/fornecedor
- * de uma DESPESA parecida por coincidência de texto. */
+ * de uma DESPESA parecida por coincidência de texto. `descricao` aqui é
+ * sempre o texto cru do extrato novo (`t.descricao`), nunca editado. */
 function encontrarAprendizado(
   descricao: string,
   tipo: string,
   historico: HistoricoEntrada[],
-): { categoriaId: string | null; contatoId: string | null } | null {
+): { categoriaId: string | null; contatoId: string | null; descricaoSugerida: string } | null {
   const nucleo = normalizarDescricao(descricao);
   if (!nucleo) return null;
 
   const doTipo = historico.filter((h) => h.tipo === tipo);
 
   const exato = doTipo.find((h) => h.nucleo === nucleo);
-  if (exato) return { categoriaId: exato.categoriaId, contatoId: exato.contatoId };
+  if (exato) {
+    return { categoriaId: exato.categoriaId, contatoId: exato.contatoId, descricaoSugerida: exato.descricao };
+  }
 
   // Descrição curta demais — só o match exato acima vale, comparar por
   // trigrama aqui é ruído (foi assim que um PIX virou "Cartão de crédito").
@@ -160,7 +181,9 @@ function encontrarAprendizado(
       melhor = h;
     }
   }
-  return melhor ? { categoriaId: melhor.categoriaId, contatoId: melhor.contatoId } : null;
+  return melhor
+    ? { categoriaId: melhor.categoriaId, contatoId: melhor.contatoId, descricaoSugerida: melhor.descricao }
+    : null;
 }
 
 /**
@@ -297,7 +320,11 @@ export async function processarArquivoOfx(
 
     return {
       id: t.fitId,
-      descricao: t.descricao,
+      // Trigrama achou a mesma origem antes: reaproveita o nome legível que
+      // a pessoa deixou naquela vez, em vez do texto cru do banco — ela só
+      // reescreve à mão se for a primeira vez que essa origem aparece.
+      descricao: doTrigrama?.descricaoSugerida || t.descricao,
+      descricaoOriginal: t.descricao,
       data: t.data,
       valorCentavos: t.valorCentavos,
       tipo: t.tipo,
@@ -379,6 +406,9 @@ export async function confirmarImportacao(input: {
               empresaId,
               contaId: contaOrigemId,
               descricao: linha.descricao || `Transferência para ${contaDestino.nome}`,
+              // Só a perna importada carrega o texto cru do banco — a outra
+              // é sintética, nunca veio de um extrato de verdade.
+              descricaoOriginal: contaOrigemId === input.contaId ? linha.descricaoOriginal : null,
               tipo: "DESPESA",
               valorCentavos: linha.valorCentavos,
               status: "CONCILIADO",
@@ -395,6 +425,7 @@ export async function confirmarImportacao(input: {
               empresaId,
               contaId: contaDestinoId,
               descricao: linha.descricao || `Transferência de ${contaOrigem.nome}`,
+              descricaoOriginal: contaDestinoId === input.contaId ? linha.descricaoOriginal : null,
               tipo: "RECEITA",
               valorCentavos: linha.valorCentavos,
               status: "CONCILIADO",
@@ -421,6 +452,9 @@ export async function confirmarImportacao(input: {
             categoriaId: linha.categoriaId,
             contatoId: linha.contatoId,
             descricao: linha.descricao,
+            // Pendência nasceu manual, sem descrição de banco — agora que
+            // uma linha de extrato está fechando ela, passa a ter uma.
+            descricaoOriginal: linha.descricaoOriginal,
           },
         });
         await db.importacaoLinha.create({
@@ -435,6 +469,7 @@ export async function confirmarImportacao(input: {
             categoriaId: linha.categoriaId,
             contatoId: linha.contatoId,
             descricao: linha.descricao,
+            descricaoOriginal: linha.descricaoOriginal,
             tipo: linha.tipo,
             valorCentavos: linha.valorCentavos,
             status: "CONCILIADO",
