@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { Receipt } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { EmptyState } from "@/components/shared/empty-state";
+import { chaveDia, fimMes, inicioMes } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
 import { formatarPercentual } from "@/lib/money";
 import type { ResumoDespesasPorCategoria } from "@/services/dre/dto";
@@ -10,9 +12,14 @@ import type { ResumoDespesasPorCategoria } from "@/services/dre/dto";
  * Substitui `<ResumoDre>` + `<TabelaDre>` pra espaços `PESSOA_FISICA`: uma
  * lista simples de categorias de despesa do período, maior gasto primeiro,
  * cada uma com a própria cor como identidade — mesmo padrão visual de
- * `TransactionRow`/pílula de categoria, sem gráfico novo.
+ * `TransactionRow`/pílula de categoria, sem gráfico novo. Cada linha leva
+ * pra Movimentações já filtrada pelo mesmo período (mês ou ano, conforme o
+ * modo escolhido em `<FiltrosDre>`) e pela categoria clicada.
  */
 export function ListaDespesasPorCategoria({ resumo }: { resumo: ResumoDespesasPorCategoria }) {
+  const de = chaveDia(inicioMes(resumo.meses[0]));
+  const ate = chaveDia(fimMes(resumo.meses[resumo.meses.length - 1]));
+
   if (resumo.itens.length === 0) {
     return (
       <EmptyState
@@ -34,7 +41,11 @@ export function ListaDespesasPorCategoria({ resumo }: { resumo: ResumoDespesasPo
         {resumo.itens.map((item) => {
           const Icone = iconeDe(item.icone);
           return (
-            <div key={item.categoriaId} className="flex items-center gap-3 px-4 py-3">
+            <Link
+              key={item.categoriaId}
+              href={`/movimentacoes?de=${de}&ate=${ate}&categoria=${item.categoriaId}`}
+              className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
+            >
               <span
                 className="grid size-10 shrink-0 place-items-center rounded-xl"
                 style={{ backgroundColor: `${item.cor}1a`, color: item.cor }}
@@ -61,7 +72,7 @@ export function ListaDespesasPorCategoria({ resumo }: { resumo: ResumoDespesasPo
                   </span>
                 </div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

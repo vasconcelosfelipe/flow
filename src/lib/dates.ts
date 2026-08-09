@@ -152,6 +152,18 @@ export function chaveMes(data: Date): string {
   return format(comoCalendario(data), "yyyy-MM");
 }
 
+/** Primeiro dia do mês de uma data-calendário, como data-calendário (meia-noite UTC). */
+export function inicioMes(data: Date): Date {
+  const alvo = comoCalendario(data);
+  return new Date(Date.UTC(alvo.getFullYear(), alvo.getMonth(), 1));
+}
+
+/** Último dia do mês de uma data-calendário, como data-calendário (meia-noite UTC). */
+export function fimMes(data: Date): Date {
+  const alvo = comoCalendario(data);
+  return new Date(Date.UTC(alvo.getFullYear(), alvo.getMonth() + 1, 0));
+}
+
 /** Os doze meses de um ano, como início de cada mês. Colunas da DRE anual. */
 export function mesesDoAno(ano: number): Date[] {
   const janeiro = new Date(ano, 0, 1);
