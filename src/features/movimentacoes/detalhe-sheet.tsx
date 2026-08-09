@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { differenceInCalendarDays } from "date-fns";
 import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -458,14 +457,15 @@ function FormularioEdicao({
         status,
         data,
       });
-      if (aplicarATodas && movimentacao.grupoParcelamento) {
+      if (aplicarATodas && movimentacao.grupoParcelamento && movimentacao.numeroParcela) {
         await editarGrupoParcelamento(movimentacao.grupoParcelamento, movimentacao.id, {
           descricao,
           tipo,
           categoriaId: categoriaId === SEM_CATEGORIA ? null : categoriaId,
           contatoId: contatoId === SEM_FORNECEDOR ? null : contatoId,
           contaId,
-          deltaDias: differenceInCalendarDays(new Date(`${data}T00:00:00.000Z`), new Date(`${dataInicial}T00:00:00.000Z`)),
+          novaData: data,
+          numeroParcelaEditada: movimentacao.numeroParcela,
         });
       }
       // Atualiza a linha na lista de trás na hora — `router.refresh()`

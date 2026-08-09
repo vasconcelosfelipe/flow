@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addDays, addMonths } from "date-fns";
+import { addMonths } from "date-fns";
 
 import { db } from "@/lib/db";
 import { calcularVencimentoFatura } from "@/lib/dates";
@@ -237,10 +237,16 @@ export type EditarGrupoParcelamentoInput = {
   categoriaId: string | null;
   contatoId: string | null;
   contaId: string;
-  /** Diferença (em dias) entre a nova e a antiga data da parcela que
-   * originou a edição — desloca a série mantendo o intervalo entre
-   * parcelas, em vez de igualar todas à mesma data. */
-  deltaDias: number;
+  /** Data (ou vencimento) que a parcela editada acabou de ganhar — ISO
+   * YYYY-MM-DD. */
+  novaData: string;
+  /** `numeroParcela` da parcela editada — a série inteira é recalculada a
+   * partir dela (`addMonths`), não por um delta acumulado: refazer o
+   * cálculo pela posição na série é imune a reabrir/reeditar a mesma
+   * parcela várias vezes, o que um delta baseado em "valor antigo salvo no
+   * navegador" não é (o "antigo" fica desatualizado assim que a pessoa
+   * salva uma vez sem marcar "aplicar a todas" e volta depois). */
+  numeroParcelaEditada: number;
 };
 
 /**
@@ -254,10 +260,10 @@ export type EditarGrupoParcelamentoInput = {
  * por design (juros, arredondamento — ver `NovaPendenciaInput`), e status
  * mistura PAGO/PENDENTE/CONCILIADO dentro do mesmo grupo por natureza.
  *
- * Data conciliada está casada com o extrato bancário real — deslocá-la
+ * Data conciliada está casada com o extrato bancário real — recalculá-la
  * quebraria a conciliação sem avisar, mesma razão que já bloqueia
- * exclusão de conciliado — por isso o deslocamento pula quem está
- * CONCILIADO (os outros campos ainda são atualizados nela).
+ * exclusão de conciliado — por isso a data pula quem está CONCILIADO (os
+ * outros campos ainda são atualizados nela).
  */
 export async function editarGrupoParcelamento(
   grupoParcelamento: string,
@@ -268,10 +274,18 @@ export async function editarGrupoParcelamento(
   const membros = await db.movimentacao.findMany({
     where: { empresaId, grupoParcelamento, id: { not: excetoId }, status: { not: "CANCELADO" } },
   });
+  const novaData = new Date(`${dados.novaData}T00:00:00.000Z`);
 
   await db.$transaction(
-    membros.map((m) =>
-      db.movimentacao.update({
+    membros.map((m) => {
+      // Mesma conta usada em `criarPendencia`: a série inteira nasceu como
+      // `addMonths(dataBase, i)`, então recalcular pela posição reproduz
+      // exatamente o mesmo intervalo, cartão (fatura) ou não.
+      const novaDataMembro =
+        m.numeroParcela !== null
+          ? addMonths(novaData, m.numeroParcela - dados.numeroParcelaEditada)
+          : novaData;
+      return db.movimentacao.update({
         where: { id: m.id },
         data: {
           descricao: dados.descricao,
@@ -279,16 +293,16 @@ export async function editarGrupoParcelamento(
           categoriaId: dados.categoriaId,
           contatoId: dados.contatoId,
           contaId: dados.contaId,
-          ...(dados.deltaDias !== 0 && m.status !== "CONCILIADO"
+          ...(m.status !== "CONCILIADO"
             ? {
-                data: m.data ? addDays(m.data, dados.deltaDias) : null,
-                dataVencimento: m.dataVencimento ? addDays(m.dataVencimento, dados.deltaDias) : null,
-                dataCompetencia: addDays(m.dataCompetencia, dados.deltaDias),
+                data: m.data ? novaDataMembro : null,
+                dataVencimento: m.dataVencimento ? novaDataMembro : null,
+                dataCompetencia: novaDataMembro,
               }
             : {}),
         },
-      }),
-    ),
+      });
+    }),
   );
 
   revalidatePath("/movimentacoes");
