@@ -85,6 +85,7 @@ function pendencias(
     totalCentavos: somar(abertas),
     quantidade: abertas.length,
     vencidoCentavos: somar(vencidas),
+    vencidoQuantidade: vencidas.length,
   };
 }
 

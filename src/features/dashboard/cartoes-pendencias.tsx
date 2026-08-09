@@ -51,7 +51,7 @@ function CartaoPendencia({
 }) {
   const saida = tom === "saida";
   const Icone = saida ? ArrowUpRight : ArrowDownLeft;
-  const temVencido = saida && bloco.vencidoCentavos > 0;
+  const temVencido = saida && bloco.vencidoQuantidade > 0;
 
   return (
     <Link
@@ -86,7 +86,10 @@ function CartaoPendencia({
       <p className="mt-1 text-nano text-ink-muted">
         {bloco.quantidade} {bloco.quantidade === 1 ? "título" : "títulos"}
         {temVencido && (
-          <span className="font-semibold text-negative-text"> · vencidos</span>
+          <span className="font-semibold text-negative-text">
+            {" "}
+            · {bloco.vencidoQuantidade} {bloco.vencidoQuantidade === 1 ? "vencido" : "vencidos"}
+          </span>
         )}
       </p>
     </Link>

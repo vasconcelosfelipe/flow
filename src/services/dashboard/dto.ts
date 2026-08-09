@@ -36,6 +36,9 @@ export type BlocoPendencias = {
   quantidade: number;
   /** Quanto do total já passou do vencimento. */
   vencidoCentavos: Centavos;
+  /** Quantos títulos de `quantidade` estão vencidos — nunca todos por
+   * suposição, o card precisa dizer "1 vencido", não só "vencidos". */
+  vencidoQuantidade: number;
 };
 
 export type ResumoDashboard = {
