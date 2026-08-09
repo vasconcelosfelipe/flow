@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Building2, Check, ChevronsUpDown } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DropdownMenu,
@@ -41,9 +42,15 @@ export function EmpresaSwitcher({
   const [, startTransition] = useTransition();
   const unica = empresas.length <= 1;
 
-  function trocarPara(slug: string) {
+  function trocarPara(slug: string, nome: string) {
     startTransition(async () => {
       await selecionarEmpresa(slug);
+      // A troca de espaço muda saldo, DRE, cada lançamento — só o rótulo no
+      // topo mudando de nome passa despercebido, então o toast é a
+      // confirmação visual de que a mudança realmente aconteceu.
+      toast.success(`Agora você está em ${nome}`, {
+        icon: <Building2 className="size-4" aria-hidden="true" />,
+      });
       // `push` já busca a Home do zero no servidor — um `refresh()` depois
       // dele repetia a mesma busca de novo, dobrando a espera à toa.
       router.push("/");
@@ -83,7 +90,7 @@ export function EmpresaSwitcher({
           return (
             <DropdownMenuItem
               key={empresa.id}
-              onSelect={() => trocarPara(empresa.slug)}
+              onSelect={() => trocarPara(empresa.slug, empresa.nome)}
               className="gap-2"
             >
               <span className="min-w-0 flex-1">
