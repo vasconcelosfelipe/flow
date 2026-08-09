@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users } from "lucide-react";
+import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
@@ -55,6 +55,7 @@ export function DetalheMovimentacaoSheet({
   linhas = [],
   tipoEspaco,
   aoFechar,
+  aoEditar,
   somenteLeitura = false,
 }: {
   movimentacao: MovimentacaoResumo | null;
@@ -64,6 +65,10 @@ export function DetalheMovimentacaoSheet({
   linhas?: LinhaDreOpcao[];
   tipoEspaco: TipoEmpresa;
   aoFechar: () => void;
+  /** Atualiza a linha na lista da tela de trás na hora, sem esperar o
+   * round-trip do `router.refresh()` — é o que faz a edição parecer
+   * instantânea em vez de "só atualiza depois de um tempinho". */
+  aoEditar?: (atualizada: MovimentacaoResumo) => void;
   somenteLeitura?: boolean;
 }) {
   const [editando, setEditando] = useState(false);
@@ -147,6 +152,7 @@ export function DetalheMovimentacaoSheet({
           aoCriarCategoria={(categoria) => setCategorias((atual) => [...atual, categoria])}
           aoCriarContato={(contato) => setContatos((atual) => [...atual, contato])}
           aoPendingChange={setSalvandoEdicao}
+          aoEditar={aoEditar}
           aoSalvar={() => {
             setEditando(false);
             aoFechar();
@@ -328,6 +334,7 @@ function FormularioEdicao({
   aoCriarContato,
   aoSalvar,
   aoPendingChange,
+  aoEditar,
 }: {
   movimentacao: MovimentacaoResumo;
   contas: OpcaoConta[];
@@ -339,6 +346,7 @@ function FormularioEdicao({
   aoCriarContato: (contato: ContatoCompleto) => void;
   aoSalvar: () => void;
   aoPendingChange: (pending: boolean) => void;
+  aoEditar?: (atualizada: MovimentacaoResumo) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -397,6 +405,32 @@ function FormularioEdicao({
         status,
         data,
       });
+      // Atualiza a linha na lista de trás na hora — `router.refresh()`
+      // ainda roda por baixo pra manter tudo consistente (saldo, DRE etc.),
+      // mas sem isto a edição só aparece depois do round-trip completar.
+      const contaSelecionada = contas.find((c) => c.id === contaId);
+      const dataUtc = new Date(`${data}T00:00:00.000Z`);
+      aoEditar?.({
+        ...movimentacao,
+        descricao,
+        tipo,
+        valorCentavos: centavos,
+        status,
+        data: status === "PENDENTE" ? null : dataUtc,
+        dataVencimento: status === "PENDENTE" ? dataUtc : null,
+        conta: contaSelecionada
+          ? { ...movimentacao.conta, id: contaSelecionada.id, nome: contaSelecionada.nome }
+          : movimentacao.conta,
+        categoria: categoriaSelecionada
+          ? {
+              id: categoriaSelecionada.id,
+              nome: categoriaSelecionada.nome,
+              icone: categoriaSelecionada.icone,
+              cor: categoriaSelecionada.cor,
+            }
+          : null,
+        contato: contatoSelecionado ? { id: contatoSelecionado.id, nome: contatoSelecionado.nome } : null,
+      });
       router.refresh();
       aoSalvar();
     });
@@ -423,13 +457,25 @@ function FormularioEdicao({
 
       <div className="space-y-1.5">
         <Label htmlFor="edit-descricao">Descrição</Label>
-        <Input
-          id="edit-descricao"
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          className="h-11"
-          required
-        />
+        <div className="relative">
+          <Input
+            id="edit-descricao"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            className="h-11 pr-9"
+            required
+          />
+          {descricao && (
+            <button
+              type="button"
+              onClick={() => setDescricao("")}
+              className="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-ink-muted hover:bg-muted"
+            >
+              <X className="size-4" aria-hidden="true" />
+              <span className="sr-only">Limpar descrição</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1.5">

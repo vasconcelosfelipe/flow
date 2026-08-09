@@ -12,7 +12,7 @@ import { buscarMaisMovimentacoes } from "@/services/movimentacoes/actions";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
-import type { FiltroMovimentacoes, GrupoDiario } from "@/services/movimentacoes/dto";
+import type { FiltroMovimentacoes, GrupoDiario, MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
@@ -83,6 +83,30 @@ export function ListaMovimentacoes({
   }, [gruposIniciais, proximoCursorInicial]);
 
   const todosOsItens = useMemo(() => grupos.flatMap((g) => g.itens), [grupos]);
+
+  // Reflete uma edição na hora, sem esperar `router.refresh()` — só troca o
+  // item dentro do grupo (dia) onde ele já está e resoma os totais do grupo;
+  // se a data mudou pra outro dia, o `router.refresh()` que já roda junto
+  // corrige a posição pouco depois.
+  function atualizarMovimentacao(atualizada: MovimentacaoResumo) {
+    setGrupos((atuais) =>
+      atuais.map((grupo) => {
+        if (!grupo.itens.some((m) => m.id === atualizada.id)) return grupo;
+        const itens = grupo.itens.map((m) => (m.id === atualizada.id ? atualizada : m));
+        const sinal = (m: typeof atualizada) => (m.tipo === "RECEITA" ? 1 : -1);
+        const realizado = (m: typeof atualizada) => m.status === "PAGO" || m.status === "CONCILIADO";
+        return {
+          ...grupo,
+          itens,
+          totalCentavos: itens.reduce((s, m) => s + sinal(m) * m.valorCentavos, 0),
+          totalRealizadoCentavos: itens.reduce(
+            (s, m) => s + (realizado(m) ? sinal(m) * m.valorCentavos : 0),
+            0,
+          ),
+        };
+      }),
+    );
+  }
 
   // Saldo acumulado até o fim de cada dia — só existe com uma conta
   // filtrada (sem isso, misturar contas diferentes não tem um saldo só que
@@ -159,6 +183,7 @@ export function ListaMovimentacoes({
           contatos={contatos}
           linhas={linhas}
           tipoEspaco={tipoEspaco}
+          aoEditar={atualizarMovimentacao}
           aoFechar={() => setAbertoId(null)}
           somenteLeitura={somenteLeitura}
         />

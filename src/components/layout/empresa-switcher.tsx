@@ -44,8 +44,9 @@ export function EmpresaSwitcher({
   function trocarPara(slug: string) {
     startTransition(async () => {
       await selecionarEmpresa(slug);
+      // `push` já busca a Home do zero no servidor — um `refresh()` depois
+      // dele repetia a mesma busca de novo, dobrando a espera à toa.
       router.push("/");
-      router.refresh();
     });
   }
 

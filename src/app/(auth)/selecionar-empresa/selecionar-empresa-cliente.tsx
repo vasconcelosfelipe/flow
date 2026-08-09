@@ -16,7 +16,6 @@ export function SelecionarEmpresaCliente({ empresas }: { empresas: EmpresaResumo
     startTransition(async () => {
       await selecionarEmpresa(slug);
       router.push("/");
-      router.refresh();
     });
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2 } from "lucide-react";
+import { ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { SearchableSelect } from "@/components/shared/searchable-select";
@@ -114,12 +114,24 @@ export function LinhaImportacao({
       <div className={cn("min-w-0 flex-1", !linha.incluir && "opacity-60")}>
         <div className="flex items-start gap-2">
           {linha.incluir ? (
-            <Input
-              value={linha.descricao}
-              onChange={(e) => aoAtualizar(linha.id, { descricao: e.target.value })}
-              aria-label="Descrição do lançamento"
-              className="h-8 min-w-0 flex-1 border-transparent bg-transparent px-1.5 text-corpo font-medium text-ink shadow-none hover:border-line focus-visible:border-line focus-visible:bg-surface"
-            />
+            <div className="relative min-w-0 flex-1">
+              <Input
+                value={linha.descricao}
+                onChange={(e) => aoAtualizar(linha.id, { descricao: e.target.value })}
+                aria-label="Descrição do lançamento"
+                className="h-8 w-full border-transparent bg-transparent px-1.5 pr-7 text-corpo font-medium text-ink shadow-none hover:border-line focus-visible:border-line focus-visible:bg-surface"
+              />
+              {linha.descricao && (
+                <button
+                  type="button"
+                  onClick={() => aoAtualizar(linha.id, { descricao: "" })}
+                  className="absolute top-1/2 right-1 grid size-6 -translate-y-1/2 place-items-center rounded-md text-ink-muted hover:bg-muted"
+                >
+                  <X className="size-3.5" aria-hidden="true" />
+                  <span className="sr-only">Limpar descrição</span>
+                </button>
+              )}
+            </div>
           ) : (
             <span className="truncate px-1.5 text-corpo font-medium text-ink">{linha.descricao}</span>
           )}
