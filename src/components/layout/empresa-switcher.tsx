@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Building2, Check } from "lucide-react";
+import { Building2, Check, ChevronDown } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -22,22 +22,18 @@ export type EmpresaSwitcherProps = {
 };
 
 /**
- * Cartão de "espaço ativo" em Ajustes — trocar de empresa é uma mudança de
- * contexto inteira (saldo, DRE, cada lançamento), por isso nunca é uma ação
- * escondida dentro de um menu de opções comuns, sempre o próprio cartão.
- *
- * Com uma empresa só, o botão "Trocar" nem aparece — não há troca a
- * oferecer, e um menu que abre com uma opção só é ruído.
+ * Estado + ação de trocar de espaço, compartilhados entre o cartão de
+ * Ajustes e o chip do hero do Início — as duas apresentações são bem
+ * diferentes, mas a troca em si (transição de tela cheia incluída) é uma
+ * única lógica, sem duplicar.
  */
-export function EmpresaSwitcher({ empresas, ativa }: EmpresaSwitcherProps) {
+function useTrocaEspaco() {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const unica = empresas.length <= 1;
-
   // Cobre a tela inteira, revela o nome do espaço novo, some — a sensação de
   // fechar um espaço e abrir outro, não só um rótulo trocando no canto.
   const [transicaoPara, setTransicaoPara] = useState<string | null>(null);
-  const semAnimacao = useReducedMotion();
+  const semAnimacao = useReducedMotion() ?? false;
 
   useEffect(() => {
     if (!transicaoPara) return;
@@ -55,7 +51,17 @@ export function EmpresaSwitcher({ empresas, ativa }: EmpresaSwitcherProps) {
     });
   }
 
-  const overlay = (
+  return { transicaoPara, semAnimacao, trocarPara };
+}
+
+function TransicaoEspacoOverlay({
+  transicaoPara,
+  semAnimacao,
+}: {
+  transicaoPara: string | null;
+  semAnimacao: boolean;
+}) {
+  return (
     <AnimatePresence>
       {transicaoPara && (
         <motion.div
@@ -88,6 +94,52 @@ export function EmpresaSwitcher({ empresas, ativa }: EmpresaSwitcherProps) {
       )}
     </AnimatePresence>
   );
+}
+
+/** Lista de espaços dentro do dropdown — mesma pros dois formatos. */
+function ListaEspacos({
+  empresas,
+  ativa,
+  trocarPara,
+}: {
+  empresas: EmpresaResumo[];
+  ativa: EmpresaResumo;
+  trocarPara: (slug: string, nome: string) => void;
+}) {
+  return (
+    <>
+      <DropdownMenuLabel className="text-[11px] text-ink-muted">Seus espaços</DropdownMenuLabel>
+      {empresas.map((empresa) => {
+        const selecionada = empresa.id === ativa.id;
+        return (
+          <DropdownMenuItem
+            key={empresa.id}
+            onSelect={() => trocarPara(empresa.slug, empresa.nome)}
+            className="gap-2"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">{empresa.nome}</span>
+              <span className="block text-[11px] text-ink-muted">{ROTULO_PAPEL[empresa.papel]}</span>
+            </span>
+            {selecionada && <Check className="size-4 shrink-0 text-brand" aria-hidden="true" />}
+          </DropdownMenuItem>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Cartão de "espaço ativo" em Ajustes — trocar de empresa é uma mudança de
+ * contexto inteira (saldo, DRE, cada lançamento), por isso nunca é uma ação
+ * escondida dentro de um menu de opções comuns, sempre o próprio cartão.
+ *
+ * Com uma empresa só, o botão "Trocar" nem aparece — não há troca a
+ * oferecer, e um menu que abre com uma opção só é ruído.
+ */
+export function EmpresaSwitcher({ empresas, ativa }: EmpresaSwitcherProps) {
+  const { transicaoPara, semAnimacao, trocarPara } = useTrocaEspaco();
+  const unica = empresas.length <= 1;
 
   return (
     <>
@@ -104,40 +156,56 @@ export function EmpresaSwitcher({ empresas, ativa }: EmpresaSwitcherProps) {
 
         {!unica && (
           <DropdownMenu>
-            <DropdownMenuTrigger
-              className="shrink-0 rounded-full bg-brand-wash px-3 py-1.5 text-nano font-semibold text-brand transition-colors hover:bg-brand-wash/70 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"
-            >
+            <DropdownMenuTrigger className="shrink-0 rounded-full bg-brand-wash px-3 py-1.5 text-nano font-semibold text-brand transition-colors hover:bg-brand-wash/70 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
               Trocar
             </DropdownMenuTrigger>
-
             <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="text-[11px] text-ink-muted">
-                Seus espaços
-              </DropdownMenuLabel>
-
-              {empresas.map((empresa) => {
-                const selecionada = empresa.id === ativa.id;
-                return (
-                  <DropdownMenuItem
-                    key={empresa.id}
-                    onSelect={() => trocarPara(empresa.slug, empresa.nome)}
-                    className="gap-2"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{empresa.nome}</span>
-                      <span className="block text-[11px] text-ink-muted">
-                        {ROTULO_PAPEL[empresa.papel]}
-                      </span>
-                    </span>
-                    {selecionada && <Check className="size-4 shrink-0 text-brand" aria-hidden="true" />}
-                  </DropdownMenuItem>
-                );
-              })}
+              <ListaEspacos empresas={empresas} ativa={ativa} trocarPara={trocarPara} />
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>
-      {overlay}
+      <TransicaoEspacoOverlay transicaoPara={transicaoPara} semAnimacao={semAnimacao} />
+    </>
+  );
+}
+
+/**
+ * Chip compacto pro canto do hero do Início — mesma troca de espaço do
+ * cartão de Ajustes, só que sempre à mão na tela mais visitada do app, sem
+ * precisar de mais um toque até Ajustes. Com uma empresa só vira um rótulo
+ * estático (sem seta, sem menu) — não há pra onde trocar.
+ */
+export function EmpresaSwitcherChip({ empresas, ativa }: EmpresaSwitcherProps) {
+  const { transicaoPara, semAnimacao, trocarPara } = useTrocaEspaco();
+  const unica = empresas.length <= 1;
+
+  const chip = (
+    <span className="flex min-w-0 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 py-1.5 pr-2.5 pl-2.5 text-micro font-semibold text-night-text">
+      <Building2 className="size-3.5 shrink-0 text-night-muted" aria-hidden="true" />
+      <span className="max-w-[9rem] truncate">{ativa.nome}</span>
+      {!unica && <ChevronDown className="size-3.5 shrink-0 text-night-muted" aria-hidden="true" />}
+    </span>
+  );
+
+  return (
+    <>
+      {unica ? (
+        chip
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="shrink-0 rounded-full transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+            aria-label={`Trocar de espaço — atual: ${ativa.nome}`}
+          >
+            {chip}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <ListaEspacos empresas={empresas} ativa={ativa} trocarPara={trocarPara} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      <TransicaoEspacoOverlay transicaoPara={transicaoPara} semAnimacao={semAnimacao} />
     </>
   );
 }

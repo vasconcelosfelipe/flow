@@ -51,7 +51,15 @@ export function CartaoSaldo({
             ••••••
           </span>
         ) : (
-          <AmountText centavos={centavos} tom="invertido" tamanho="hero" />
+          <AmountText
+            centavos={centavos}
+            tom="invertido"
+            tamanho="hero"
+            // ~20% maior que o "hero" padrão (usado também no card de
+            // Resultado) — só o saldo precisa desse destaque extra, por
+            // isso o ajuste é local, não uma mudança na escala inteira.
+            className="text-[2.25rem] sm:text-[3.3rem]"
+          />
         )}
 
         <button

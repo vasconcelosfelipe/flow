@@ -1,4 +1,5 @@
 import { Container } from "@/components/layout/container";
+import { EmpresaSwitcherChip } from "@/components/layout/empresa-switcher";
 import { PeriodPicker } from "@/components/shared/period-picker";
 import { CartaoResultado } from "@/features/dashboard/cartao-resultado";
 import { CartaoSaldo } from "@/features/dashboard/cartao-saldo";
@@ -74,7 +75,7 @@ const EMENDA = `${SOBREPOSICAO_EMENDA} ${RAIO_EMENDA}`;
 export default async function InicioPage({ searchParams }: Props) {
   const params = await searchParams;
   const periodo = resolverPeriodoDeParams(params);
-  const { usuario, empresaAtiva } = await requireSessao();
+  const { usuario, empresaAtiva, empresas } = await requireSessao();
   const resumo = await obterResumoDashboard(empresaAtiva.id, periodo);
 
   const rotuloPeriodo =
@@ -90,7 +91,12 @@ export default async function InicioPage({ searchParams }: Props) {
           notch, em vez de deixar canvas claro aparecendo ali. */}
       <section className={`textura-noite bg-night -mt-safe pt-safe pb-12 text-night-text ${Z10}`}>
         <Container className="space-y-4 pt-3">
-          <p className="text-micro text-night-muted">Olá, {usuario.nome} 👋</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-titulo font-bold text-night-text">
+              Olá, {usuario.nome} 👋
+            </p>
+            <EmpresaSwitcherChip empresas={empresas} ativa={empresaAtiva} />
+          </div>
 
           <PeriodPicker tema="escuro" />
 
