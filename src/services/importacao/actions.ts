@@ -222,9 +222,17 @@ export async function processarArquivoOfx(
       where: { contaId, fitId: { in: fitIds } },
       select: { fitId: true },
     }),
+    // `orderBy` é obrigatório aqui: quando duas ou mais pendências têm o
+    // mesmo valor (parcelas de um parcelamento, por exemplo, todas com o
+    // mesmo valorCentavos), o `.find()" abaixo casa a PRIMEIRA da lista —
+    // sem ordenar por vencimento, a ordem do Postgres não é garantida (pode
+    // até mudar entre importações), e uma parcela futura pode fechar antes
+    // da parcela vencida hoje, deixando a que realmente venceu presa em
+    // aberto mesmo depois do pagamento ser reconhecido.
     db.movimentacao.findMany({
       where: { empresaId, contaId, status: "PENDENTE", data: null },
       include: { categoria: true, conta: true, contato: true },
+      orderBy: { dataVencimento: "asc" },
     }),
     aprenderComHistorico(empresaId),
     listarCategorias(empresaId),
