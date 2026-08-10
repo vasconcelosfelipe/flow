@@ -37,6 +37,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <TooltipProvider delayDuration={300}>
       <NovoLancamentoProvider
+        empresaId={empresaId}
         contas={contas.map((c) => ({ id: c.id, nome: c.nome, tipo: c.tipo }))}
         categorias={categorias}
         contatos={contatos}

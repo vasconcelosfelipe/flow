@@ -32,6 +32,7 @@ export function useNovoLancamento() {
  * pra LEITOR — aqui é só sobre nem oferecer a UI).
  */
 export function NovoLancamentoProvider({
+  empresaId,
   contas,
   categorias,
   contatos,
@@ -40,6 +41,14 @@ export function NovoLancamentoProvider({
   somenteLeitura = false,
   children,
 }: {
+  /** Só usado como `key` do modal — força remontar (e reler as props do
+   * zero) quando o espaço ativo muda. Sem isso, `ModalNovaMovimentacao`
+   * guarda contas/categorias/contatos num `useState` que só lê o valor
+   * inicial na primeira montagem: como o modal nunca desmonta sozinho
+   * (vive fixo no layout pro "+" funcionar em qualquer tela), trocar de
+   * espaço atualizava as props mas o formulário continuava mostrando as
+   * categorias do espaço anterior. */
+  empresaId: string;
   contas: OpcaoConta[];
   categorias: CategoriaCompleta[];
   contatos: ContatoCompleto[];
@@ -55,6 +64,7 @@ export function NovoLancamentoProvider({
       {children}
       {!somenteLeitura && (
         <ModalNovaMovimentacao
+          key={empresaId}
           aberto={aberto}
           aoMudarAberto={setAberto}
           contas={contas}
