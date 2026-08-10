@@ -54,6 +54,7 @@ export function DetalheMovimentacaoSheet({
   tipoEspaco,
   aoFechar,
   aoEditar,
+  aoExcluir,
   somenteLeitura = false,
 }: {
   movimentacao: MovimentacaoResumo | null;
@@ -67,6 +68,9 @@ export function DetalheMovimentacaoSheet({
    * round-trip do `router.refresh()` — é o que faz a edição parecer
    * instantânea em vez de "só atualiza depois de um tempinho". */
   aoEditar?: (atualizada: MovimentacaoResumo) => void;
+  /** Mesma ideia de `aoEditar`, pra exclusão — sem isto a linha excluída
+   * continua aparecendo na lista até o `router.refresh()` terminar. */
+  aoExcluir?: (removida: { id: string } | { grupoParcelamento: string }) => void;
   somenteLeitura?: boolean;
 }) {
   const [editando, setEditando] = useState(false);
@@ -157,7 +161,12 @@ export function DetalheMovimentacaoSheet({
           }}
         />
       ) : (
-        <Detalhe movimentacao={movimentacao} aoRemover={aoFechar} somenteLeitura={somenteLeitura} />
+        <Detalhe
+          movimentacao={movimentacao}
+          aoRemover={aoFechar}
+          aoExcluir={aoExcluir}
+          somenteLeitura={somenteLeitura}
+        />
       )}
     </ResponsiveModal>
   );
@@ -166,10 +175,12 @@ export function DetalheMovimentacaoSheet({
 function Detalhe({
   movimentacao,
   aoRemover,
+  aoExcluir,
   somenteLeitura = false,
 }: {
   movimentacao: MovimentacaoResumo;
   aoRemover: () => void;
+  aoExcluir?: (removida: { id: string } | { grupoParcelamento: string }) => void;
   somenteLeitura?: boolean;
 }) {
   const router = useRouter();
@@ -189,6 +200,7 @@ function Detalhe({
   function excluir() {
     startTransition(async () => {
       await excluirMovimentacao(movimentacao.id);
+      aoExcluir?.({ id: movimentacao.id });
       router.refresh();
       aoRemover();
     });
@@ -202,6 +214,7 @@ function Detalhe({
           description: `${puladas} continuam por estarem conciliadas.`,
         });
       }
+      aoExcluir?.({ grupoParcelamento: movimentacao.grupoParcelamento! });
       router.refresh();
       aoRemover();
     });

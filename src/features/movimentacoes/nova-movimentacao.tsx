@@ -345,7 +345,7 @@ export function ModalNovaMovimentacao({
                 <Landmark className="size-5" aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-medium text-ink">Débito em conta</span>
+                <span className="block font-medium text-ink">Débito/Crédito em conta</span>
                 <span className="block text-micro text-ink-muted">
                   Entrada ou saída numa conta corrente, poupança, caixa ou investimento —
                   à vista, parcelada ou recorrente.

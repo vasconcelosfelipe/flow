@@ -108,6 +108,37 @@ export function ListaMovimentacoes({
     );
   }
 
+  // Reflete uma exclusão na hora, sem esperar `router.refresh()` — mesma
+  // razão de `atualizarMovimentacao`: sem isto a linha excluída continua
+  // aparecendo até o round-trip do servidor terminar. Remove tanto por id
+  // (exclusão única) quanto por grupoParcelamento (exclusão em lote de
+  // parcelamento/recorrência) — e descarta o grupo do dia inteiro se ele
+  // ficar vazio, senão sobra um cabeçalho "Hoje" sem nenhuma linha embaixo.
+  function removerMovimentacao(removida: { id: string } | { grupoParcelamento: string }) {
+    const pertence = (m: MovimentacaoResumo) =>
+      "id" in removida ? m.id === removida.id : m.grupoParcelamento === removida.grupoParcelamento;
+
+    setGrupos((atuais) =>
+      atuais
+        .map((grupo) => {
+          if (!grupo.itens.some(pertence)) return grupo;
+          const itens = grupo.itens.filter((m) => !pertence(m));
+          const sinal = (m: MovimentacaoResumo) => (m.tipo === "RECEITA" ? 1 : -1);
+          const realizado = (m: MovimentacaoResumo) => m.status === "PAGO" || m.status === "CONCILIADO";
+          return {
+            ...grupo,
+            itens,
+            totalCentavos: itens.reduce((s, m) => s + sinal(m) * m.valorCentavos, 0),
+            totalRealizadoCentavos: itens.reduce(
+              (s, m) => s + (realizado(m) ? sinal(m) * m.valorCentavos : 0),
+              0,
+            ),
+          };
+        })
+        .filter((grupo) => grupo.itens.length > 0),
+    );
+  }
+
   // Saldo acumulado até o fim de cada dia — só existe com uma conta
   // filtrada (sem isso, misturar contas diferentes não tem um saldo só que
   // faça sentido). Ordem dos grupos é sempre decrescente (mais recente
@@ -184,6 +215,7 @@ export function ListaMovimentacoes({
           linhas={linhas}
           tipoEspaco={tipoEspaco}
           aoEditar={atualizarMovimentacao}
+          aoExcluir={removerMovimentacao}
           aoFechar={() => setAbertoId(null)}
           somenteLeitura={somenteLeitura}
         />
