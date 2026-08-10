@@ -84,8 +84,11 @@ export default async function InicioPage({ searchParams }: Props) {
 
   return (
     <>
-      {/* Escuro — saudação, período e saldo, nu sobre a marca. */}
-      <section className={`textura-noite bg-night pb-12 text-night-text ${Z10}`}>
+      {/* Escuro — saudação, período e saldo, nu sobre a marca. `-mt-safe
+          pt-safe` cancela o padding do `<main>` só aqui e reaplica como
+          padding interno — o fundo escuro passa a se estender por trás do
+          notch, em vez de deixar canvas claro aparecendo ali. */}
+      <section className={`textura-noite bg-night -mt-safe pt-safe pb-12 text-night-text ${Z10}`}>
         <Container className="space-y-4 pt-3">
           <p className="text-micro text-night-muted">Olá, {usuario.nome} 👋</p>
 

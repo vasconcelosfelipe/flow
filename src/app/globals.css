@@ -331,14 +331,25 @@
   }
 
   /*
-   * Cabeçalho fixo: o fundo (bg-night) já cobre a área do notch/Dynamic
-   * Island por conta do `viewport-fit=cover` no layout — sem isso, o iOS
-   * deixa uma faixa preta acima da barra em vez de continuar o azul. Este
-   * padding empurra só o CONTEÚDO (logo, seletor, ajustes) para baixo do
-   * recorte; o fundo continua se estendendo por trás dele.
+   * `<main>` ganha este padding pra empurrar todo conteúdo pra baixo do
+   * notch/Dynamic Island (não existe mais barra fixa acima cobrindo essa
+   * área). Em página clara isso já resolve sozinho — o espaço reservado é
+   * canvas, igual o resto da página.
    */
   .pt-safe {
     padding-top: env(safe-area-inset-top);
+  }
+
+  /*
+   * O hero escuro do Início precisa que o PRÓPRIO fundo (bg-night) se
+   * estenda por trás do recorte, não só empurrar o conteúdo — senão a área
+   * do notch mostra canvas claro em vez de continuar o degradê. `-mt-safe`
+   * cancela o `pt-safe` do `<main>` só pra esta seção (puxa de volta pra
+   * cima), e o `pt-safe` reaplicado aqui empurra só o CONTEÚDO de novo —
+   * a posição final do texto não muda, só quem pinta o espaço do recorte.
+   */
+  .-mt-safe {
+    margin-top: calc(env(safe-area-inset-top) * -1);
   }
 
   /* Trilhos de rolagem horizontal (DRE anual, filtros) sem barra visível. */

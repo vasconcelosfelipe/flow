@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { AppHeader } from "@/components/layout/app-header";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { DesktopRail } from "@/components/layout/desktop-rail";
 import { NovoLancamentoProvider } from "@/components/layout/novo-lancamento-provider";
@@ -48,11 +47,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <DesktopRail tipoEspaco={sessao.empresaAtiva.tipo} somenteLeitura={somenteLeitura} />
 
         <div className="flex min-h-app-safe flex-col md:pl-16">
-          <AppHeader sessao={sessao} />
-          {/* A barra inferior é `fixed` (não faz parte do fluxo), então o
-              conteúdo precisa reservar o próprio espaço embaixo — senão o
-              último card fica escondido atrás dela. */}
-          <main className="flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] md:pb-10">
+          {/* Sem barra fixa no topo — cada página reserva o próprio espaço
+              sob o notch/Dynamic Island via `pt-safe`. A barra inferior é
+              `fixed` (não faz parte do fluxo), então o conteúdo também
+              precisa reservar espaço embaixo — senão o último card fica
+              escondido atrás dela. */}
+          <main className="pt-safe flex-1 pb-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] md:pb-10">
             {/* Puxar-para-atualizar só neste miolo — a barra superior e a
                 inferior nunca se movem com o gesto, só o conteúdo entre elas. */}
             <PullToRefresh>{children}</PullToRefresh>

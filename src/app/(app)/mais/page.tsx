@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ChevronRight, ShieldCheck, Tags, Users, Wallet } from "lucide-react";
 
 import { Container } from "@/components/layout/container";
+import { EmpresaSwitcher } from "@/components/layout/empresa-switcher";
+import { AvatarConta, PainelConta } from "@/features/perfil/painel-conta";
 import { requireSessao } from "@/lib/sessao";
 
 const ITENS_CADASTRO = [
@@ -12,9 +14,12 @@ const ITENS_CADASTRO = [
 ];
 
 /**
- * Ponto de entrada para os cadastros que não cabem nos cinco slots fixos da
- * navegação. O Console só aparece para quem administra a plataforma — é uma
- * camada acima da empresa, não um cadastro dela.
+ * Ponto de entrada dos cadastros que não cabem nos slots fixos da navegação
+ * — e, desde que a barra superior fixa saiu do ar, também de tudo que ela
+ * guardava (perfil, trocar de espaço, sair): sem barra global, cada função
+ * mora na tela onde já faz sentido morar, não presa no topo o tempo todo.
+ * O Console só aparece para quem administra a plataforma — é uma camada
+ * acima da empresa, não um cadastro dela.
  */
 export default async function MaisPage() {
   const sessao = await requireSessao();
@@ -28,7 +33,16 @@ export default async function MaisPage() {
 
   return (
     <Container className="space-y-4 pt-5">
-      <h1 className="text-titulo font-semibold text-ink">Ajustes</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-titulo font-semibold text-ink">Ajustes</h1>
+        <AvatarConta usuario={sessao.usuario} />
+      </div>
+
+      <PainelConta usuario={sessao.usuario} />
+
+      {sessao.empresaAtiva && (
+        <EmpresaSwitcher empresas={sessao.empresas} ativa={sessao.empresaAtiva} />
+      )}
 
       <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {itensCadastro.map((item) => (
