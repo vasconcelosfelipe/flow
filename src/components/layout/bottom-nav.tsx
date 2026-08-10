@@ -77,16 +77,19 @@ export function BottomNav({
 
           if (i !== 2) return [link];
           return [
-            <li key="novo-lancamento" className="flex-1">
+            // `relative` no `<li>` + botão `absolute` deixa o círculo maior
+            // que a própria barra e furar pra cima dela — é o destaque
+            // pedido: o olho acha o "+" antes de ler qualquer rótulo.
+            <li key="novo-lancamento" className="relative flex-1">
               <button
                 type="button"
                 onClick={abrir}
                 disabled={somenteLeitura}
                 aria-label="Novo lançamento"
-                className="flex min-h-14 w-full flex-col items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset focus-visible:outline-none disabled:opacity-40"
+                className="absolute inset-x-0 -top-6 flex flex-col items-center rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-40"
               >
-                <span className="grid size-9 place-items-center rounded-full bg-brand text-white shadow-night">
-                  <Plus className="size-5" aria-hidden="true" />
+                <span className="grid size-16 place-items-center rounded-full bg-brand text-white shadow-[0_12px_28px_-8px_rgba(37,99,235,0.65)] ring-4 ring-canvas">
+                  <Plus className="size-7" aria-hidden="true" />
                 </span>
               </button>
             </li>,

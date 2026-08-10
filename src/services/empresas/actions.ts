@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies, headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -30,4 +31,11 @@ export async function selecionarEmpresa(slug: string) {
     maxAge: 60 * 60 * 24 * 365,
     path: "/",
   });
+
+  // O layout raiz do app busca contas/categorias/contatos/linhas uma única
+  // vez (pro modal global de novo lançamento) e o Router Cache do Next
+  // mantém esse layout entre navegações client-side — sem isto, trocar de
+  // espaço grava o cookie mas o layout continua servindo os dados da
+  // empresa que estava ativa quando ele renderizou pela primeira vez.
+  revalidatePath("/", "layout");
 }
