@@ -83,7 +83,7 @@ export function DesktopRail({
                 onClick={abrir}
                 disabled={somenteLeitura}
                 aria-label="Novo lançamento"
-                className="grid size-11 place-items-center rounded-xl bg-brand text-white shadow-night transition-colors hover:bg-brand/90 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none disabled:opacity-40"
+                className="grid size-11 place-items-center rounded-xl bg-gradient-brand text-white shadow-night transition-[filter] hover:brightness-95 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none disabled:opacity-40"
               >
                 <Plus className="size-5" aria-hidden="true" />
               </button>

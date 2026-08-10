@@ -16,6 +16,13 @@
   --brand-deep: #1e3a8a;
   --brand-wash: #eef4ff;
 
+  /* Degradê da marca — mesmas duas cores do botão sólido, só com direção.
+     Usado nos poucos elementos que já carregam a cor da marca sozinha
+     (botão primário, "+" da navegação): dá profundidade sem introduzir cor
+     nova nenhuma. Nunca em categoria/pílula — ali a cor precisa ler plana e
+     estável pra funcionar como identidade visual comparável entre linhas. */
+  --gradient-brand: linear-gradient(135deg, var(--brand) 0%, var(--brand-hover) 100%);
+
   /* Cromo escuro: barra superior, rail e a zona de comando do Início.
      O produto tem duas atmosferas — escura onde se decide, clara onde se
      trabalha. É o que separa uma tela com identidade de uma folha branca. */
@@ -262,12 +269,17 @@
       radial-gradient(115% 85% at 88% -15%, rgb(37 99 235 / 0.5), transparent 62%),
       radial-gradient(80% 60% at 0% 100%, rgb(37 99 235 / 0.22), transparent 70%),
       linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+      linear-gradient(90deg, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+      /* Base do herói: night ganhando um degradê até brand-deep na direção
+         oposta ao brilho radial (canto inferior-esquerdo), pra sensação de
+         profundidade continuar mesmo fora do alcance dos dois brilhos. */
+      linear-gradient(200deg, transparent 45%, var(--brand-deep) 145%);
     background-size:
       100% 100%,
       100% 100%,
       28px 28px,
-      28px 28px;
+      28px 28px,
+      100% 100%;
   }
 
   /**
@@ -282,6 +294,11 @@
     background-size:
       28px 28px,
       28px 28px;
+  }
+
+  /* Degradê da marca — ver `--gradient-brand` acima pra onde usar. */
+  .bg-gradient-brand {
+    background-image: var(--gradient-brand);
   }
 
   /* Logotipo "Flow" — Space Grotesk, separada da fonte de UI (Manrope). */
