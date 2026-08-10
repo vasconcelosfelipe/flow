@@ -1,8 +1,8 @@
 import {
+  ArrowLeftRight,
   ChartNoAxesCombined,
   House,
   Settings2,
-  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,7 +28,7 @@ export const DESTINOS: Destino[] = [
   {
     href: "/movimentacoes",
     rotulo: "Movimentações",
-    icone: WalletCards,
+    icone: ArrowLeftRight,
     prefixo: ["/movimentacoes", "/importar"],
   },
   { href: "/dre", rotulo: "DRE", icone: ChartNoAxesCombined },

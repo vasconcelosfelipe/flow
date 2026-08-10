@@ -57,7 +57,7 @@ export function BottomNav({
                 href={destino.href}
                 aria-current={ativo ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-14 flex-col items-center justify-center gap-1 px-1 pt-2 pb-1 text-[10px] font-medium transition-colors",
+                  "relative flex min-h-14 flex-col items-center justify-center transition-colors",
                   "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset focus-visible:outline-none",
                   ativo ? "text-night-text" : "text-night-muted",
                 )}
@@ -69,8 +69,8 @@ export function BottomNav({
                     transition={semAnimacao ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
                   />
                 )}
-                <Icone className="size-5" aria-hidden="true" />
-                <span className="max-w-full truncate">{destino.rotulo}</span>
+                <Icone className="size-6" aria-hidden="true" />
+                <span className="sr-only">{destino.rotulo}</span>
               </Link>
             </li>
           );

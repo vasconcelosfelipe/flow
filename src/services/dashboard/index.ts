@@ -8,7 +8,7 @@ import {
 } from "date-fns";
 
 import { db } from "@/lib/db";
-import { formatarDataCurta, formatarMesCurto, type Periodo } from "@/lib/dates";
+import { diasDeAtraso, formatarDataCurta, formatarMesCurto, type Periodo } from "@/lib/dates";
 import { contarSemCategoria } from "@/services/movimentacoes";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type {
@@ -78,8 +78,11 @@ function pendencias(
   const abertas = movs.filter(
     (m) => m.tipo === tipo && (m.status === "PENDENTE" || m.status === "PREVISTO"),
   );
+  // `diasDeAtraso` compara por dia de calendário (não por instante) — uma
+  // conta que vence hoje não pode contar como vencida só porque `hoje` já
+  // passou da meia-noite.
   const vencidas = abertas.filter(
-    (m) => m.dataVencimento !== null && m.dataVencimento < hoje,
+    (m) => m.dataVencimento !== null && diasDeAtraso(m.dataVencimento, hoje) > 0,
   );
   return {
     totalCentavos: somar(abertas),
@@ -124,8 +127,10 @@ function montarAcumulado(serie: PontoSerie[]): PontoAcumulado[] {
 function montarAlertas(abertas: MovimentacaoResumo[], semCategoriaCount: number, hoje: Date): Alerta[] {
   const alertas: Alerta[] = [];
 
+  // Mesma ressalva de `pendencias()`: comparar direto com `hoje` (que já
+  // inclui a hora atual) marcava uma conta que vence hoje como vencida.
   const vencidas = abertas.filter(
-    (m) => m.tipo === "DESPESA" && m.dataVencimento !== null && m.dataVencimento < hoje,
+    (m) => m.tipo === "DESPESA" && m.dataVencimento !== null && diasDeAtraso(m.dataVencimento, hoje) > 0,
   );
 
   if (vencidas.length > 0) {
