@@ -86,10 +86,10 @@ export function BottomNav({
                 onClick={abrir}
                 disabled={somenteLeitura}
                 aria-label="Novo lançamento"
-                className="absolute inset-x-0 -top-6 flex flex-col items-center rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-40"
+                className="absolute inset-x-0 -top-3 flex flex-col items-center rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-40"
               >
-                <span className="grid size-16 place-items-center rounded-full bg-gradient-brand text-white shadow-[0_12px_28px_-8px_rgba(37,99,235,0.65)] ring-4 ring-canvas">
-                  <Plus className="size-7" aria-hidden="true" />
+                <span className="grid size-12 place-items-center rounded-full bg-gradient-brand text-white shadow-[0_10px_22px_-8px_rgba(37,99,235,0.65)] ring-3 ring-canvas">
+                  <Plus className="size-5" aria-hidden="true" />
                 </span>
               </button>
             </li>,
