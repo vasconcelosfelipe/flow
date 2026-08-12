@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useTransition, useState } from "react";
+import { X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-catego
 import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { dividirEmParcelas, formatarValor, parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import type { PrefillMovimentacao } from "@/features/movimentacoes/nova-movimentacao";
 import { criarPendencia } from "@/services/movimentacoes/actions";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
@@ -45,6 +47,7 @@ export function FormularioCompraCartao({
   contatos: contatosIniciais = [],
   linhas = [],
   tipoEspaco,
+  prefill = null,
   aoSalvar,
   aoPendingChange,
 }: {
@@ -54,6 +57,12 @@ export function FormularioCompraCartao({
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
   tipoEspaco: TipoEmpresa;
+  /** "Duplicar movimentação" — só faz sentido aqui porque este formulário
+   * remonta do zero toda vez que a escolha inicial do modal vira "cartão"
+   * (`{modo === "cartao" && <FormularioCompraCartao/>}` em
+   * `nova-movimentacao.tsx`), então os `useState` abaixo já leem o valor
+   * inicial certo sem precisar de nenhum efeito extra. */
+  prefill?: PrefillMovimentacao | null;
   aoSalvar: () => void;
   aoPendingChange?: (pending: boolean) => void;
 }) {
@@ -63,13 +72,13 @@ export function FormularioCompraCartao({
   const [contatos, setContatos] = useState(contatosIniciais);
 
   const [contaId, setContaId] = useState(contas[0]?.id ?? "");
-  const [descricao, setDescricao] = useState("");
-  const [valor, setValor] = useState("");
+  const [descricao, setDescricao] = useState(prefill?.descricao ?? "");
+  const [valor, setValor] = useState(prefill ? (prefill.valorCentavos / 100).toFixed(2).replace(".", ",") : "");
   const [erroValor, setErroValor] = useState<string | null>(null);
-  const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">("DESPESA");
+  const [tipo, setTipo] = useState<"RECEITA" | "DESPESA">(prefill?.tipo ?? "DESPESA");
   const [dataCompra, setDataCompra] = useState(new Date().toISOString().slice(0, 10));
-  const [categoriaId, setCategoriaId] = useState(SEM_CATEGORIA);
-  const [contatoId, setContatoId] = useState(SEM_FORNECEDOR);
+  const [categoriaId, setCategoriaId] = useState(prefill?.categoriaId ?? SEM_CATEGORIA);
+  const [contatoId, setContatoId] = useState(prefill?.contatoId ?? SEM_FORNECEDOR);
 
   const [modalidade, setModalidade] = useState<Modalidade>("UNICA");
   const [numeroParcelas, setNumeroParcelas] = useState("2");
@@ -191,14 +200,26 @@ export function FormularioCompraCartao({
 
         <div className="space-y-1.5">
           <Label htmlFor="cc-descricao">Descrição</Label>
-          <Input
-            id="cc-descricao"
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            placeholder="Ex: Mercado, assinatura, jantar"
-            className="h-11"
-            required
-          />
+          <div className="relative">
+            <Input
+              id="cc-descricao"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex: Mercado, assinatura, jantar"
+              className="h-11 pr-9"
+              required
+            />
+            {descricao && (
+              <button
+                type="button"
+                onClick={() => setDescricao("")}
+                className="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-ink-muted hover:bg-muted"
+              >
+                <X className="size-4" aria-hidden="true" />
+                <span className="sr-only">Limpar descrição</span>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-1.5">

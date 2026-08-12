@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ArrowLeftRight, Building2, Calendar, CreditCard, FileText, RotateCcw, Tag, Trash2, Users, X } from "lucide-react";
+import { ArrowLeftRight, Building2, Calendar, Copy, CreditCard, FileText, RotateCcw, Tag, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { AmountText } from "@/components/shared/amount-text";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useNovoLancamento } from "@/components/layout/novo-lancamento-provider";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
 import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { formatarData } from "@/lib/dates";
@@ -184,6 +185,7 @@ function Detalhe({
   somenteLeitura?: boolean;
 }) {
   const router = useRouter();
+  const { abrir: abrirNovoLancamento } = useNovoLancamento();
   const [pending, startTransition] = useTransition();
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const transferencia = movimentacao.transferenciaId !== null;
@@ -196,6 +198,22 @@ function Detalhe({
   // vista filtrada por uma conta específica (pode ser qualquer uma das duas).
   const contaSaida = movimentacao.tipo === "DESPESA" ? movimentacao.conta : movimentacao.contaPar;
   const contaEntrada = movimentacao.tipo === "DESPESA" ? movimentacao.contaPar : movimentacao.conta;
+
+  // Fecha este sheet e abre o modal global de novo lançamento já
+  // preenchido — nasce como lançamento único de hoje, nunca copia
+  // parcelamento, status ou a data original.
+  function duplicar() {
+    aoRemover();
+    abrirNovoLancamento({
+      descricao: movimentacao.descricao,
+      tipo: movimentacao.tipo,
+      valorCentavos: movimentacao.valorCentavos,
+      contaId: movimentacao.conta.id,
+      ehCartao: movimentacao.conta.tipo === "CARTAO",
+      categoriaId: movimentacao.categoria?.id ?? null,
+      contatoId: movimentacao.contato?.id ?? null,
+    });
+  }
 
   function excluir() {
     startTransition(async () => {
@@ -288,6 +306,13 @@ function Detalhe({
           />
         )}
       </dl>
+
+      {!somenteLeitura && !transferencia && (
+        <Button type="button" variant="outline" size="lg" className="w-full gap-1.5" onClick={duplicar}>
+          <Copy className="size-4" aria-hidden="true" />
+          Duplicar movimentação
+        </Button>
+      )}
 
       {somenteLeitura ? null : conciliada ? (
         <div className="rounded-xl border border-line p-3">

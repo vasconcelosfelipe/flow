@@ -83,7 +83,7 @@ export function BottomNav({
             <li key="novo-lancamento" className="relative flex-1">
               <button
                 type="button"
-                onClick={abrir}
+                onClick={() => abrir()}
                 disabled={somenteLeitura}
                 aria-label="Novo lançamento"
                 className="absolute inset-x-0 -top-3 flex flex-col items-center rounded-full focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-40"

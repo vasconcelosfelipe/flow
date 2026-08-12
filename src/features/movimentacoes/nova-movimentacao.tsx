@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useTransition, useState } from "react";
-import { ArrowLeftRight, ChevronRight, CreditCard, Landmark, Plus, Upload } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, CreditCard, Landmark, Plus, Upload, X } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,19 @@ const ROTULO_MODALIDADE: Record<Modalidade, string> = {
   RECORRENTE: "Recorrente",
 };
 
+/** Dados de partida pra "Duplicar movimentação" (ver `detalhe-sheet.tsx`) —
+ * sempre nasce como lançamento único de hoje, nunca copia parcelamento nem
+ * status/data da origem. */
+export type PrefillMovimentacao = {
+  descricao: string;
+  tipo: "RECEITA" | "DESPESA";
+  valorCentavos: number;
+  contaId: string;
+  ehCartao: boolean;
+  categoriaId: string | null;
+  contatoId: string | null;
+};
+
 /**
  * Botão-gatilho da tela de Movimentações — o modal em si (`ModalNovaMovimentacao`)
  * vive uma única vez no layout raiz (ver `NovoLancamentoProvider`), acionado
@@ -67,7 +80,7 @@ export function BotaoNovaMovimentacao({ somenteLeitura = false }: { somenteLeitu
           Importar OFX
         </Link>
       </Button>
-      <Button size="sm" className="gap-1.5" onClick={abrir}>
+      <Button size="sm" className="gap-1.5" onClick={() => abrir()}>
         <Plus className="size-4" aria-hidden="true" />
         Nova
       </Button>
@@ -93,6 +106,7 @@ export function ModalNovaMovimentacao({
   contatos: contatosIniciais = [],
   linhas = [],
   tipoEspaco,
+  prefill = null,
 }: {
   aberto: boolean;
   aoMudarAberto: (aberto: boolean) => void;
@@ -101,6 +115,11 @@ export function ModalNovaMovimentacao({
   contatos?: ContatoCompleto[];
   linhas?: LinhaDreOpcao[];
   tipoEspaco: TipoEmpresa;
+  /** Preenche o formulário ao abrir — "Duplicar movimentação" no detalhe.
+   * O modal fica montado o tempo todo (nunca desmonta sozinho), então só um
+   * `useState` inicial não bastaria: o efeito abaixo reaplica os valores
+   * toda vez que `aberto` vira `true`. */
+  prefill?: PrefillMovimentacao | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -160,6 +179,23 @@ export function ModalNovaMovimentacao({
     if (!contasNaoCartao.some((c) => c.id === contaId)) setContaId(contasNaoCartao[0]?.id ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transferencia]);
+
+  // Preenche com os dados da movimentação duplicada sempre que o modal abre
+  // com um `prefill` — a data nasce hoje, nunca a da origem, e o status
+  // volta a Pago (é um lançamento novo, não uma cópia do estado antigo).
+  useEffect(() => {
+    if (!aberto || !prefill) return;
+    setModo(prefill.ehCartao ? "cartao" : "debito");
+    setDescricao(prefill.descricao);
+    setValor((prefill.valorCentavos / 100).toFixed(2).replace(".", ","));
+    setTipo(prefill.tipo);
+    setData(new Date().toISOString().slice(0, 10));
+    setStatus("PAGO");
+    setContaId(prefill.ehCartao ? (contasNaoCartao[0]?.id ?? "") : prefill.contaId);
+    setCategoriaId(prefill.categoriaId ?? SEM_CATEGORIA);
+    setContatoId(prefill.contatoId ?? SEM_FORNECEDOR);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberto]);
 
   function resetar() {
     setModo("escolha");
@@ -384,6 +420,7 @@ export function ModalNovaMovimentacao({
             contatos={contatos}
             linhas={linhas}
             tipoEspaco={tipoEspaco}
+            prefill={prefill?.ehCartao ? prefill : null}
             aoPendingChange={setPendingCartao}
             aoSalvar={() => {
               aoMudarAberto(false);
@@ -419,14 +456,26 @@ export function ModalNovaMovimentacao({
 
           <div className="space-y-1.5">
             <Label htmlFor="nov-descricao">Descrição{transferencia && " (opcional)"}</Label>
-            <Input
-              id="nov-descricao"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder={transferencia ? "Ex: Reforço de caixa" : "Ex: Aluguel de equipamento"}
-              className="h-11"
-              required={!transferencia}
-            />
+            <div className="relative">
+              <Input
+                id="nov-descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder={transferencia ? "Ex: Reforço de caixa" : "Ex: Aluguel de equipamento"}
+                className="h-11 pr-9"
+                required={!transferencia}
+              />
+              {descricao && (
+                <button
+                  type="button"
+                  onClick={() => setDescricao("")}
+                  className="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-ink-muted hover:bg-muted"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                  <span className="sr-only">Limpar descrição</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">

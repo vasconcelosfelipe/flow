@@ -2,20 +2,27 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 
-import { ModalNovaMovimentacao, type OpcaoConta } from "@/features/movimentacoes/nova-movimentacao";
+import {
+  ModalNovaMovimentacao,
+  type OpcaoConta,
+  type PrefillMovimentacao,
+} from "@/features/movimentacoes/nova-movimentacao";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
 import type { TipoEmpresa } from "@/types/dominio";
 
 type NovoLancamentoContextValue = {
-  abrir: () => void;
+  /** Sem argumento: formulário em branco. Com `prefill`: "Duplicar
+   * movimentação" (ver `detalhe-sheet.tsx`) — abre já preenchido. */
+  abrir: (prefill?: PrefillMovimentacao) => void;
 };
 
 const NovoLancamentoContext = createContext<NovoLancamentoContextValue | null>(null);
 
-/** Usado pelo "+" da navegação (bottom nav / rail) e pelo botão "Nova" da
- * tela de Movimentações — os dois disparam o mesmo modal global. */
+/** Usado pelo "+" da navegação (bottom nav / rail), pelo botão "Nova" da
+ * tela de Movimentações e por "Duplicar" no detalhe — todos disparam o
+ * mesmo modal global. */
 export function useNovoLancamento() {
   const ctx = useContext(NovoLancamentoContext);
   if (!ctx) {
@@ -58,9 +65,15 @@ export function NovoLancamentoProvider({
   children: ReactNode;
 }) {
   const [aberto, setAberto] = useState(false);
+  const [prefill, setPrefill] = useState<PrefillMovimentacao | null>(null);
+
+  function abrir(dadosPrefill?: PrefillMovimentacao) {
+    setPrefill(dadosPrefill ?? null);
+    setAberto(true);
+  }
 
   return (
-    <NovoLancamentoContext.Provider value={{ abrir: () => setAberto(true) }}>
+    <NovoLancamentoContext.Provider value={{ abrir }}>
       {children}
       {!somenteLeitura && (
         <ModalNovaMovimentacao
@@ -72,6 +85,7 @@ export function NovoLancamentoProvider({
           contatos={contatos}
           linhas={linhas}
           tipoEspaco={tipoEspaco}
+          prefill={prefill}
         />
       )}
     </NovoLancamentoContext.Provider>
