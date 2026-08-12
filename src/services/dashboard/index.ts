@@ -14,6 +14,7 @@ import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type {
   Alerta,
   BlocoPendencias,
+  ItemDespesaCategoria,
   PontoAcumulado,
   PontoSerie,
   ResumoDashboard,
@@ -90,6 +91,35 @@ function pendencias(
     vencidoCentavos: somar(vencidas),
     vencidoQuantidade: vencidas.length,
   };
+}
+
+/** Agrupa despesas realizadas do período por categoria, maior primeiro —
+ * sem categoria fica fora, mesma regra da DRE ("sem linha vinculada, fora
+ * do relatório"). Nenhuma categoria fica hardcoded: 100% orientado a dado. */
+function despesasPorCategoria(movs: MovimentacaoResumo[]): ItemDespesaCategoria[] {
+  const porCategoria = new Map<string, ItemDespesaCategoria>();
+
+  for (const m of movs) {
+    if (m.tipo !== "DESPESA" || !m.categoria) continue;
+    let item = porCategoria.get(m.categoria.id);
+    if (!item) {
+      item = {
+        categoriaId: m.categoria.id,
+        nome: m.categoria.nome,
+        cor: m.categoria.cor,
+        icone: m.categoria.icone,
+        totalCentavos: 0,
+        percentual: 0,
+      };
+      porCategoria.set(m.categoria.id, item);
+    }
+    item.totalCentavos += m.valorCentavos;
+  }
+
+  const itens = [...porCategoria.values()].sort((a, b) => b.totalCentavos - a.totalCentavos);
+  const total = itens.reduce((soma, item) => soma + item.totalCentavos, 0);
+  for (const item of itens) item.percentual = total > 0 ? item.totalCentavos / total : 0;
+  return itens;
 }
 
 function montarSerie(movs: MovimentacaoResumo[], periodo: Periodo): PontoSerie[] {
@@ -278,6 +308,7 @@ export async function obterResumoDashboard(
     aReceber: pendencias(abertasNoPeriodo, "RECEITA", hoje),
     serie,
     serieAcumulada: montarAcumulado(serie),
+    despesasPorCategoria: despesasPorCategoria(noPeriodoSemTransferencia),
     ultimasMovimentacoes,
     alertas: montarAlertas(abertas, semCategoriaCount, hoje),
   };

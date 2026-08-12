@@ -1,6 +1,7 @@
 import { Container } from "@/components/layout/container";
 import { EmpresaSwitcherChip } from "@/components/layout/empresa-switcher";
 import { PeriodPicker } from "@/components/shared/period-picker";
+import { CartaoDespesasCategoria } from "@/features/dashboard/cartao-despesas-categoria";
 import { CartaoResultado } from "@/features/dashboard/cartao-resultado";
 import { CartaoSaldo } from "@/features/dashboard/cartao-saldo";
 import { CartoesPendencias } from "@/features/dashboard/cartoes-pendencias";
@@ -112,12 +113,24 @@ export default async function InicioPage({ searchParams }: Props) {
         <Container className="space-y-4 pt-7 pb-6">
           <CartoesPendencias aPagar={resumo.aPagar} aReceber={resumo.aReceber} />
 
-          <CartaoResultado
-            rotulo={rotuloPeriodo}
-            receitas={resumo.receitasCentavos}
-            despesas={resumo.despesasCentavos}
-            acumulado={resumo.serieAcumulada}
-          />
+          {/* Pessoa física não fala a língua de "lucro"/"prejuízo" — o
+              card de Resultado vira participação de despesas por
+              categoria, a pergunta que quem cuida das próprias finanças
+              realmente faz. Mesmo princípio de "um componente, prop
+              decide" do resto do produto: nunca uma tela irmã. */}
+          {empresaAtiva.tipo === "PESSOA_FISICA" ? (
+            <CartaoDespesasCategoria
+              rotulo={rotuloPeriodo === "Resultado do mês" ? "Despesas do mês" : "Despesas do período"}
+              itens={resumo.despesasPorCategoria}
+            />
+          ) : (
+            <CartaoResultado
+              rotulo={rotuloPeriodo}
+              receitas={resumo.receitasCentavos}
+              despesas={resumo.despesasCentavos}
+              acumulado={resumo.serieAcumulada}
+            />
+          )}
 
           <ResumoPeriodo
             rotulo={rotuloPeriodo === "Resultado do mês" ? "Resumo do mês" : "Resumo do período"}

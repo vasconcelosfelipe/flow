@@ -31,6 +31,18 @@ export type Alerta = {
   acao: { rotulo: string; href: string };
 };
 
+/** Participação de uma categoria no total de despesas do período — usado no
+ * gráfico de pizza que substitui o card de Resultado pro espaço pessoal. */
+export type ItemDespesaCategoria = {
+  categoriaId: string;
+  nome: string;
+  cor: string;
+  icone: string;
+  totalCentavos: Centavos;
+  /** Fração de 0 a 1 do total de despesas do período. */
+  percentual: number;
+};
+
 export type BlocoPendencias = {
   totalCentavos: Centavos;
   quantidade: number;
@@ -53,6 +65,10 @@ export type ResumoDashboard = {
   aReceber: BlocoPendencias;
   serie: PontoSerie[];
   serieAcumulada: PontoAcumulado[];
+  /** Despesas do período agrupadas por categoria, maior primeiro — só o
+   * espaço pessoal usa (substitui o card de Resultado, que fala de "lucro"
+   * numa linguagem que não é a de finanças pessoais). */
+  despesasPorCategoria: ItemDespesaCategoria[];
   ultimasMovimentacoes: MovimentacaoResumo[];
   alertas: Alerta[];
 };
