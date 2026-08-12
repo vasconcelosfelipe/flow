@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link2, Plus, Trash2 } from "lucide-react";
 
 import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
@@ -70,12 +70,11 @@ export function SeletorDivisaoModal({
   aoCriarCategoria: (categoria: CategoriaCompleta) => void;
   aoCriarContato: (contato: ContatoCompleto) => void;
 }) {
-  const metade = Math.round(valorTotalCentavos / 2);
   const [partes, setPartes] = useState<ParteDivisao[]>(
     () =>
       divisaoAtual ?? [
-        { ...novaParte(metade), descricao: descricaoOriginal },
-        novaParte(valorTotalCentavos - metade),
+        { ...novaParte(0), descricao: descricaoOriginal },
+        novaParte(valorTotalCentavos),
       ],
   );
   // Texto exatamente como a pessoa digitou no campo de valor de cada parte,
@@ -94,9 +93,48 @@ export function SeletorDivisaoModal({
   const categoriasDoTipo = categorias.filter((c) => c.tipo === tipo);
   const pendenciasDoTipo = pendenciasAbertas.filter((p) => p.tipo === tipo);
 
-  const somaCentavos = partes.reduce((soma, p) => soma + p.valorCentavos, 0);
+  // A última parte que não fecha pendência (valor não travado por fora)
+  // preenche sozinha com o saldo — só ela é "automática"; as demais são
+  // sempre digitadas à mão. Com 2 partes, preencher a primeira já resolve a
+  // segunda; com N, N-1 ficam manuais e a última fecha a conta.
+  const indiceAuto = (() => {
+    for (let i = partes.length - 1; i >= 0; i--) {
+      if (!partes[i].fechaPendenciaId) return i;
+    }
+    return -1;
+  })();
+  const somaManualCentavos = partes.reduce(
+    (soma, p, i) => (i === indiceAuto ? soma : soma + p.valorCentavos),
+    0,
+  );
+  const valorAutoCentavos = indiceAuto === -1 ? 0 : valorTotalCentavos - somaManualCentavos;
+
+  // Mantém o valor computado da parte automática sincronizado no estado —
+  // sem isso, quando ela deixar de ser a última (uma nova parte for
+  // adicionada depois dela) ela vira manual carregando um valor desatualizado.
+  useEffect(() => {
+    if (indiceAuto === -1) return;
+    const id = partes[indiceAuto].id;
+    setPartes((atual) =>
+      atual[indiceAuto]?.valorCentavos === valorAutoCentavos
+        ? atual
+        : atual.map((p, i) => (i === indiceAuto ? { ...p, valorCentavos: valorAutoCentavos } : p)),
+    );
+    setValoresTexto((atual) => ({
+      ...atual,
+      [id]: (valorAutoCentavos / 100).toFixed(2).replace(".", ","),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indiceAuto, valorAutoCentavos]);
+
+  const partesEfetivas =
+    indiceAuto === -1
+      ? partes
+      : partes.map((p, i) => (i === indiceAuto ? { ...p, valorCentavos: valorAutoCentavos } : p));
+
+  const somaCentavos = partesEfetivas.reduce((soma, p) => soma + p.valorCentavos, 0);
   const bate = somaCentavos === valorTotalCentavos;
-  const todasValidas = partes.every((p) => p.valorCentavos > 0 && p.descricao.trim().length > 0);
+  const todasValidas = partesEfetivas.every((p) => p.valorCentavos > 0 && p.descricao.trim().length > 0);
   const podeSalvar = bate && todasValidas && partes.length >= 2;
 
   function atualizarParte(indice: number, ajuste: Partial<ParteDivisao>) {
@@ -104,13 +142,7 @@ export function SeletorDivisaoModal({
   }
 
   function adicionarParte() {
-    const restante = valorTotalCentavos - somaCentavos;
-    const parte = novaParte(restante > 0 ? restante : 0);
-    setPartes((atual) => [...atual, parte]);
-    setValoresTexto((atual) => ({
-      ...atual,
-      [parte.id]: (parte.valorCentavos / 100).toFixed(2).replace(".", ","),
-    }));
+    setPartes((atual) => [...atual, novaParte(0)]);
   }
 
   function removerParte(indice: number) {
@@ -160,7 +192,7 @@ export function SeletorDivisaoModal({
             className="flex-1"
             disabled={!podeSalvar}
             onClick={() => {
-              aoSalvar(partes);
+              aoSalvar(partesEfetivas);
               aoMudarAberto(false);
             }}
           >
@@ -170,22 +202,40 @@ export function SeletorDivisaoModal({
       }
     >
       <div className="space-y-3 py-2">
-        <div
-          className={cn(
-            "flex items-center justify-between rounded-lg px-3 py-2 text-micro font-medium",
-            bate ? "bg-positive-wash text-positive-text" : "bg-negative-wash text-negative-text",
-          )}
-        >
-          <span>Soma das partes</span>
-          <span>
-            {formatarMoeda(somaCentavos)} de {formatarMoeda(valorTotalCentavos)}
-          </span>
-        </div>
+        {indiceAuto !== -1 ? (
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-lg px-3 py-2 text-micro font-medium",
+              valorAutoCentavos > 0
+                ? "bg-positive-wash text-positive-text"
+                : "bg-negative-wash text-negative-text",
+            )}
+          >
+            <span>
+              {valorAutoCentavos > 0 ? "Última parte preenche sozinha" : "Já passou do valor do lançamento"}
+            </span>
+            <span>{formatarMoeda(valorAutoCentavos)}</span>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-lg px-3 py-2 text-micro font-medium",
+              bate ? "bg-positive-wash text-positive-text" : "bg-negative-wash text-negative-text",
+            )}
+          >
+            <span>Soma das partes</span>
+            <span>
+              {formatarMoeda(somaCentavos)} de {formatarMoeda(valorTotalCentavos)}
+            </span>
+          </div>
+        )}
 
         {partes.map((parte, indice) => {
           const categoriaSelecionada = categorias.find((c) => c.id === parte.categoriaId);
           const contatoSelecionado = contatos.find((c) => c.id === parte.contatoId);
-          const travada = parte.fechaPendenciaId !== null;
+          const travadaPendencia = parte.fechaPendenciaId !== null;
+          const ehAuto = indice === indiceAuto;
+          const travada = travadaPendencia || ehAuto;
 
           return (
             <div key={parte.id} className="space-y-2 rounded-xl border border-line p-3">
@@ -195,13 +245,13 @@ export function SeletorDivisaoModal({
                   onClick={() => alternarModo(indice)}
                   className={cn(
                     "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-nano font-medium transition-colors",
-                    travada
+                    travadaPendencia
                       ? "bg-positive-wash text-positive-text"
                       : "bg-muted text-ink-muted hover:bg-muted/70",
                   )}
                 >
                   <Link2 className="size-3" aria-hidden="true" />
-                  {travada ? "Fecha uma pendência" : "Novo lançamento"}
+                  {travadaPendencia ? "Fecha uma pendência" : "Novo lançamento"}
                 </button>
                 {partes.length > 2 && (
                   <button
@@ -215,21 +265,26 @@ export function SeletorDivisaoModal({
                 )}
               </div>
 
-              <Input
-                inputMode="decimal"
-                placeholder="Valor"
-                disabled={travada}
-                value={valoresTexto[parte.id] ?? ""}
-                onChange={(e) => {
-                  const texto = e.target.value;
-                  setValoresTexto((atual) => ({ ...atual, [parte.id]: texto }));
-                  atualizarParte(indice, { valorCentavos: parseMoeda(texto) ?? 0 });
-                }}
-                className="h-9 text-micro"
-              />
+              <div>
+                <Input
+                  inputMode="decimal"
+                  placeholder="Valor"
+                  disabled={travada}
+                  value={valoresTexto[parte.id] ?? ""}
+                  onChange={(e) => {
+                    const texto = e.target.value;
+                    setValoresTexto((atual) => ({ ...atual, [parte.id]: texto }));
+                    atualizarParte(indice, { valorCentavos: parseMoeda(texto) ?? 0 });
+                  }}
+                  className="h-9 text-micro"
+                />
+                {ehAuto && !travadaPendencia && (
+                  <p className="mt-1 text-nano text-ink-muted">Preenchido automaticamente com o saldo</p>
+                )}
+              </div>
               <Input
                 placeholder="Descrição"
-                disabled={travada}
+                disabled={travadaPendencia}
                 value={parte.descricao}
                 onChange={(e) => atualizarParte(indice, { descricao: e.target.value })}
                 className="h-9 text-micro"
@@ -240,14 +295,14 @@ export function SeletorDivisaoModal({
                   size="sm"
                   label={categoriaSelecionada?.nome ?? null}
                   placeholder="Sem categoria"
-                  disabled={travada}
+                  disabled={travadaPendencia}
                   onClick={() => setModalAberto({ indice, tipo: "categoria" })}
                 />
                 <GatilhoSelecao
                   size="sm"
                   label={contatoSelecionado?.nome ?? null}
                   placeholder="Sem fornecedor"
-                  disabled={travada}
+                  disabled={travadaPendencia}
                   onClick={() => setModalAberto({ indice, tipo: "contato" })}
                 />
               </div>
