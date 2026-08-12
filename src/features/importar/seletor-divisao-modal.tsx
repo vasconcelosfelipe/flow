@@ -78,6 +78,14 @@ export function SeletorDivisaoModal({
         novaParte(valorTotalCentavos - metade),
       ],
   );
+  // Texto exatamente como a pessoa digitou no campo de valor de cada parte,
+  // por id — o campo NÃO deriva o texto de `valorCentavos` a cada tecla
+  // (isso reformata o valor a cada dígito e trava a digitação no meio, como
+  // qualquer campo de dinheiro controlado direto pelo número já formatado).
+  // `parseMoeda` só converte pra centavos em paralelo, pra soma/validação.
+  const [valoresTexto, setValoresTexto] = useState<Record<string, string>>(() =>
+    Object.fromEntries(partes.map((p) => [p.id, (p.valorCentavos / 100).toFixed(2).replace(".", ",")])),
+  );
   const [modalAberto, setModalAberto] = useState<
     | { indice: number; tipo: "categoria" | "contato" | "pendencia" }
     | null
@@ -97,7 +105,12 @@ export function SeletorDivisaoModal({
 
   function adicionarParte() {
     const restante = valorTotalCentavos - somaCentavos;
-    setPartes((atual) => [...atual, novaParte(restante > 0 ? restante : 0)]);
+    const parte = novaParte(restante > 0 ? restante : 0);
+    setPartes((atual) => [...atual, parte]);
+    setValoresTexto((atual) => ({
+      ...atual,
+      [parte.id]: (parte.valorCentavos / 100).toFixed(2).replace(".", ","),
+    }));
   }
 
   function removerParte(indice: number) {
@@ -125,6 +138,10 @@ export function SeletorDivisaoModal({
       categoriaId: pendencia.categoria?.id ?? null,
       contatoId: pendencia.contato?.id ?? null,
     });
+    setValoresTexto((atual) => ({
+      ...atual,
+      [partes[indice].id]: (pendencia.valorCentavos / 100).toFixed(2).replace(".", ","),
+    }));
   }
 
   return (
@@ -202,10 +219,11 @@ export function SeletorDivisaoModal({
                 inputMode="decimal"
                 placeholder="Valor"
                 disabled={travada}
-                value={(parte.valorCentavos / 100).toFixed(2).replace(".", ",")}
+                value={valoresTexto[parte.id] ?? ""}
                 onChange={(e) => {
-                  const centavos = parseMoeda(e.target.value);
-                  atualizarParte(indice, { valorCentavos: centavos ?? 0 });
+                  const texto = e.target.value;
+                  setValoresTexto((atual) => ({ ...atual, [parte.id]: texto }));
+                  atualizarParte(indice, { valorCentavos: parseMoeda(texto) ?? 0 });
                 }}
                 className="h-9 text-micro"
               />
