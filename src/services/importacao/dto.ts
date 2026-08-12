@@ -17,6 +17,23 @@ import type { TipoMovimentacao } from "@/types/dominio";
 
 export type StatusLinhaImportacao = "NOVA" | "DUPLICADA" | "CONCILIAVEL" | "IGNORADA";
 
+/**
+ * Uma fatia de uma linha do extrato dividida em vários lançamentos — ver
+ * `LinhaImportacao.divisao`.
+ */
+export type ParteDivisao = {
+  /** Gerado no cliente (`crypto.randomUUID()`), só pra `key` de lista/edição. */
+  id: string;
+  valorCentavos: Centavos;
+  descricao: string;
+  categoriaId: string | null;
+  contatoId: string | null;
+  /** Preenchido = esta parte fecha a pendência com este id, em vez de criar
+   * lançamento novo. Quando preenchido, valor/descrição/categoria/contato
+   * vêm travados nos dados da pendência (ver `SeletorDivisaoModal`). */
+  fechaPendenciaId: string | null;
+};
+
 export type LinhaImportacao = {
   /** FITID do OFX — também a chave de dedup gravada em `origemFitId`. */
   id: string;
@@ -68,12 +85,22 @@ export type LinhaImportacao = {
    */
   ehTransferencia: boolean;
   contaTransferenciaId: string | null;
+  /**
+   * Não-nulo = a pessoa dividiu esta linha em N partes (um pagamento único
+   * cobrindo várias despesas) — cada parte vira seu próprio lançamento ou
+   * fecha uma pendência, todas ligadas por `Movimentacao.divisaoId` na
+   * confirmação. `null` = comportamento normal, sem divisão.
+   */
+  divisao: ParteDivisao[] | null;
 };
 
 export type ResumoImportacao = {
   arquivoNome: string;
   conta: ContaResumo;
   linhas: LinhaImportacao[];
+  /** Pendências em aberto da mesma conta — candidatas a "fechar pendência
+   * existente" dentro do editor de divisão de uma linha. */
+  pendenciasAbertas: MovimentacaoResumo[];
 };
 
 export type ResultadoConfirmacao = {

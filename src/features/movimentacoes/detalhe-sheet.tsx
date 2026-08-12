@@ -17,7 +17,7 @@ import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-catego
 import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { formatarData } from "@/lib/dates";
 import { iconeDe } from "@/lib/icones";
-import { parseMoeda } from "@/lib/money";
+import { formatarMoeda, parseMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import {
   desfazerConciliacao,
@@ -25,6 +25,7 @@ import {
   editarMovimentacao,
   excluirGrupoParcelamento,
   excluirMovimentacao,
+  listarIrmasDivisao,
 } from "@/services/movimentacoes/actions";
 import { ROTULO_STATUS } from "@/types/dominio";
 import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
@@ -188,6 +189,13 @@ function Detalhe({
   const { abrir: abrirNovoLancamento } = useNovoLancamento();
   const [pending, startTransition] = useTransition();
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
+  // Não-nulo = essa movimentação faz parte de uma divisão (import de OFX
+  // dividido em N partes) e o "Desfazer" precisa avisar quais outras
+  // também vão voltar a PENDENTE/PAGO junto, antes de confirmar.
+  const [irmasDivisao, setIrmasDivisao] = useState<
+    { id: string; descricao: string; valorCentavos: number }[] | null
+  >(null);
+  const [carregandoIrmas, setCarregandoIrmas] = useState(false);
   const transferencia = movimentacao.transferenciaId !== null;
   const agrupada = movimentacao.grupoParcelamento !== null;
   const Icone = transferencia ? ArrowLeftRight : movimentacao.categoria ? iconeDe(movimentacao.categoria.icone) : Tag;
@@ -238,9 +246,23 @@ function Detalhe({
     });
   }
 
+  function iniciarDesfazer() {
+    if (!movimentacao.divisaoId) {
+      desfazer();
+      return;
+    }
+    setCarregandoIrmas(true);
+    startTransition(async () => {
+      const irmas = await listarIrmasDivisao(movimentacao.divisaoId!);
+      setCarregandoIrmas(false);
+      setIrmasDivisao(irmas.filter((i) => i.id !== movimentacao.id));
+    });
+  }
+
   function desfazer() {
     startTransition(async () => {
       await desfazerConciliacao(movimentacao.id);
+      setIrmasDivisao(null);
       router.refresh();
     });
   }
@@ -314,7 +336,44 @@ function Detalhe({
         </Button>
       )}
 
-      {somenteLeitura ? null : conciliada ? (
+      {somenteLeitura ? null : conciliada && irmasDivisao ? (
+        <div className="space-y-2 rounded-xl border border-line p-3">
+          <p className="text-micro text-ink">
+            Este lançamento faz parte de uma divisão — desfazer também vai devolver{" "}
+            {irmasDivisao.length === 1 ? "esta outra parte" : `estas outras ${irmasDivisao.length} partes`}{" "}
+            pro estado anterior:
+          </p>
+          <ul className="space-y-1 rounded-lg bg-muted/50 p-2">
+            {irmasDivisao.map((i) => (
+              <li key={i.id} className="flex items-center justify-between gap-2 text-nano text-ink-muted">
+                <span className="truncate">{i.descricao}</span>
+                <span className="shrink-0 font-medium text-ink">{formatarMoeda(i.valorCentavos)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => setIrmasDivisao(null)}
+              disabled={pending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              className="flex-1"
+              onClick={desfazer}
+              disabled={pending}
+            >
+              {pending ? "Desfazendo…" : "Confirmar"}
+            </Button>
+          </div>
+        </div>
+      ) : conciliada ? (
         <div className="rounded-xl border border-line p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-micro text-ink-muted">
@@ -325,11 +384,11 @@ function Detalhe({
               variant="outline"
               size="sm"
               className="shrink-0 gap-1.5"
-              onClick={desfazer}
-              disabled={pending}
+              onClick={iniciarDesfazer}
+              disabled={pending || carregandoIrmas}
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
-              Desfazer
+              {carregandoIrmas ? "Verificando…" : "Desfazer"}
             </Button>
           </div>
         </div>

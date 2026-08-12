@@ -348,6 +348,7 @@ export async function processarArquivoOfx(
       origemSugestao,
       ehTransferencia: false,
       contaTransferenciaId: null,
+      divisao: null,
     };
   });
 
@@ -355,6 +356,9 @@ export async function processarArquivoOfx(
     arquivoNome: nomeArquivo,
     conta: { id: conta.id, nome: conta.nome, cor: conta.cor, tipo: conta.tipo },
     linhas,
+    // Mesma lista já buscada acima pra casar `CONCILIAVEL` — o editor de
+    // divisão de uma linha reaproveita, não faz query nova.
+    pendenciasAbertas: pendencias.map((p) => mapearMovimentacao(p)),
   };
 }
 
@@ -450,6 +454,56 @@ export async function confirmarImportacao(input: {
           data: { importacaoId: importacao.id, movimentacaoId: movImportada.id },
         });
         criadas++;
+      } else if (linha.divisao && linha.divisao.length > 0) {
+        // Um pagamento único do extrato cobrindo várias despesas: cada parte
+        // vira seu próprio lançamento (ou fecha uma pendência existente),
+        // todas ligadas por `divisaoId` — é o que permite desfazer a
+        // conciliação em cascata depois (ver `desfazerConciliacao`).
+        const divisaoId = crypto.randomUUID();
+        const idsCriados: string[] = [];
+        for (const parte of linha.divisao) {
+          const mov = parte.fechaPendenciaId
+            ? await db.movimentacao.update({
+                where: { id: parte.fechaPendenciaId },
+                data: {
+                  status: "CONCILIADO",
+                  data: linha.data,
+                  divisaoId,
+                  categoriaId: parte.categoriaId,
+                  contatoId: parte.contatoId,
+                  descricao: parte.descricao,
+                },
+              })
+            : await db.movimentacao.create({
+                data: {
+                  empresaId,
+                  contaId: input.contaId,
+                  categoriaId: parte.categoriaId,
+                  contatoId: parte.contatoId,
+                  descricao: parte.descricao,
+                  tipo: linha.tipo,
+                  valorCentavos: parte.valorCentavos,
+                  status: "CONCILIADO",
+                  data: linha.data,
+                  dataCompetencia: linha.data,
+                  divisaoId,
+                },
+              });
+          idsCriados.push(mov.id);
+          if (parte.fechaPendenciaId) conciliadas++;
+          else criadas++;
+        }
+        // `origemFitId` (chave de dedup) só numa das partes — as outras
+        // ficam null, senão a constraint [contaId, origemFitId] rejeitaria.
+        await db.movimentacao.update({
+          where: { id: idsCriados[0] },
+          data: { origemFitId: linha.id },
+        });
+        for (const movId of idsCriados) {
+          await db.importacaoLinha.create({
+            data: { importacaoId: importacao.id, movimentacaoId: movId },
+          });
+        }
       } else if (linha.status === "CONCILIAVEL" && linha.conciliaCom) {
         const mov = await db.movimentacao.update({
           where: { id: linha.conciliaCom.id },

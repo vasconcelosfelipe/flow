@@ -304,6 +304,10 @@ model Movimentacao {
   // Sem categoria nem contato de propósito: transferência não é receita nem
   // despesa de verdade, e já fica fora da DRE por não ter linhaDreId.
   transferenciaId String?
+  // Divisão de um único lançamento importado em N partes (um pagamento
+  // cobrindo várias despesas) — liga as partes pra desfazer conciliação em
+  // cascata. `null` = lançamento comum, não dividido.
+  divisaoId       String?
 
   criadoEm       DateTime          @default(now())
   atualizadoEm   DateTime          @updatedAt
@@ -318,6 +322,7 @@ model Movimentacao {
 
   @@unique([contaId, origemFitId])
   @@index([transferenciaId])
+  @@index([divisaoId])
   @@index([empresaId, data])
   @@index([empresaId, dataVencimento])
   @@index([empresaId, dataCompetencia])

@@ -24,6 +24,7 @@ export function mapearMovimentacao(
     recorrente: boolean;
     transferenciaId?: string | null;
     origemFitId?: string | null;
+    divisaoId?: string | null;
     categoria: { id: string; nome: string; icone: string; cor: string } | null;
     conta: { id: string; nome: string; cor: string; tipo: string };
     contato: { id: string; nome: string } | null;
@@ -52,6 +53,7 @@ export function mapearMovimentacao(
         }
       : null,
     origemFitId: m.origemFitId ?? null,
+    divisaoId: m.divisaoId ?? null,
     categoria: m.categoria
       ? {
           id: m.categoria.id,

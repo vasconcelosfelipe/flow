@@ -7,7 +7,7 @@ import { PassoRevisao } from "@/features/importar/passo-revisao";
 import { PassoUpload } from "@/features/importar/passo-upload";
 import { cn } from "@/lib/utils";
 import { confirmarImportacao } from "@/services/importacao/actions";
-import type { ResultadoConfirmacao, ResumoImportacao } from "@/services/importacao/dto";
+import type { ParteDivisao, ResultadoConfirmacao, ResumoImportacao } from "@/services/importacao/dto";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
@@ -48,23 +48,21 @@ function carregarRevisao(): ResumoImportacao | null {
     const bruto = sessionStorage.getItem(CHAVE_STORAGE);
     if (!bruto) return null;
     const dados = JSON.parse(bruto);
+    const reviverDatas = (m: ResumoImportacao["pendenciasAbertas"][number]) => ({
+      ...m,
+      data: m.data ? new Date(m.data) : null,
+      dataVencimento: m.dataVencimento ? new Date(m.dataVencimento) : null,
+    });
     return {
       ...dados,
       linhas: dados.linhas.map(
         (l: ResumoImportacao["linhas"][number]) => ({
           ...l,
           data: new Date(l.data),
-          conciliaCom: l.conciliaCom
-            ? {
-                ...l.conciliaCom,
-                data: l.conciliaCom.data ? new Date(l.conciliaCom.data) : null,
-                dataVencimento: l.conciliaCom.dataVencimento
-                  ? new Date(l.conciliaCom.dataVencimento)
-                  : null,
-              }
-            : null,
+          conciliaCom: l.conciliaCom ? reviverDatas(l.conciliaCom) : null,
         }),
       ),
+      pendenciasAbertas: (dados.pendenciasAbertas ?? []).map(reviverDatas),
     };
   } catch {
     return null;
@@ -146,6 +144,7 @@ export function WizardImportacao({
       descricao?: string;
       ehTransferencia?: boolean;
       contaTransferenciaId?: string | null;
+      divisao?: ParteDivisao[] | null;
     },
   ) {
     setResumo((atual) =>
@@ -241,6 +240,7 @@ export function WizardImportacao({
           contaAtualId={resumo.conta.id}
           contaAtualNome={resumo.conta.nome}
           linhas={resumo.linhas}
+          pendenciasAbertas={resumo.pendenciasAbertas}
           contas={contas}
           categorias={categorias}
           contatos={contatos}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2, X } from "lucide-react";
+import { ArrowLeftRight, ChevronsUpDown, EyeOff, GitMerge, Link2, Split, X } from "lucide-react";
 
 import { AmountText } from "@/components/shared/amount-text";
 import { GatilhoSelecao } from "@/components/shared/gatilho-selecao";
@@ -9,12 +9,15 @@ import { SeletorListaModal } from "@/components/shared/seletor-lista-modal";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { SeletorCategoriaContatoModal } from "@/features/importar/seletor-categoria-contato-modal";
+import { SeletorDivisaoModal } from "@/features/importar/seletor-divisao-modal";
 import { formatarData } from "@/lib/dates";
+import { formatarMoeda } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
-import type { LinhaImportacao } from "@/services/importacao/dto";
+import type { LinhaImportacao, ParteDivisao } from "@/services/importacao/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type { TipoEmpresa } from "@/types/dominio";
 
 type OpcaoConta = { id: string; nome: string };
@@ -60,6 +63,7 @@ export function LinhaImportacao({
   categorias,
   contatos,
   linhasDre,
+  pendenciasAbertas,
   tipoEspaco,
   aoAlternar,
   aoAtualizar,
@@ -72,6 +76,7 @@ export function LinhaImportacao({
   categorias: CategoriaCompleta[];
   contatos: ContatoCompleto[];
   linhasDre: LinhaDreOpcao[];
+  pendenciasAbertas: MovimentacaoResumo[];
   tipoEspaco: TipoEmpresa;
   aoAlternar: (id: string) => void;
   aoAtualizar: (
@@ -83,6 +88,7 @@ export function LinhaImportacao({
       descricao?: string;
       ehTransferencia?: boolean;
       contaTransferenciaId?: string | null;
+      divisao?: ParteDivisao[] | null;
     },
   ) => void;
   aoAlternarIgnorarPermanentemente: (id: string) => void;
@@ -90,7 +96,7 @@ export function LinhaImportacao({
   aoCriarContato: (contato: ContatoCompleto) => void;
 }) {
   const [modalAberto, setModalAberto] = useState<
-    "categoria" | "contato" | "contaTransferencia" | null
+    "categoria" | "contato" | "contaTransferencia" | "divisao" | null
   >(null);
   const receita = linha.tipo === "RECEITA";
   const categoriasDoTipo = categorias.filter((c) => c.tipo === linha.tipo);
@@ -184,8 +190,8 @@ export function LinhaImportacao({
           </button>
         )}
 
-        {linha.incluir && (
-          <>
+        {linha.incluir && !linha.divisao && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={() =>
@@ -195,7 +201,7 @@ export function LinhaImportacao({
                 })
               }
               className={cn(
-                "mt-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-nano font-medium transition-colors",
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-nano font-medium transition-colors",
                 linha.ehTransferencia
                   ? "bg-brand text-white"
                   : "bg-muted text-ink-muted hover:bg-muted/70",
@@ -205,6 +211,47 @@ export function LinhaImportacao({
               {linha.ehTransferencia ? "É uma transferência" : "Marcar como transferência"}
             </button>
 
+            {!linha.ehTransferencia && (
+              <button
+                type="button"
+                onClick={() => setModalAberto("divisao")}
+                className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-nano font-medium text-ink-muted transition-colors hover:bg-muted/70"
+              >
+                <Split className="size-3" aria-hidden="true" />
+                Dividir
+              </button>
+            )}
+          </div>
+        )}
+
+        {linha.incluir && linha.divisao && (
+          <div className="mt-2 space-y-1.5 rounded-lg border border-line bg-muted/40 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="flex items-center gap-1 text-nano font-medium text-ink">
+                <Split className="size-3 shrink-0" aria-hidden="true" />
+                Dividida em {linha.divisao.length} partes
+              </p>
+              <button
+                type="button"
+                onClick={() => setModalAberto("divisao")}
+                className="text-nano font-medium text-brand hover:underline"
+              >
+                Editar
+              </button>
+            </div>
+            <ul className="space-y-0.5">
+              {linha.divisao.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-2 text-nano text-ink-muted">
+                  <span className="truncate">{p.descricao}</span>
+                  <span className="shrink-0">{formatarMoeda(p.valorCentavos)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {linha.incluir && (
+          <>
             {linha.ehTransferencia ? (
               <div className="mt-1.5">
                 <GatilhoSelecao
@@ -214,7 +261,7 @@ export function LinhaImportacao({
                   onClick={() => setModalAberto("contaTransferencia")}
                 />
               </div>
-            ) : (
+            ) : linha.divisao ? null : (
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 <button
                   type="button"
@@ -309,6 +356,25 @@ export function LinhaImportacao({
           ...contas.map((c) => ({ value: c.id, label: c.nome })),
         ]}
       />
+
+      {modalAberto === "divisao" && (
+        <SeletorDivisaoModal
+          aberto
+          aoMudarAberto={(a) => !a && setModalAberto(null)}
+          tipo={linha.tipo}
+          valorTotalCentavos={linha.valorCentavos}
+          descricaoOriginal={linha.descricao}
+          divisaoAtual={linha.divisao}
+          pendenciasAbertas={pendenciasAbertas}
+          categorias={categorias}
+          contatos={contatos}
+          linhasDre={linhasDre}
+          tipoEspaco={tipoEspaco}
+          aoSalvar={(partes) => aoAtualizar(linha.id, { divisao: partes })}
+          aoCriarCategoria={aoCriarCategoria}
+          aoCriarContato={aoCriarContato}
+        />
+      )}
     </div>
   );
 }

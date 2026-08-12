@@ -40,6 +40,7 @@ function mapearParaResumo(m: {
   recorrente: boolean;
   transferenciaId: string | null;
   origemFitId: string | null;
+  divisaoId: string | null;
   categoria: { id: string; nome: string; icone: string; cor: string } | null;
   conta: { id: string; nome: string; cor: string; tipo: string };
   contato: { id: string; nome: string } | null;
@@ -57,6 +58,7 @@ function mapearParaResumo(m: {
     grupoParcelamento: m.grupoParcelamento,
     recorrente: m.recorrente,
     transferenciaId: m.transferenciaId,
+    divisaoId: m.divisaoId,
     contaPar: null,
     origemFitId: m.origemFitId,
     categoria: m.categoria

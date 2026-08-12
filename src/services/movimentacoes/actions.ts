@@ -202,18 +202,43 @@ export async function criarTransferencia(dados: NovaTransferenciaInput) {
  * pendência original), não existe estado anterior pra restaurar: só solta o
  * vínculo com o extrato e mantém "paga" — reimportar depois disso cria uma
  * linha nova em vez de reconciliar.
+ *
+ * Se a movimentação tem `divisaoId` (nasceu de uma linha do OFX dividida em
+ * várias partes — ver `confirmarImportacao`), desfazer uma parte desfaz
+ * todas juntas: não faz sentido reabrir só uma fatia de um pagamento único.
  */
 export async function desfazerConciliacao(id: string) {
   const empresaId = await obterEmpresaEscrita();
   const mov = await db.movimentacao.findUniqueOrThrow({ where: { id, empresaId } });
-  await db.movimentacao.update({
-    where: { id, empresaId },
-    data: mov.dataVencimento
-      ? { status: "PENDENTE", data: null, origemFitId: null }
-      : { status: "PAGO", origemFitId: null },
-  });
+  const alvos = mov.divisaoId
+    ? await db.movimentacao.findMany({ where: { empresaId, divisaoId: mov.divisaoId } })
+    : [mov];
+  await db.$transaction(
+    alvos.map((m) =>
+      db.movimentacao.update({
+        where: { id: m.id },
+        data: m.dataVencimento
+          ? { status: "PENDENTE", data: null, origemFitId: null }
+          : { status: "PAGO", origemFitId: null },
+      }),
+    ),
+  );
   revalidatePath("/movimentacoes");
   revalidatePath("/");
+}
+
+/** Lista as outras partes ligadas à mesma divisão — usado pra avisar quais
+ * lançamentos também serão desfeitos junto, antes de confirmar (ver
+ * `desfazerConciliacao`). */
+export async function listarIrmasDivisao(
+  divisaoId: string,
+): Promise<{ id: string; descricao: string; valorCentavos: number }[]> {
+  const empresaId = await obterEmpresaEscrita();
+  const irmas = await db.movimentacao.findMany({
+    where: { empresaId, divisaoId },
+    select: { id: true, descricao: true, valorCentavos: true },
+  });
+  return irmas;
 }
 
 /** Categoriza várias movimentações de uma vez — a lista pode misturar RECEITA e DESPESA. */

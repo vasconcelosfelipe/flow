@@ -5,10 +5,15 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LinhaImportacao } from "@/features/importar/linha-importacao";
-import type { LinhaImportacao as TipoLinha, StatusLinhaImportacao } from "@/services/importacao/dto";
+import type {
+  LinhaImportacao as TipoLinha,
+  ParteDivisao,
+  StatusLinhaImportacao,
+} from "@/services/importacao/dto";
 import type { CategoriaCompleta } from "@/services/categorias/dto";
 import type { ContatoCompleto } from "@/services/contatos/dto";
 import type { LinhaDreOpcao } from "@/services/linhas-dre/dto";
+import type { MovimentacaoResumo } from "@/services/movimentacoes/dto";
 import type { TipoEmpresa } from "@/types/dominio";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +38,7 @@ export function PassoRevisao({
   contaAtualId,
   contaAtualNome,
   linhas,
+  pendenciasAbertas,
   contas,
   categorias,
   contatos,
@@ -52,6 +58,7 @@ export function PassoRevisao({
   contaAtualId: string;
   contaAtualNome: string;
   linhas: TipoLinha[];
+  pendenciasAbertas: MovimentacaoResumo[];
   contas: OpcaoConta[];
   categorias: CategoriaCompleta[];
   contatos: ContatoCompleto[];
@@ -68,6 +75,7 @@ export function PassoRevisao({
       descricao?: string;
       ehTransferencia?: boolean;
       contaTransferenciaId?: string | null;
+      divisao?: ParteDivisao[] | null;
     },
   ) => void;
   aoAlternarIgnorarPermanentemente: (id: string) => void;
@@ -134,6 +142,7 @@ export function PassoRevisao({
             categorias={categorias}
             contatos={contatos}
             linhasDre={linhasDre}
+            pendenciasAbertas={pendenciasAbertas}
             tipoEspaco={tipoEspaco}
             aoAlternar={aoAlternarLinha}
             aoAtualizar={aoAtualizarLinha}

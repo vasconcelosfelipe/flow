@@ -63,6 +63,9 @@ export type MovimentacaoResumo = {
   contaPar: ContaResumo | null;
   /** Não-nulo = veio de um extrato OFX importado, não digitado à mão. */
   origemFitId: string | null;
+  /** Não-nulo = uma de N partes de uma linha de importação dividida — ao
+   * desfazer a conciliação, todas as partes com o mesmo id desfazem juntas. */
+  divisaoId: string | null;
 };
 
 export type MovimentacaoDetalhe = MovimentacaoResumo & {
