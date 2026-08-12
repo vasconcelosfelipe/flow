@@ -35,8 +35,11 @@ export const metadata: Metadata = {
   applicationName: "Flow",
   manifest: "/manifest.webmanifest",
   icons: {
-    // `icon.svg` em app/ já é servido automaticamente pelo Next; o apple-touch
-    // precisa ser PNG — iOS não aceita SVG para o ícone da tela de início.
+    // Declarar QUALQUER coisa em `icons` desliga a detecção automática por
+    // convenção do Next (`icon.svg` em app/ não basta mais sozinho) — por
+    // isso precisa listar os dois na mão, não só o apple-touch. PNG pro
+    // apple-touch porque iOS não aceita SVG pro ícone da tela de início.
+    icon: "/icon.svg",
     apple: "/apple-icon.png",
   },
   appleWebApp: {
