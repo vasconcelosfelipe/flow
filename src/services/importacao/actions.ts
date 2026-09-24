@@ -87,9 +87,6 @@ type HistoricoEntrada = {
   tipo: string;
   categoriaId: string | null;
   contatoId: string | null;
-  /** Descrição legível que a pessoa deixou da última vez — vira sugestão
-   * de texto pra próxima ocorrência parecida (ver `descricaoSugerida`). */
-  descricao: string;
 };
 
 /**
@@ -140,7 +137,6 @@ async function aprenderComHistorico(empresaId: string): Promise<HistoricoEntrada
       tipo: mov.tipo,
       categoriaId: mov.categoriaId,
       contatoId: mov.contatoId,
-      descricao: mov.descricao,
     });
   }
   return entradas;
@@ -155,7 +151,7 @@ function encontrarAprendizado(
   descricao: string,
   tipo: string,
   historico: HistoricoEntrada[],
-): { categoriaId: string | null; contatoId: string | null; descricaoSugerida: string } | null {
+): { categoriaId: string | null; contatoId: string | null } | null {
   const nucleo = normalizarDescricao(descricao);
   if (!nucleo) return null;
 
@@ -163,7 +159,7 @@ function encontrarAprendizado(
 
   const exato = doTipo.find((h) => h.nucleo === nucleo);
   if (exato) {
-    return { categoriaId: exato.categoriaId, contatoId: exato.contatoId, descricaoSugerida: exato.descricao };
+    return { categoriaId: exato.categoriaId, contatoId: exato.contatoId };
   }
 
   // Descrição curta demais — só o match exato acima vale, comparar por
@@ -182,7 +178,7 @@ function encontrarAprendizado(
     }
   }
   return melhor
-    ? { categoriaId: melhor.categoriaId, contatoId: melhor.contatoId, descricaoSugerida: melhor.descricao }
+    ? { categoriaId: melhor.categoriaId, contatoId: melhor.contatoId }
     : null;
 }
 
@@ -328,10 +324,11 @@ export async function processarArquivoOfx(
 
     return {
       id: t.fitId,
-      // Trigrama achou a mesma origem antes: reaproveita o nome legível que
-      // a pessoa deixou naquela vez, em vez do texto cru do banco — ela só
-      // reescreve à mão se for a primeira vez que essa origem aparece.
-      descricao: doTrigrama?.descricaoSugerida || t.descricao,
+      // Sempre o texto cru do banco: sugerir outro nome por cima (do
+      // histórico) escondia o que era o lançamento original e, quando o
+      // match errava, a pessoa não tinha como saber. Categoria/fornecedor
+      // continuam sugeridos; o nome só a pessoa muda, à mão.
+      descricao: t.descricao,
       descricaoOriginal: t.descricao,
       data: t.data,
       valorCentavos: t.valorCentavos,
