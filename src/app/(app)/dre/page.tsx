@@ -1,6 +1,7 @@
 import { parse } from "date-fns";
 
 import { Container } from "@/components/layout/container";
+import { BotaoExportarPdf } from "@/features/dre/botao-exportar-pdf";
 import { FiltrosDre } from "@/features/dre/filtros";
 import { ResumoDre } from "@/features/dre/resumo";
 import { ListaDespesasPorCategoria } from "@/features/dre/resumo-despesas-categoria";
@@ -28,12 +29,16 @@ export default async function DrePage({ searchParams }: Props) {
   const ano = params.ano ? Number(params.ano) : hoje.getFullYear();
   const { empresaAtiva } = await requireSessao();
   const meses = modo === "mensal" ? [mes] : mesesDoAno(ano);
+  const opcoesPdf = { espaco: empresaAtiva.nome, modo, mes, ano } as const;
 
   if (empresaAtiva.tipo === "PESSOA_FISICA") {
     const resumo = await montarResumoDespesasPorCategoria(empresaAtiva.id, meses);
     return (
       <Container className="space-y-4 pt-5">
-        <h1 className="text-titulo font-semibold text-ink">Resumo</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-titulo font-semibold text-ink">Resumo</h1>
+          <BotaoExportarPdf resumo={resumo} opcoes={opcoesPdf} />
+        </div>
 
         <FiltrosDre modo={modo} mes={mes} ano={ano} />
 
@@ -46,7 +51,10 @@ export default async function DrePage({ searchParams }: Props) {
 
   return (
     <Container className="space-y-4 pt-5">
-      <h1 className="text-titulo font-semibold text-ink">DRE</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-titulo font-semibold text-ink">DRE</h1>
+        <BotaoExportarPdf dre={dre} opcoes={opcoesPdf} />
+      </div>
 
       <FiltrosDre modo={modo} mes={mes} ano={ano} />
 
